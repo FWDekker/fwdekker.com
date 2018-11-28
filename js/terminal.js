@@ -146,6 +146,13 @@ class Terminal {
                 break;
             case "arrowdown":
                 this.inputText = this._inputHistory.nextEntry();
+                break;
+            case "l":
+                if (e.ctrlKey) {
+                    this.clear();
+                    e.preventDefault();
+                }
+                break;
         }
     }
 }
