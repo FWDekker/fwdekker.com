@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Felix W. Dekker"/>
+    <meta name="application-name" content="FWDekker"/>
+    <meta name="description" content="Felix W. Dekker's personal website"/>
+    <meta name="theme-color" content="#0033cc"/>
+    <meta property="og:url" content="https://fwdekker.com/"/>
+    <meta property="og:title" content="FWDekker"/>
+    <meta property="og:description" content="Felix W. Dekker's personal website">
+    <meta property="og:locale" content="en_GB"/>
+
+    <title>FWDekker</title>
+
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700" rel="stylesheet">
+
+    <style>
+        a:link {
+            color: #00CC00;
+        }
+
+        a:visited {
+            color: #00CC00;
+        }
+
+        a:hover {
+            color: #007700;
+        }
+
+
+        #terminal {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            padding: 25px;
+            overflow: hidden;
+
+            cursor: text;
+
+            background-color: black;
+            color: white;
+
+            font-family: "Roboto Mono", monospace;
+            font-size: 16px;
+        }
+
+        #terminal * {
+            margin: 0;
+        }
+
+        #terminalOutput {
+            white-space: pre;
+        }
+
+        #terminalCurrentPrefix {
+            display: inline;
+        }
+
+        #terminalCurrentFocus {
+            display: inline;
+        }
+
+        #terminalCurrentFocusInput {
+            margin: 0;
+            padding: 0;
+
+            display: inline-block;
+            min-width: 500px;
+
+            outline: none;
+            border: none;
+
+            background-color: inherit;
+            color: inherit;
+
+            font-family: inherit;
+            font-size: inherit;
+        }
+
+        #terminalCurrentFocusInput br {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div id="terminal">
+    <div id="terminalOutput"></div>
+    <div id="terminalCurrent">
+        <div id="terminalCurrentPrefix">
+        </div>
+        <div id="terminalCurrentFocus">
+            <span id="terminalCurrentFocusInput" contenteditable="true" spellcheck="false"></span>
+        </div>
+    </div>
+</div>
+
+
+<script src="js/shared.js"></script>
+<script src="js/terminal.js"></script>
+<script src="js/commands.js"></script>
+<script src="js/fs.js"></script>
+</body>
+</html>
