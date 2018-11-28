@@ -144,25 +144,7 @@ class Commands {
     }
 
     ls(args) {
-        const files = this._fs.ls(args[1]);
-        if (files === undefined) {
-            return `The directory '${args[1]}' does not exist`;
-        }
-
-        const dirList = [];
-        const fileList = [];
-
-        Object.keys(files).sort().forEach(fileIndex => {
-            const file = files[fileIndex];
-
-            if (typeof file === "string") {
-                fileList.push(file);
-            } else {
-                dirList.push(`${fileIndex}/`);
-            }
-        });
-
-        return dirList.concat(fileList).join("\n");
+        return this._fs.ls(args[1]);
     }
 
     mkdir(args) {

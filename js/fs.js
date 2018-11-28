@@ -2,22 +2,49 @@ class FileSystem {
     constructor() {
         this._root = {
             personal: {
-                steam: `<a href="https://steamcommunity.com/id/Waflix">steam</a>`,
-                nukapedia: `<a href="http://fallout.wikia.com/wiki/User:FDekker">nukapedia</a>`
+                steam: {
+                    type: "link",
+                    link: "https://steamcommunity.com/id/Waflix"
+                },
+                nukapedia: {
+                    type: "link",
+                    link: "http://fallout.wikia.com/wiki/User:FDekker"
+                }
             },
             projects: {
                 minor: {
-                    dice: `<a href="https://fwdekker.com/dice">dice_probabilities</a>`
+                    dice: {
+                        type: "link",
+                        link: "https://fwdekker.com/dice"
+                    }
                 },
-                randomness: `<a href="https://github.com/FWDekker/intellij-randomness">randomness</a>`,
-                schaapi: `<a href="http://cafejojo.org/schaapi">schaapi</a>`
+                randomness: {
+                    type: "link",
+                    link: "https://github.com/FWDekker/intellij-randomness"
+                },
+                schaapi: {
+                    type: "link",
+                    link: "http://cafejojo.org/schaapi"
+                }
             },
             social: {
-                github: `<a href="https://github.com/FWDekker/">github</a>`,
-                stackoverflow: `<a href="https://stackoverflow.com/u/3307872">stackoverflow</a>`,
-                linkedin: `<a href="https://www.linkedin.com/in/fwdekker/">linkedin</a>`
+                github: {
+                    type: "link",
+                    link: "https://github.com/FWDekker/"
+                },
+                stackoverflow: {
+                    type: "link",
+                    link: "https://stackoverflow.com/u/3307872"
+                },
+                linkedin: {
+                    type: "link",
+                    link: "https://www.linkedin.com/in/fwdekker/"
+                }
             },
-            "resume.pdf": `<a href="https://fwdekker.com/resume.pdf">resume.pdf</a>`
+            "resume.pdf": {
+                type: "link",
+                link: "https://fwdekker.com/resume.pdf"
+            }
         };
         this.pwd = "/";
 
@@ -105,7 +132,7 @@ class FileSystem {
      * @returns {boolean} true iff {@code file} represents a directory
      */
     static isDirectory(file) {
-        return (file !== undefined && typeof file !== "string");
+        return (file !== undefined && typeof file.type !== "string");
     }
 
     /**
@@ -115,7 +142,7 @@ class FileSystem {
      * @returns {boolean} true iff {@code file} represents a file
      */
     static isFile(file) {
-        return (file !== undefined && typeof file === "string");
+        return (file !== undefined && typeof file.type === "string");
     }
 
 
@@ -150,7 +177,27 @@ class FileSystem {
     ls(path) {
         path = (path || this.pwd);
 
-        return this._getFile(path);
+        const files = this._getFile(path);
+        if (files === undefined) {
+            return `The directory '${path}' does not exist`;
+        }
+
+        const dirList = [];
+        const fileList = [];
+
+        Object.keys(files).sort().forEach(fileName => {
+            const file = files[fileName];
+
+            if (FileSystem.isFile(file)) {
+                fileList.push(fileToString(fileName, file));
+            } else if (FileSystem.isDirectory(file)) {
+                dirList.push(`${fileName}/`);
+            } else {
+                throw `${fileName} is neither a file nor a directory!`;
+            }
+        });
+
+        return dirList.concat(fileList).join("\n");
     }
 
     /**
@@ -239,3 +286,13 @@ class FileSystem {
         return "";
     }
 }
+
+
+const fileToString = function(fileName, file) {
+    switch (file.type) {
+        case "link":
+            return `<a href="${file.link}">${fileName}</a>`;
+        default:
+            return fileName;
+    }
+};
