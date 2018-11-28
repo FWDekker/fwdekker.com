@@ -1,14 +1,14 @@
 class Commands {
     constructor(terminal, fileSystem) {
         this._terminal = terminal;
-        this._fileSystem = fileSystem;
+        this._fs = fileSystem;
 
         this._list = {
             clear: {
                 fun: this.clear,
                 summary: `clear terminal output`,
                 usage: `clear`,
-                desc: `Clears all previous terminal output.`.trimLines()
+                desc: `Clears all previous terminal output.`
             },
             cd: {
                 fun: this.cd,
@@ -28,7 +28,7 @@ class Commands {
                 fun: Commands.exit,
                 summary: `close session`,
                 usage: `exit`,
-                desc: `Closes the terminal session.`.trimLines()
+                desc: `Closes the terminal session.`
             },
             help: {
                 fun: this.help,
@@ -50,25 +50,31 @@ class Commands {
                 fun: this.mkdir,
                 summary: `create directory`,
                 usage: `mkdir [DIRECTORY]`,
-                desc: `Creates a directory with name [DIRECTORY].`.trimLines()
+                desc: `Creates a directory with name [DIRECTORY].`
+            },
+            poweroff: {
+                fun: Commands.poweroff,
+                summary: `power off machine`,
+                usage: `poweroff`,
+                desc: `Shuts down this machine.`
             },
             pwd: {
                 fun: this.pwd,
                 summary: `print working directory`,
                 usage: `pwd`,
-                desc: `Displays the current working directory.`.trimLines()
+                desc: `Displays the current working directory.`
             },
             rm: {
                 fun: this.rm,
                 summary: `remove file`,
                 usage: `rm [-f | --force] FILE`,
-                desc: `Removes FILE if it is a file.`.trimLines()
+                desc: `Removes FILE if it is a file.`
             },
             rmdir: {
                 fun: this.rmdir,
                 summary: `remove directory`,
                 usage: `rmdir [-f | --force] DIR`,
-                desc: `Removes DIR if it is a directory.`.trimLines()
+                desc: `Removes DIR if it is a directory.`
             }
         };
     }
@@ -89,7 +95,7 @@ class Commands {
 
 
     cd(args) {
-        return this._fileSystem.cd(args[1]);
+        return this._fs.cd(args[1]);
     }
 
     clear() {
@@ -138,7 +144,7 @@ class Commands {
     }
 
     ls(args) {
-        const files = this._fileSystem.ls(args[1]);
+        const files = this._fs.ls(args[1]);
         if (files === undefined) {
             return `The directory '${args[1]}' does not exist`;
         }
@@ -160,15 +166,32 @@ class Commands {
     }
 
     mkdir(args) {
-        return this._fileSystem.mkdir(args[1]);
+        return this._fs.mkdir(args[1]);
+    }
+
+    static poweroff() {
+        const date = new Date();
+        date.setSeconds(date.getSeconds() + 30);
+        document.cookie = `poweroff=true; expires=${date.toUTCString()}; path=/`;
+
+        setTimeout(() => location.reload(), 2000);
+        return "" +
+            `Shutdown NOW!
+            
+            *** FINAL System shutdown message from felix@fwdekker.com ***
+            
+            System going down IMMEDIATELY
+            
+            
+            System shutdown time has arrived`.trimLines();
     }
 
     pwd() {
-        return this._fileSystem.pwd;
+        return this._fs.pwd;
     }
 
     rm(args) {
-        return this._fileSystem.rm(args[1]);
+        return this._fs.rm(args[1]);
     }
 
     rmdir(args) {
@@ -182,6 +205,6 @@ class Commands {
             force = false;
         }
 
-        return this._fileSystem.rmdir(path, force);
+        return this._fs.rmdir(path, force);
     }
 }

@@ -18,8 +18,10 @@
     <link href="css/main.css" rel="stylesheet"/>
 </head>
 <body>
-<div id="terminal">
-    <div id="terminalOutput"></div>
+<div id="terminal" style="display:none;">
+    <div id="terminalOutput">
+
+    </div>
     <div id="terminalCurrent">
         <div id="terminalCurrentPrefix">
         </div>
@@ -30,6 +32,11 @@
 </div>
 
 
+<script>
+    if (document.cookie === "") {
+        document.getElementById("terminal").style.display = "";
+    }
+</script>
 <script src="js/shared.js"></script>
 <script src="js/terminal.js"></script>
 <script src="js/commands.js"></script>

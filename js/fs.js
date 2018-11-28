@@ -82,7 +82,7 @@ class FileSystem {
     }
 
     _parentPath(path) {
-        return this._normalisePath(path).split("/").slice(0, -1).join("/");
+        return this._normalisePath(path).split("/").slice(0, -2).join("/");
     }
 
     static _sanitisePath(path) {
@@ -90,7 +90,7 @@ class FileSystem {
         const upRegex = /(\/+)([^./]+)(\/+)(\.\.)(\/+)/; // Match "/directory/../"
         const doubleRegex = /\/{2,}/; // Match "///"
 
-        return path
+        return `${path}/`
             .replaceAll(selfRegex, "/")
             .replaceAll(upRegex, "/")
             .replaceAll(doubleRegex, "/")

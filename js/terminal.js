@@ -128,7 +128,6 @@ class Terminal {
 
 
     _onclick() {
-        console.log(this);
         this._input.focus();
     }
 
