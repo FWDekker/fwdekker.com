@@ -52,6 +52,15 @@ class Commands {
                 usage: `mkdir DIRECTORY`,
                 desc: `Creates a directory with name DIRECTORY.`
             },
+            open: {
+                fun: this.open,
+                summary: `open web page`,
+                usage: `open [-b | --blank] FILE`,
+                desc: "" +
+                        `Opens the web page linked to by FILE in this browser window.
+                        
+                        If -b or --blank is set, the web page is opened in a new tab.`
+            },
             poweroff: {
                 fun: Commands.poweroff,
                 summary: `close down the system`,
@@ -67,14 +76,17 @@ class Commands {
             rm: {
                 fun: this.rm,
                 summary: `remove file`,
-                usage: `rm [-f | --force] FILE`,
+                usage: `rm FILE`,
                 desc: `Removes FILE if it is a file.`
             },
             rmdir: {
                 fun: this.rmdir,
                 summary: `remove directory`,
-                usage: `rmdir [-f | --force] DIR`,
-                desc: `Removes DIR if it is a directory.`
+                usage: `rmdir [-f | --force] DIRECTORY`,
+                desc: "" +
+                    `Removes DIRECTORY if it is a directory.
+
+                    If -f or --force is set, DIRECTORY is deleted even if it contains files or other directories.`.trimLines()
             }
         };
     }
@@ -149,6 +161,32 @@ class Commands {
 
     mkdir(args) {
         return this._fs.mkdir(args[1]);
+    }
+
+    open(args) {
+        let fileName;
+        let target;
+        if (args[1] === "-t" || args[1] === "--tab") {
+            fileName = args[2];
+            target = "_blank";
+        } else {
+            fileName = args[1];
+            target = "_self";
+        }
+
+        const file = this._fs._getFile(fileName);
+        if (file === undefined) {
+            return `The file '${fileName}' does not exist`;
+        }
+        if (!FileSystem.isFile(file)) {
+            return `'${fileName} is not a file'`;
+        }
+        if (file.type !== "link") {
+            return `Could not open '${fileName}'`;
+        }
+
+        window.open(file.link, target);
+        return "";
     }
 
     static poweroff() {
