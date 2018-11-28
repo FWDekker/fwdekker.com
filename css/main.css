@@ -38,11 +38,7 @@ a:hover {
 }
 
 #terminalCurrentPrefix {
-    display: inline;
-}
-
-#terminalCurrentFocus {
-    display: inline;
+    display: inline-block;
 }
 
 #terminalCurrentFocusInput {
@@ -50,7 +46,7 @@ a:hover {
     padding: 0;
 
     display: inline-block;
-    min-width: 500px;
+    min-width: 1px;
 
     outline: none;
     border: none;
