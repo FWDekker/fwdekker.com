@@ -86,6 +86,10 @@ class Terminal {
     }
 
 
+    clear() {
+        this.outputText = ``;
+    }
+
     static generateHeader() {
         return "" +
             `${asciiHeader}
