@@ -48,15 +48,15 @@ class Commands {
             },
             mkdir: {
                 fun: this.mkdir,
-                summary: `create directory`,
-                usage: `mkdir [DIRECTORY]`,
-                desc: `Creates a directory with name [DIRECTORY].`
+                summary: `make directory`,
+                usage: `mkdir DIRECTORY`,
+                desc: `Creates a directory with name DIRECTORY.`
             },
             poweroff: {
                 fun: Commands.poweroff,
-                summary: `power off machine`,
+                summary: `close down the system`,
                 usage: `poweroff`,
-                desc: `Shuts down this machine.`
+                desc: `Automated shutdown procedure to nicely notify users when the system is shutting down.`
             },
             pwd: {
                 fun: this.pwd,
