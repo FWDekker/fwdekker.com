@@ -1,11 +1,3 @@
-const asciiHeader = `&nbsp;________          _______       _    _
-|  ____\\ \\        / /  __ \\     | |  | |
-| |__   \\ \\  /\\  / /| |  | | ___| | _| | _____ _ __
-|  __|   \\ \\/  \\/ / | |  | |/ _ \\ |/ / |/ / _ \\ '__|
-| |       \\  /\\  /  | |__| |  __/   <|   <  __/ |
-|_|        \\/  \\/   |_____/ \\___|_|\\_\\_|\\_\\___|_|   `;
-
-
 class InputHistory {
     constructor() {
         this._history = [];
@@ -56,6 +48,9 @@ class Terminal {
         this._prefixDiv = prefixDiv;
         this._inputHistory = new InputHistory();
 
+        this._fs = new FileSystem();
+        this._commands = new Commands(this, this._fs);
+
         this._terminal.addEventListener("click", this._onclick.bind(this));
         this._terminal.addEventListener("keypress", this._onkeypress.bind(this));
         this._input.addEventListener("keydown", this._onkeydown.bind(this));
@@ -103,8 +98,8 @@ class Terminal {
 			`.trimLines();
     }
 
-    static generatePrefix() {
-        return `felix@fwdekker.com <span style="color: green;">${fs.pwd}</span>&gt; `;
+    generatePrefix() {
+        return `felix@fwdekker.com <span style="color: green;">${this._fs.pwd}</span>&gt; `;
     }
 
     processInput(input) {
@@ -112,19 +107,19 @@ class Terminal {
         this.inputText = ``;
         this.outputText += `${this.prefixText}${input}\n`;
 
-        const output = commands.parse(input.trim());
+        const output = this._commands.parse(input.trim());
         if (output !== ``) {
             this.outputText += output + `\n`;
         }
 
-        this.prefixText = Terminal.generatePrefix();
+        this.prefixText = this.generatePrefix();
     }
 
     reset() {
-        fs.reset();
+        this._fs.reset();
 
         this.outputText = Terminal.generateHeader();
-        this.prefixText = Terminal.generatePrefix();
+        this.prefixText = this.generatePrefix();
     }
 
 
@@ -151,6 +146,7 @@ class Terminal {
         }
     }
 }
+
 
 
 let terminal;

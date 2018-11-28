@@ -1,14 +1,17 @@
 class Commands {
-    constructor() {
+    constructor(terminal, fileSystem) {
+        this._terminal = terminal;
+        this._fileSystem = fileSystem;
+
         this._list = {
             clear: {
-                fun: Commands.clear,
+                fun: this.clear,
                 summary: `clear terminal output`,
                 usage: `clear`,
                 desc: `Clears all previous terminal output.`.trimLines()
             },
             cd: {
-                fun: Commands.cd,
+                fun: this.cd,
                 summary: `change directory`,
                 usage: `cd [DIRECTORY]`,
                 desc: "" +
@@ -44,25 +47,25 @@ class Commands {
 			        If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`.trimLines()
             },
             mkdir: {
-                fun: Commands.mkdir,
+                fun: this.mkdir,
                 summary: `create directory`,
                 usage: `mkdir [DIRECTORY]`,
                 desc: `Creates a directory with name [DIRECTORY].`.trimLines()
             },
             pwd: {
-                fun: Commands.pwd,
+                fun: this.pwd,
                 summary: `print working directory`,
                 usage: `pwd`,
                 desc: `Displays the current working directory.`.trimLines()
             },
             rm: {
-                fun: Commands.rm,
+                fun: this.rm,
                 summary: `remove file`,
                 usage: `rm [-f | --force] FILE`,
                 desc: `Removes FILE if it is a file.`.trimLines()
             },
             rmdir: {
-                fun: Commands.rmdir,
+                fun: this.rmdir,
                 summary: `remove directory`,
                 usage: `rmdir [-f | --force] DIR`,
                 desc: `Removes DIR if it is a directory.`.trimLines()
@@ -85,12 +88,12 @@ class Commands {
     }
 
 
-    static cd(args) {
-        return fs.cd(args[1]);
+    cd(args) {
+        return this._fileSystem.cd(args[1]);
     }
 
-    static clear() {
-        Commands.clear();
+    clear() {
+        this._terminal.clear();
         return ``;
     }
 
@@ -135,7 +138,7 @@ class Commands {
     }
 
     ls(args) {
-        const files = fs.ls(args[1]);
+        const files = this._fileSystem.ls(args[1]);
         if (files === undefined) {
             return `The directory '${args[1]}' does not exist`;
         }
@@ -156,19 +159,19 @@ class Commands {
         return dirList.concat(fileList).join(`\n`);
     }
 
-    static mkdir(args) {
-        return fs.mkdir(args[1]);
+    mkdir(args) {
+        return this._fileSystem.mkdir(args[1]);
     }
 
-    static pwd() {
-        return fs.pwd;
+    pwd() {
+        return this._fileSystem.pwd;
     }
 
-    static rm(args) {
-        return fs.rm(args[1]);
+    rm(args) {
+        return this._fileSystem.rm(args[1]);
     }
 
-    static rmdir(args) {
+    rmdir(args) {
         let path;
         let force;
         if (args[1] === `-f` || args[1] === `--force`) {
@@ -179,9 +182,6 @@ class Commands {
             force = false;
         }
 
-        return fs.rmdir(path, force);
+        return this._fileSystem.rmdir(path, force);
     }
 }
-
-
-const commands = new Commands();
