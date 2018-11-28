@@ -266,6 +266,16 @@ class FileSystem {
     rmdir(path, force) {
         force = (force || false);
 
+        if (this._normalisePath(path) === "/") {
+            if (!force && Object.keys(this._root).length > 1) {
+                return `The directory is not empty.`;
+            } else {
+                this._root = {};
+                this._root["."] = this._root;
+                return ``;
+            }
+        }
+
         const parentDirName = this._parentPath(path);
         const childDirName = this._childPath(path);
 
@@ -288,7 +298,7 @@ class FileSystem {
 }
 
 
-const fileToString = function(fileName, file) {
+const fileToString = function (fileName, file) {
     switch (file.type) {
         case "link":
             return `<a href="${file.link}">${fileName}</a>`;
