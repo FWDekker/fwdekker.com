@@ -11,6 +11,27 @@ a:hover {
 }
 
 
+@media (max-width:600px) {
+    .wideScreenOnly {
+        display: none;
+    }
+
+    .smallScreenOnly {
+        display: inline;
+    }
+}
+
+@media (min-width:600px) {
+    .wideScreenOnly {
+        display: inline;
+    }
+
+    .smallScreenOnly {
+        display: none;
+    }
+}
+
+
 #terminal {
     position: absolute;
     top: 0;
@@ -37,16 +58,23 @@ a:hover {
     white-space: pre;
 }
 
+#terminalCurrent {
+    max-width: 100%;
+}
+
 #terminalCurrentPrefix {
     display: inline-block;
+    vertical-align: top;
 }
 
 #terminalCurrentFocusInput {
+    display: inline-block;
     margin: 0;
     padding: 0;
-
-    display: inline-block;
     min-width: 1px;
+    max-width: 100%;
+
+    overflow-wrap: break-word;
 
     outline: none;
     border: none;

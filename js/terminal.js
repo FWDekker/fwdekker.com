@@ -92,9 +92,10 @@ class Terminal {
 
     static generateHeader() {
         return "" +
-            `${asciiHeader}
+            `<span class="wideScreenOnly">${asciiHeader}</span><span class="smallScreenOnly">FWDekker</span>
 
-			Student MSc Computer Science @ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
+			Student MSc Computer Science <span class="smallScreenOnly">
+			</span>@ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
 			${(new Date()).toISOString()}
 
 			Type "help" for help.
@@ -156,7 +157,6 @@ class Terminal {
         }
     }
 }
-
 
 
 let terminal;
