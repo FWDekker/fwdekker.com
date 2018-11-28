@@ -7,14 +7,6 @@
 const commands = {};
 
 
-// Init
-addOnLoad(() => {
-    terminal.reset();
-    terminal.processInput(`ls`);
-    terminal.input.focus();
-});
-
-
 // Constants
 commands.list = {};
 

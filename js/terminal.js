@@ -1,64 +1,99 @@
-//////
-///
-/// Terminal
-///
-//////
-
-const terminal = {};
-
-
-// Variables
-// Constants
-terminal.asciiHeader = `&nbsp;________          _______       _    _
+const asciiHeader = `&nbsp;________          _______       _    _
 |  ____\\ \\        / /  __ \\     | |  | |
 | |__   \\ \\  /\\  / /| |  | | ___| | _| | _____ _ __
 |  __|   \\ \\/  \\/ / | |  | |/ _ \\ |/ / |/ / _ \\ '__|
 | |       \\  /\\  /  | |__| |  __/   <|   <  __/ |
 |_|        \\/  \\/   |_____/ \\___|_|\\_\\_|\\_\\___|_|   `;
 
-// Elements
-terminal.terminal = q(`#terminal`);
-terminal.prefixDiv = q(`#terminalCurrentPrefix`);
-terminal.input = q(`#terminalCurrentFocusInput`);
-terminal.output = q(`#terminalOutput`);
 
-// State
-terminal.history = [];
-terminal.historyIndex = 0;
-
-
-// Functions
-terminal.getInputText = function () {
-    return terminal.input.innerHTML.replace(/(<br>)+$/g, ``);
-};
-
-terminal.setInputText = function (input) {
-    terminal.input.innerHTML = input.replaceAll(/\s/, `&nbsp;`);
-};
-
-terminal.getPrefix = function () {
-    return terminal.prefixDiv.innerHTML;
-};
-
-terminal.setPrefix = function (prefix) {
-    terminal.prefixDiv.innerHTML = prefix;
-};
-
-terminal.addHistory = function (input) {
-    if (input.trim() !== ``) {
-        terminal.history.unshift(input);
-        terminal.historyIndex = -1;
+class InputHistory {
+    constructor() {
+        this._history = [];
+        this._index = -1;
     }
-};
 
 
-terminal.clear = function () {
-    terminal.output.innerHTML = ``;
-};
+    addEntry(entry) {
+        if (entry.trim() !== ``) {
+            this._history.unshift(entry);
+        }
+        this._index = -1;
+    }
 
-terminal.generateHeader = function () {
-    return trim(
-        `${terminal.asciiHeader}
+    getEntry(index) {
+        if (index >= 0) {
+            return this._history[index];
+        } else {
+            return ``;
+        }
+    }
+
+    nextEntry() {
+        this._index--;
+        if (this._index < -1) {
+            this._index = -1;
+        }
+
+        return this.getEntry(this._index);
+    }
+
+    previousEntry() {
+        this._index++;
+        if (this._index >= this._history.length) {
+            this._index = this._history.length - 1;
+        }
+
+        return this.getEntry(this._index);
+    }
+}
+
+
+class Terminal {
+    constructor(terminal, input, output, prefixDiv) {
+        this._terminal = terminal;
+        this._input = input;
+        this._output = output;
+        this._prefixDiv = prefixDiv;
+        this._inputHistory = new InputHistory();
+
+        this._terminal.addEventListener("click", this._onclick.bind(this));
+        this._terminal.addEventListener("keypress", this._onkeypress.bind(this));
+        this._input.addEventListener("keydown", this._onkeydown.bind(this));
+
+        this.reset();
+        this._input.focus();
+    }
+
+
+    get inputText() {
+        return this._input.innerHTML
+            .replaceAll(/<br>/, ``);
+    }
+
+    set inputText(inputText) {
+        this._input.innerHTML = inputText;
+    }
+
+    get outputText() {
+        return this._output.innerHTML;
+    }
+
+    set outputText(outputText) {
+        this._output.innerHTML = outputText;
+    }
+
+    get prefixText() {
+        return this._prefixDiv.innerHTML;
+    }
+
+    set prefixText(prefixText) {
+        this._prefixDiv.innerHTML = prefixText;
+    }
+
+
+    static generateHeader() {
+        return trim(
+            `${asciiHeader}
 
 				Student MSc Computer Science @ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
 				${(new Date()).toISOString()}
@@ -66,76 +101,69 @@ terminal.generateHeader = function () {
 				Type "help" for help.
 
 				`
+        );
+    }
+
+    static generatePrefix() {
+        return `felix@fwdekker.com <span style="color: green;">${fs.pwd}</span>&gt; `;
+    }
+
+    processInput(input) {
+        this._inputHistory.addEntry(input);
+        this.inputText = ``;
+        this.outputText += `${this.prefixText}${input}\n`;
+
+        const output = commands.parse(input.trim());
+        if (output !== ``) {
+            this.outputText += output + `\n`;
+        }
+
+        this.prefixText = Terminal.generatePrefix();
+    }
+
+    reset() {
+        fs.reset();
+
+        this.outputText = Terminal.generateHeader();
+        this.prefixText = Terminal.generatePrefix();
+    }
+
+
+    _onclick() {
+        console.log(this);
+        this._input.focus();
+    }
+
+    _onkeypress(e) {
+        switch (e.key.toLowerCase()) {
+            case `enter`:
+                this.processInput(this.inputText.replaceAll(/&nbsp;/, ` `));
+                break;
+        }
+    }
+
+    _onkeydown(e) {
+        switch (e.key.toLowerCase()) {
+            case `arrowup`:
+                this.inputText = this._inputHistory.previousEntry();
+                break;
+            case `arrowdown`:
+                this.inputText = this._inputHistory.nextEntry();
+        }
+    }
+}
+
+
+
+let terminal;
+
+addOnLoad(() => {
+    terminal = new Terminal(
+        q(`#terminal`),
+        q(`#terminalCurrentFocusInput`),
+        q(`#terminalOutput`),
+        q(`#terminalCurrentPrefix`)
     );
-};
 
-terminal.generatePrefix = function () {
-    return `felix@fwdekker.com <span style="color: green;">${fs.pwd}</span>&gt; `;
-};
-
-terminal.processInput = function (input) {
-    input = input.replaceAll(/&nbsp;/, ` `);
-
-    terminal.input.innerHTML = ``;
-    terminal.addHistory(input);
-    terminal.writeLine(`${terminal.prefixDiv.innerHTML}${input}`);
-
-    const output = commands.parse(input.trim());
-    if (output !== ``) {
-        terminal.writeLine(output);
-    }
-
-    terminal.setPrefix(terminal.generatePrefix());
-};
-
-terminal.reset = function () {
-    fs.reset();
-    terminal.clear();
-    terminal.write(terminal.generateHeader());
-    terminal.setPrefix(terminal.generatePrefix());
-};
-
-terminal.write = function (text) {
-    terminal.output.innerHTML += text;
-};
-
-terminal.writeLine = function (line) {
-    terminal.write(`${line}\n`);
-};
-
-
-// Handlers
-terminal.terminal.addEventListener(`click`, () => {
-    terminal.input.focus();
-});
-
-terminal.input.addEventListener(`keypress`, e => {
-    switch (e.key.toLowerCase()) {
-        case `enter`:
-            terminal.processInput(terminal.getInputText());
-            break;
-    }
-});
-
-terminal.input.addEventListener(`keydown`, e => {
-    switch (e.key.toLowerCase()) {
-        case `arrowup`:
-            terminal.historyIndex++;
-            if (terminal.historyIndex >= terminal.history.length) {
-                terminal.historyIndex = terminal.history.length - 1;
-            }
-            terminal.setInputText(terminal.history[terminal.historyIndex]);
-            break;
-        case `arrowdown`:
-            terminal.historyIndex--;
-            if (terminal.historyIndex < -1) {
-                terminal.historyIndex = -1;
-            }
-            if (terminal.historyIndex === -1) {
-                terminal.setInputText(``);
-            } else {
-                terminal.setInputText(terminal.history[terminal.historyIndex]);
-            }
-            break;
-    }
+    terminal.processInput(`ls`);
 });
