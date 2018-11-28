@@ -75,13 +75,13 @@ class Commands {
 
 
     parse(input) {
-        const args = input.split(` `);
-        const command = (args[0] || ``).toLowerCase();
+        const args = input.split(" ");
+        const command = (args[0] || "").toLowerCase();
 
         if (Object.keys(this._list).indexOf(command) >= 0) {
             return this._list[command].fun.bind(this)(args);
-        } else if (command.trim() === ``) {
-            return ``;
+        } else if (command.trim() === "") {
+            return "";
         } else {
             return `Unknown command '${args[0]}'`
         }
@@ -94,22 +94,22 @@ class Commands {
 
     clear() {
         this._terminal.clear();
-        return ``;
+        return "";
     }
 
     static echo(args) {
         return args
-            .slice(1).join(` `)
-            .replace(`hunter2`, `*******`);
+            .slice(1).join(" ")
+            .replace("hunter2", "*******");
     }
 
     static exit() {
         terminal.reset();
-        return ``;
+        return "";
     }
 
     help(args) {
-        const command = (args[1] || ``).toLowerCase();
+        const command = (args[1] || "").toLowerCase();
         const commandNames = Object.keys(this._list);
 
         if (commandNames.indexOf(command) >= 0) {
@@ -131,7 +131,7 @@ class Commands {
 
             return "" +
                 `<b>List of commands</b>
-			    ${commandEntries.join(`\n`)}
+			    ${commandEntries.join("\n")}
 
 			    Write "help [COMMAND]" for more information on a command.`.trimLines();
         }
@@ -149,14 +149,14 @@ class Commands {
         Object.keys(files).sort().forEach(fileIndex => {
             const file = files[fileIndex];
 
-            if (typeof file === `string`) {
+            if (typeof file === "string") {
                 fileList.push(file);
             } else {
                 dirList.push(`${fileIndex}/`);
             }
         });
 
-        return dirList.concat(fileList).join(`\n`);
+        return dirList.concat(fileList).join("\n");
     }
 
     mkdir(args) {
@@ -174,7 +174,7 @@ class Commands {
     rmdir(args) {
         let path;
         let force;
-        if (args[1] === `-f` || args[1] === `--force`) {
+        if (args[1] === "-f" || args[1] === "--force") {
             path = args[2];
             force = true;
         } else {

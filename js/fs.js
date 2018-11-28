@@ -19,13 +19,13 @@ class FileSystem {
             },
             "resume.pdf": `<a href="https://fwdekker.com/resume.pdf">resume.pdf</a>`
         };
-        this.pwd = `/`;
+        this.pwd = "/";
 
 
         const visited = [];
         const queue = [this._root];
 
-        this._root[`.`] = this._root;
+        this._root["."] = this._root;
 
         while (queue.length !== 0) {
             const next = queue.pop();
@@ -35,12 +35,12 @@ class FileSystem {
 
             visited.push(next);
             for (const key in next) {
-                if (key === `.` || key === `..` || FileSystem.isFile(next[key])) {
+                if (key === "." || key === ".." || FileSystem.isFile(next[key])) {
                     continue;
                 }
 
-                next[key][`.`] = next[key];
-                next[key][`..`] = next;
+                next[key]["."] = next[key];
+                next[key][".."] = next;
                 queue.push(next[key]);
             }
         }
@@ -48,23 +48,23 @@ class FileSystem {
 
 
     _absolutePath(path) {
-        if (path.startsWith(`/`)) {
+        if (path.startsWith("/")) {
             return path;
         } else {
             return `${this.pwd}/${path}`;
         }
     }
 
-    _filePath(path) {
-        return this._normalisePath(path).split(`/`).slice(0, -1).slice(-1).join(`/`);
+    _childPath(path) {
+        return this._normalisePath(path).split("/").slice(0, -1).slice(-1).join("/");
     }
 
     _getFile(path) {
         path = this._normalisePath(path);
 
         let file = this._root;
-        path.split(`/`).forEach(part => {
-            if (part === ``) {
+        path.split("/").forEach(part => {
+            if (part === "") {
                 return;
             }
             if (file === undefined) {
@@ -82,18 +82,18 @@ class FileSystem {
     }
 
     _parentPath(path) {
-        return this._normalisePath(path).split(`/`).slice(0, -1).join(`/`);
+        return this._normalisePath(path).split("/").slice(0, -1).join("/");
     }
 
     static _sanitisePath(path) {
-        const selfRegex = /\/\.\//; // Match `./`
-        const upRegex = /(\/+)([^./]+)(\/+)(\.\.)(\/+)/; // Match `/directory/../
-        const doubleRegex = /\/{2,}/; // Match `///`
+        const selfRegex = /\/\.\//; // Match "./"
+        const upRegex = /(\/+)([^./]+)(\/+)(\.\.)(\/+)/; // Match "/directory/../"
+        const doubleRegex = /\/{2,}/; // Match "///"
 
         return path
-            .replaceAll(selfRegex, `/`)
-            .replaceAll(upRegex, `/`)
-            .replaceAll(doubleRegex, `/`)
+            .replaceAll(selfRegex, "/")
+            .replaceAll(upRegex, "/")
+            .replaceAll(doubleRegex, "/")
             .toString();
     }
 
@@ -105,7 +105,7 @@ class FileSystem {
      * @returns {boolean} true iff {@code file} represents a directory
      */
     static isDirectory(file) {
-        return (file !== undefined && typeof file !== `string`);
+        return (file !== undefined && typeof file !== "string");
     }
 
     /**
@@ -115,7 +115,7 @@ class FileSystem {
      * @returns {boolean} true iff {@code file} represents a file
      */
     static isFile(file) {
-        return (file !== undefined && typeof file === `string`);
+        return (file !== undefined && typeof file === "string");
     }
 
 
@@ -127,7 +127,7 @@ class FileSystem {
      */
     cd(path) {
         if (path === undefined) {
-            return ``;
+            return "";
         }
 
         const file = this._getFile(path);
@@ -138,7 +138,7 @@ class FileSystem {
         this.pwd = this._normalisePath(path);
         this.files = file;
 
-        return ``;
+        return "";
     }
 
     /**
@@ -161,7 +161,7 @@ class FileSystem {
      */
     mkdir(path) {
         const parentDirName = this._parentPath(path);
-        const childDirName = this._filePath(path);
+        const childDirName = this._childPath(path);
 
         const parentDir = this._getFile(parentDirName);
         if (!FileSystem.isDirectory(parentDir)) {
@@ -172,16 +172,16 @@ class FileSystem {
         }
 
         parentDir[childDirName] = {};
-        parentDir[childDirName][`.`] = parentDir[childDirName];
-        parentDir[childDirName][`..`] = parentDir;
-        return ``;
+        parentDir[childDirName]["."] = parentDir[childDirName];
+        parentDir[childDirName][".."] = parentDir;
+        return "";
     }
 
     /**
      * Resets navigation in the file system.
      */
     reset() {
-        this.pwd = `/`;
+        this.pwd = "/";
         this.files = this._root;
     }
 
@@ -193,7 +193,7 @@ class FileSystem {
      */
     rm(path) {
         const dirName = this._parentPath(path);
-        const fileName = this._filePath(path);
+        const fileName = this._childPath(path);
 
         const dir = this._getFile(dirName);
         if (!FileSystem.isDirectory(dir)) {
@@ -206,7 +206,7 @@ class FileSystem {
         }
 
         delete dir[fileName];
-        return ``;
+        return "";
     }
 
     /**
@@ -220,7 +220,7 @@ class FileSystem {
         force = (force || false);
 
         const parentDirName = this._parentPath(path);
-        const childDirName = this._filePath(path);
+        const childDirName = this._childPath(path);
 
         const parentDir = this._getFile(parentDirName);
         if (!FileSystem.isDirectory(parentDir)) {
@@ -236,6 +236,6 @@ class FileSystem {
         }
 
         delete parentDir[childDirName];
-        return ``;
+        return "";
     }
 }

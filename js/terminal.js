@@ -6,7 +6,7 @@ class InputHistory {
 
 
     addEntry(entry) {
-        if (entry.trim() !== ``) {
+        if (entry.trim() !== "") {
             this._history.unshift(entry);
         }
         this._index = -1;
@@ -16,7 +16,7 @@ class InputHistory {
         if (index >= 0) {
             return this._history[index];
         } else {
-            return ``;
+            return "";
         }
     }
 
@@ -62,7 +62,7 @@ class Terminal {
 
     get inputText() {
         return this._input.innerHTML
-            .replaceAll(/<br>/, ``);
+            .replaceAll(/<br>/, "");
     }
 
     set inputText(inputText) {
@@ -87,7 +87,7 @@ class Terminal {
 
 
     clear() {
-        this.outputText = ``;
+        this.outputText = "";
     }
 
     static generateHeader() {
@@ -108,11 +108,11 @@ class Terminal {
 
     processInput(input) {
         this._inputHistory.addEntry(input);
-        this.inputText = ``;
+        this.inputText = "";
         this.outputText += `${this.prefixText}${input}\n`;
 
         const output = this._commands.parse(input.trim());
-        if (output !== ``) {
+        if (output !== "") {
             this.outputText += output + `\n`;
         }
 
@@ -134,18 +134,18 @@ class Terminal {
 
     _onkeypress(e) {
         switch (e.key.toLowerCase()) {
-            case `enter`:
-                this.processInput(this.inputText.replaceAll(/&nbsp;/, ` `));
+            case "enter":
+                this.processInput(this.inputText.replaceAll(/&nbsp;/, " "));
                 break;
         }
     }
 
     _onkeydown(e) {
         switch (e.key.toLowerCase()) {
-            case `arrowup`:
+            case "arrowup":
                 this.inputText = this._inputHistory.previousEntry();
                 break;
-            case `arrowdown`:
+            case "arrowdown":
                 this.inputText = this._inputHistory.nextEntry();
         }
     }
@@ -157,11 +157,11 @@ let terminal;
 
 addOnLoad(() => {
     terminal = new Terminal(
-        q(`#terminal`),
-        q(`#terminalCurrentFocusInput`),
-        q(`#terminalOutput`),
-        q(`#terminalCurrentPrefix`)
+        q("#terminal"),
+        q("#terminalCurrentFocusInput"),
+        q("#terminalOutput"),
+        q("#terminalCurrentPrefix")
     );
 
-    terminal.processInput(`ls`);
+    terminal.processInput("ls");
 });
