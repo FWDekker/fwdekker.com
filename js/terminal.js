@@ -92,16 +92,15 @@ class Terminal {
 
 
     static generateHeader() {
-        return trim(
+        return "" +
             `${asciiHeader}
 
-				Student MSc Computer Science @ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
-				${(new Date()).toISOString()}
+			Student MSc Computer Science @ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
+			${(new Date()).toISOString()}
 
-				Type "help" for help.
+			Type "help" for help.
 
-				`
-        );
+			`.trimLines();
     }
 
     static generatePrefix() {
@@ -152,7 +151,6 @@ class Terminal {
         }
     }
 }
-
 
 
 let terminal;

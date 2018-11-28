@@ -1,9 +1,3 @@
-//////
-///
-/// Commands
-///
-//////
-
 const commands = {};
 
 
@@ -37,27 +31,25 @@ commands.help = function (args) {
     if (commandNames.indexOf(command) >= 0) {
         const info = commands.list[command];
 
-        return trim(
+        return "" +
             `${command} - ${info.summary}
 
-					<b>Usage</b>
-					${info.usage}
+			<b>Usage</b>
+			${info.usage}
 
-					<b>Description</b>
-					${info.desc}`
-        );
+			<b>Description</b>
+			${info.desc}`.trimLines();
     } else {
         const commandWidth = Math.max.apply(null, commandNames.map(it => it.length)) + 4;
         const commandEntries = commandNames.map(
             it => `${it.padEnd(commandWidth, ' ')}${commands.list[it].summary}`
         );
 
-        return trim(
+        return "" +
             `<b>List of commands</b>
-					${commandEntries.join(`\n`)}
+			${commandEntries.join(`\n`)}
 
-					Write "help [COMMAND]" for more information on a command.`
-        );
+			Write "help [COMMAND]" for more information on a command.`.trimLines();
     }
 };
 
@@ -116,84 +108,67 @@ commands.list = {
         fun: commands.clear,
         summary: `clear terminal output`,
         usage: `clear`,
-        desc: trim(
-            `Clears all previous terminal output.`
-        )
+        desc: `Clears all previous terminal output.`.trimLines()
     },
     cd: {
         fun: commands.cd,
         summary: `change directory`,
         usage: `cd [DIRECTORY]`,
-        desc: trim(
+        desc: "" +
             `Changes the current working directory to [DIRECTORY].
-					If [DIRECTORY] is empty, nothing happens.`
-        )
+			If [DIRECTORY] is empty, nothing happens.`.trimLines()
     },
     echo: {
         fun: commands.echo,
         summary: `display text`,
         usage: `echo [TEXT]`,
-        desc: trim(
-            `Displays [TEXT].`
-        )
+        desc: `Displays [TEXT].`.trimLines()
     },
     exit: {
         fun: commands.exit,
         summary: `close session`,
         usage: `exit`,
-        desc: trim(
-            `Closes the terminal session.`
-        )
+        desc: `Closes the terminal session.`.trimLines()
     },
     help: {
         fun: commands.help,
         summary: `display documentation`,
         usage: `help [COMMAND]`,
-        desc: trim(
+        desc: "" +
             `Displays help documentation for [COMMAND].
-					If [COMMAND] is empty, a list of all commands is shown.`
-        )
+			If [COMMAND] is empty, a list of all commands is shown.`.trimLines()
     },
     ls: {
         fun: commands.ls,
         summary: `list directory contents`,
         usage: `ls [DIRECTORY]`,
-        desc: trim(
+        desc: "" +
             `Displays the files and directories in [DIRECTORY].
-					If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`
-        )
+			If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`.trimLines()
     },
     mkdir: {
         fun: commands.mkdir,
         summary: `create directory`,
         usage: `mkdir [DIRECTORY]`,
-        desc: trim(
-            `Creates a directory with name [DIRECTORY].`
-        )
+        desc: `Creates a directory with name [DIRECTORY].`.trimLines()
     },
     pwd: {
         fun: commands.pwd,
         summary: `print working directory`,
         usage: `pwd`,
-        desc: trim(
-            `Displays the current working directory.`
-        )
+        desc: `Displays the current working directory.`.trimLines()
     },
     rm: {
         fun: commands.rm,
         summary: `remove file`,
         usage: `rm [-f | --force] FILE`,
-        desc: trim(
-            `Removes FILE if it is a file.`
-        )
+        desc: `Removes FILE if it is a file.`.trimLines()
     },
     rmdir: {
         fun: commands.rmdir,
         summary: `remove directory`,
         usage: `rmdir [-f | --force] DIR`,
-        desc: trim(
-            `Removes DIR if it is a directory.`
-        )
+        desc: `Removes DIR if it is a directory.`.trimLines()
     }
 };
 

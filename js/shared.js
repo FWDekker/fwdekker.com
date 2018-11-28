@@ -1,14 +1,4 @@
-function addOnLoad(fun) {
-    const oldOnLoad = window.onload || (() => {
-    });
-
-    window.onload = (() => {
-        oldOnLoad();
-        fun();
-    });
-}
-
-String.prototype.replaceAll = function(regex, replacement) {
+String.prototype.replaceAll = function (regex, replacement) {
     let string = this;
 
     while (regex.test(string)) {
@@ -18,8 +8,18 @@ String.prototype.replaceAll = function(regex, replacement) {
     return string;
 };
 
-function trim(string) {
-    return `${string}`.split("\n").map(it => it.trim()).join("\n");
+String.prototype.trimLines = function () {
+    return this.split("\n").map(it => it.trim()).join("\n");
+};
+
+function addOnLoad(fun) {
+    const oldOnLoad = window.onload || (() => {
+    });
+
+    window.onload = (() => {
+        oldOnLoad();
+        fun();
+    });
 }
 
 function q(query) {
