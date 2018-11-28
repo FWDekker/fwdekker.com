@@ -1,0 +1,67 @@
+a:link {
+    color: #00CC00;
+}
+
+a:visited {
+    color: #00CC00;
+}
+
+a:hover {
+    color: #007700;
+}
+
+
+#terminal {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 25px;
+    overflow: hidden;
+
+    cursor: text;
+
+    background-color: black;
+    color: white;
+
+    font-family: "Roboto Mono", monospace;
+    font-size: 16px;
+}
+
+#terminal * {
+    margin: 0;
+}
+
+#terminalOutput {
+    white-space: pre;
+}
+
+#terminalCurrentPrefix {
+    display: inline;
+}
+
+#terminalCurrentFocus {
+    display: inline;
+}
+
+#terminalCurrentFocusInput {
+    margin: 0;
+    padding: 0;
+
+    display: inline-block;
+    min-width: 500px;
+
+    outline: none;
+    border: none;
+
+    background-color: inherit;
+    color: inherit;
+
+    font-family: inherit;
+    font-size: inherit;
+}
+
+#terminalCurrentFocusInput br {
+    display: none;
+}
