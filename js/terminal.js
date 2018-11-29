@@ -96,9 +96,10 @@ class Terminal {
 
             if (this._user === "felix" && input === "hotel123") {
                 this._loggedIn = true;
+                this.outputText += Terminal.generateHeader();
             } else {
-                this.outputText += "Access denied\n";
                 this._user = undefined;
+                this.outputText += "Access denied\n";
             }
 
             this._input.classList.remove("terminalCurrentFocusInputHidden");
