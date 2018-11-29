@@ -110,7 +110,7 @@ class Commands {
         } else if (args.getCommand().trim() === "") {
             return "";
         } else {
-            return `Unknown command '${args[0]}'`
+            return `Unknown command '${args.getCommand()}'`
         }
     }
 
