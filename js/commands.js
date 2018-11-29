@@ -18,6 +18,15 @@ class Commands {
                     `Changes the current working directory to [DIRECTORY].
                     If [DIRECTORY] is empty, nothing happens.`.trimLines()
             },
+            cp: {
+                fun: this.cp,
+                summary: `copy file`,
+                usage: `cp SOURCE DESTINATION`,
+                desc: "" +
+                    `Copies SOURCE to DESTINATION.
+                    SOURCE must be a file.
+                    If DESTINATION exists and is a directory, SOURCE is copied into the directory.`.trimLines()
+            },
             echo: {
                 fun: Commands.echo,
                 summary: `display text`,
@@ -123,6 +132,10 @@ class Commands {
 
     cd(args) {
         return this._fs.cd(args.getArg(0));
+    }
+
+    cp(args) {
+        return this._fs.cp(args.getArg(0), args.getArg(1));
     }
 
     clear() {
