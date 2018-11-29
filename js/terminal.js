@@ -109,8 +109,6 @@ class Terminal {
         this._user = undefined;
         this._loggedIn = false;
         this._inputHistory.clear();
-
-        this.reset();
     }
 
     processInput(input) {
