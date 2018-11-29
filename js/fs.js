@@ -90,7 +90,6 @@ class FileSystem {
         const outputs = [];
 
         inputs.forEach(input => {
-            console.log(this);
             const output = fun(input);
 
             if (output !== "") {

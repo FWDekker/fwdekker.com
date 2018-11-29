@@ -225,7 +225,8 @@ class InputArgs {
     constructor(input) {
         this._options = {};
 
-        const args = input.split(" ");
+        const args = input.match(/("[^"]+"|[^"\s]+)/g)
+            .map(it => it.replace(/^"/, "").replace(/"$/, ""));
         let i;
         for (i = 1; i < args.length; i++) {
             const arg = args[i];
