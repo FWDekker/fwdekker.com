@@ -183,11 +183,11 @@ class Commands {
         if (!FileSystem.isFile(file)) {
             return `'${fileName} is not a file'`;
         }
-        if (file.type !== "link") {
+        if (!(file instanceof LinkFile)) {
             return `Could not open '${fileName}'`;
         }
 
-        window.open(file.link, target);
+        window.open(file.url, target);
         return "";
     }
 

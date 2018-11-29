@@ -1,77 +1,25 @@
 class FileSystem {
     constructor() {
-        this._root = {
-            personal: {
-                steam: {
-                    type: "link",
-                    link: "https://steamcommunity.com/id/Waflix"
-                },
-                nukapedia: {
-                    type: "link",
-                    link: "http://fallout.wikia.com/wiki/User:FDekker"
-                }
-            },
-            projects: {
-                minor: {
-                    dice: {
-                        type: "link",
-                        link: "https://fwdekker.com/dice"
-                    }
-                },
-                randomness: {
-                    type: "link",
-                    link: "https://github.com/FWDekker/intellij-randomness"
-                },
-                schaapi: {
-                    type: "link",
-                    link: "http://cafejojo.org/schaapi"
-                }
-            },
-            social: {
-                github: {
-                    type: "link",
-                    link: "https://github.com/FWDekker/"
-                },
-                stackoverflow: {
-                    type: "link",
-                    link: "https://stackoverflow.com/u/3307872"
-                },
-                linkedin: {
-                    type: "link",
-                    link: "https://www.linkedin.com/in/fwdekker/"
-                }
-            },
-            "resume.pdf": {
-                type: "link",
-                link: "https://fwdekker.com/resume.pdf"
-            }
-        };
         this.pwd = "/";
-
-
-        const visited = [];
-        const queue = [this._root];
-
-        this._root["."] = this._root;
-        this._root[".."] = this._root;
-
-        while (queue.length !== 0) {
-            const next = queue.pop();
-            if (visited.indexOf(next) >= 0) {
-                continue;
-            }
-
-            visited.push(next);
-            for (const key in next) {
-                if (key === "." || key === ".." || FileSystem.isFile(next[key])) {
-                    continue;
-                }
-
-                next[key]["."] = next[key];
-                next[key][".."] = next;
-                queue.push(next[key]);
-            }
-        }
+        this._root = new Directory("", undefined, [
+            new Directory("personal", undefined, [
+                new LinkFile("steam", "https://steamcommunity.com/id/Waflix"),
+                new LinkFile("nukapedia", "http://fallout.wikia.com/wiki/User:FDekker")
+            ]),
+            new Directory("projects", undefined, [
+                new Directory("minor", undefined, [
+                    new LinkFile("dice", "https://fwdekker.com/dice")
+                ]),
+                new LinkFile("randomness", "https://github.com/FWDekker/intellij-randomness"),
+                new LinkFile("schaapi", "http://cafejojo.org/schaapi")
+            ]),
+            new Directory("social", undefined, [
+                new LinkFile("github", "https://github.com/FWDekker/"),
+                new LinkFile("stackoverflow", "https://stackoverflow.com/u/3307872"),
+                new LinkFile("linkedin", "https://www.linkedin.com/in/fwdekker/")
+            ]),
+            new LinkFile("resume.pdf", "resume.pdf")
+        ]);
     }
 
 
@@ -115,8 +63,11 @@ class FileSystem {
             if (file === undefined) {
                 return;
             }
+            if (FileSystem.isFile(file)) {
+                file = undefined;
+            }
 
-            file = file[part];
+            file = file.getNode(part);
         });
 
         return file;
@@ -147,23 +98,23 @@ class FileSystem {
 
 
     /**
-     * Returns true iff {@code file} represents a directory.
+     * Returns true iff {@code node} represents a directory.
      *
-     * @param file {Object} an object from the file system
-     * @returns {boolean} true iff {@code file} represents a directory
+     * @param node {Object} a node from the file system
+     * @returns {boolean} true iff {@code node} represents a directory
      */
-    static isDirectory(file) {
-        return (file !== undefined && typeof file.type !== "string");
+    static isDirectory(node) {
+        return node instanceof Directory;
     }
 
     /**
-     * Returns true iff {@code file} represents a file.
+     * Returns true iff {@code node} represents a file.
      *
-     * @param file {Object} an object from the file system
-     * @returns {boolean} true iff {@code file} represents a file
+     * @param node {Object} an object from the file system
+     * @returns {boolean} true iff {@code node} represents a file
      */
-    static isFile(file) {
-        return (file !== undefined && typeof file.type === "string");
+    static isFile(node) {
+        return node instanceof File;
     }
 
 
@@ -179,8 +130,11 @@ class FileSystem {
         }
 
         const file = this._getFile(path);
-        if (file === undefined || !FileSystem.isDirectory(file)) {
+        if (file === undefined) {
             return `The directory '${path}' does not exist`;
+        }
+        if (!FileSystem.isDirectory(file)) {
+            return `'${path}' is not a directory`;
         }
 
         this.pwd = this._normalisePath(path);
@@ -198,25 +152,29 @@ class FileSystem {
     ls(path) {
         path = (path || this.pwd);
 
-        const files = this._getFile(path);
-        if (files === undefined) {
+        const node = this._getFile(path);
+        if (node === undefined) {
             return `The directory '${path}' does not exist`;
         }
+        if (!FileSystem.isDirectory(node)) {
+            return `'${path}' is not a directory`;
+        }
 
-        const dirList = [];
+        const dirList = ["./", "../"];
         const fileList = [];
 
-        Object.keys(files).sort().forEach(fileName => {
-            const file = files[fileName];
-
-            if (FileSystem.isFile(file)) {
-                fileList.push(fileToString(fileName, file));
-            } else if (FileSystem.isDirectory(file)) {
-                dirList.push(`${fileName}/`);
-            } else {
-                throw `${fileName} is neither a file nor a directory!`;
-            }
-        });
+        node.getNodes()
+            .sortAlphabetically(node => node.name)
+            .forEach(node => {
+                    if (FileSystem.isDirectory(node)) {
+                        dirList.push(node.toString());
+                    } else if (FileSystem.isFile(node)) {
+                        fileList.push(node.toString());
+                    } else {
+                        throw `${node.name} is neither a file nor a directory!`;
+                    }
+                }
+            );
 
         return dirList.concat(fileList).join("\n");
     }
@@ -232,16 +190,17 @@ class FileSystem {
         const childDirName = this._childPath(path);
 
         const parentDir = this._getFile(parentDirName);
-        if (!FileSystem.isDirectory(parentDir)) {
+        if (parentDir === undefined) {
             return `The directory '${parentDirName}' does not exist`;
+        }
+        if (!FileSystem.isDirectory(parentDir)) {
+            return `'${parentDirName}' is not a directory`;
         }
         if (parentDir[childDirName] !== undefined) {
             return `The directory '${childDirName}' already exists`;
         }
 
-        parentDir[childDirName] = {};
-        parentDir[childDirName]["."] = parentDir[childDirName];
-        parentDir[childDirName][".."] = parentDir;
+        parentDir.addNode(new Directory(childDirName, parentDir, []));
         return "";
     }
 
@@ -269,26 +228,36 @@ class FileSystem {
         const fileName = this._childPath(path);
 
         const dir = this._getFile(dirName);
-        if (!FileSystem.isDirectory(dir)) {
+        if (dir === undefined) {
             return force
                 ? ""
                 : `The directory '${dirName}' does not exist`;
         }
+        if (!FileSystem.isDirectory(dir)) {
+            return force
+                ? ""
+                : `'${dirName}' is not a directory`;
+        }
 
-        const file = dir[fileName];
-        if (!FileSystem.isFile(file)) {
+        const file = dir.getNode(fileName);
+        if (file === undefined) {
             return force
                 ? ""
                 : `The file '${fileName}' does not exist`;
         }
+        if (!FileSystem.isFile(file)) {
+            return force
+                ? ""
+                : `'${fileName}' is not a file`;
+        }
 
-        delete dir[fileName];
+        dir.removeNode(file);
         return "";
     }
 
     rms(paths, force) {
         return this._executeForEach(paths, path => {
-            this.rm(path, force);
+            return this.rm(path, force);
         });
     }
 
@@ -303,12 +272,11 @@ class FileSystem {
         force = (force || false);
 
         if (this._normalisePath(path) === "/") {
-            if (!force && Object.keys(this._root).length > 1) {
+            if (!force && this._root.getNodeCount() > 0) {
                 return `The directory is not empty.`;
             } else {
-                this._root = {};
-                this._root["."] = this._root;
-                return ``;
+                this._root = new Directory("/", undefined, []);
+                return "";
             }
         }
 
@@ -316,23 +284,33 @@ class FileSystem {
         const childDirName = this._childPath(path);
 
         const parentDir = this._getFile(parentDirName);
-        if (!FileSystem.isDirectory(parentDir)) {
+        if (parentDir === undefined) {
             return force
                 ? ""
                 : `The directory '${parentDirName}' does not exist`;
         }
+        if (!FileSystem.isDirectory(parentDir)) {
+            return force
+                ? ""
+                : `'${parentDirName}' is not a directory`;
+        }
 
-        const childDir = parentDir[childDirName];
-        if (!FileSystem.isDirectory(childDir)) {
+        const childDir = parentDir.getNode(childDirName);
+        if (childDir === undefined) {
             return force
                 ? ""
                 : `The directory '${childDirName}' does not exist`;
         }
-        if (!force && Object.keys(childDir).length > 2) {
+        if (!FileSystem.isDirectory(childDir)) {
+            return force
+                ? ""
+                : `'${childDirName}' is not a directory`;
+        }
+        if (!force && childDir.getNodeCount() > 0) {
             return `The directory is not empty`;
         }
 
-        delete parentDir[childDirName];
+        parentDir.removeNode(childDir);
         return "";
     }
 
@@ -344,11 +322,125 @@ class FileSystem {
 }
 
 
-const fileToString = function (fileName, file) {
-    switch (file.type) {
-        case "link":
-            return `<a href="${file.link}">${fileName}</a>`;
-        default:
-            return fileName;
+class Node {
+    constructor(name) {
+        this.name = name;
     }
-};
+
+
+    copy() {
+        throw "Cannot execute abstract method!";
+    }
+
+    toString() {
+        throw "Cannot execute abstract method!";
+    }
+
+    visit(fun, pre, post) {
+        throw "Cannot execute abstract method!";
+    }
+}
+
+class Directory extends Node {
+    constructor(name, parent, nodes) {
+        super(name);
+
+        this._parent = (parent || this);
+        this._nodes = (nodes || []);
+
+        this._nodes.forEach(node => {
+            node._parent = this;
+        });
+    }
+
+
+    getNodes() {
+        return this._nodes.slice();
+    }
+
+    getNodeCount() {
+        return this._nodes.length;
+    }
+
+    getNode(name) {
+        switch (name) {
+            case ".":
+                return this;
+            case "..":
+                return this._parent;
+            default:
+                return this._nodes.find(it => it.name === name);
+        }
+    }
+
+    addNode(node) {
+        this._nodes.push(node);
+    }
+
+    removeNode(node) {
+        const index = this._nodes.indexOf(node);
+
+        if (index >= 0) {
+            this._nodes.splice(index, 1);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
+    copy() {
+        return new Directory(this.name, this._parent, this._nodes);
+    }
+
+    toString() {
+        return `${this.name}/`;
+    }
+
+    visit(fun, pre = emptyFunction, post = emptyFunction) {
+        pre(this);
+
+        fun(this);
+        this._nodes.forEach(node => node.visit(fun, pre, post));
+
+        post(this);
+    }
+}
+
+class File extends Node {
+    constructor(name) {
+        super(name);
+    }
+
+
+    copy() {
+        return new File(this.name);
+    }
+
+    toString() {
+        return name;
+    }
+
+    visit(fun, pre = emptyFunction, post = emptyFunction) {
+        pre(this);
+        fun(this);
+        post(this);
+    }
+}
+
+class LinkFile extends File {
+    constructor(name, url) {
+        super(name);
+
+        this.url = url;
+    }
+
+
+    copy() {
+        return new LinkFile(this.name, this.url);
+    }
+
+    toString() {
+        return `<a href="${this.url}">${this.name}</a>`;
+    }
+}
