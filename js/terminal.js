@@ -92,12 +92,12 @@ class Terminal {
 
     static generateHeader() {
         return "" +
-            `<span class="wideScreenOnly">${asciiHeader}</span><span class="smallScreenOnly">FWDekker</span>
+            `<span class="wideScreenOnly">${asciiHeader}</span><span class="smallScreenOnly"><b><u>FWDekker</u></b></span>
 
 			Student MSc Computer Science <span class="smallScreenOnly">
 			</span>@ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
-			${(new Date()).toISOString()}
-
+			<span class="wideScreenOnly">${(new Date()).toISOString()}
+			</span>
 			Type "help" for help.
 
 			`.trimLines();
