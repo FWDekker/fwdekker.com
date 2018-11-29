@@ -93,12 +93,11 @@ class Commands {
 
 
     parse(input) {
-        const args = input.split(" ");
-        const command = (args[0] || "").toLowerCase();
+        const args = new InputArgs(input);
 
-        if (Object.keys(this._list).indexOf(command) >= 0) {
-            return this._list[command].fun.bind(this)(args);
-        } else if (command.trim() === "") {
+        if (Object.keys(this._list).indexOf(args.getCommand()) >= 0) {
+            return this._list[args.getCommand()].fun.bind(this)(args);
+        } else if (args.getCommand().trim() === "") {
             return "";
         } else {
             return `Unknown command '${args[0]}'`
@@ -107,7 +106,7 @@ class Commands {
 
 
     cd(args) {
-        return this._fs.cd(args[1]);
+        return this._fs.cd(args.getArg(0));
     }
 
     clear() {
@@ -116,8 +115,8 @@ class Commands {
     }
 
     static echo(args) {
-        return args
-            .slice(1).join(" ")
+        return args.getArgs()
+            .join(" ")
             .replace("hunter2", "*******");
     }
 
@@ -127,7 +126,7 @@ class Commands {
     }
 
     help(args) {
-        const command = (args[1] || "").toLowerCase();
+        const command = args.getArg(0, "").toLowerCase();
         const commandNames = Object.keys(this._list);
 
         if (commandNames.indexOf(command) >= 0) {
@@ -156,23 +155,16 @@ class Commands {
     }
 
     ls(args) {
-        return this._fs.ls(args[1]);
+        return this._fs.ls(args.getArg(0));
     }
 
     mkdir(args) {
-        return this._fs.mkdir(args[1]);
+        return this._fs.mkdir(args.getArg(0));
     }
 
     open(args) {
-        let fileName;
-        let target;
-        if (args[1] === "-t" || args[1] === "--tab") {
-            fileName = args[2];
-            target = "_blank";
-        } else {
-            fileName = args[1];
-            target = "_self";
-        }
+        const fileName = args.getArg(0);
+        const target = args.hasAnyOption(["-b", "--blank"]) ? "_blank" : "_self";
 
         const file = this._fs._getFile(fileName);
         if (file === undefined) {
@@ -215,16 +207,69 @@ class Commands {
     }
 
     rmdir(args) {
-        let path;
-        let force;
-        if (args[1] === "-f" || args[1] === "--force") {
-            path = args[2];
-            force = true;
-        } else {
-            path = args[1];
-            force = false;
-        }
+        const path = args.getArg(0);
+        const force = args.hasAnyOption(["-f", "--force"]);
 
         return this._fs.rmdir(path, force);
+    }
+}
+
+class InputArgs {
+    constructor(input) {
+        this._options = {};
+
+        const args = input.split(" ");
+        let i;
+        for (i = 1; i < args.length; i++) {
+            const arg = args[i];
+            if (!arg.startsWith("-")) {
+                break;
+            }
+
+            const argParts = arg.split("=");
+            this._options[argParts[0]] = (argParts[1] || "");
+        }
+
+        this._command = (args[0] || "").toLowerCase();
+        this._args = args.slice(i);
+    }
+
+
+    getArgs() {
+        return this._args.slice();
+    }
+
+    getArg(index, def) {
+        return (def === undefined)
+            ? this._args[index]
+            : this._args[index] || def;
+    }
+
+    hasArg(index) {
+        return (this._args[index] !== undefined);
+    }
+
+    getCommand() {
+        return this._command;
+    }
+
+    getOption(key, def) {
+        return (def === undefined)
+            ? this._options[key]
+            : this._options[key] || def;
+    }
+
+    hasOption(key) {
+        return (this.getOption(key) !== undefined);
+    }
+
+    hasAnyOption(keys) {
+        for (let i = 0; i < keys.length; i++) {
+            if (this.hasOption(keys[i])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
