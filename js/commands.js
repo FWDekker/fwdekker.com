@@ -34,7 +34,7 @@ class Commands {
                 desc: `Displays [TEXT].`.trimLines()
             },
             exit: {
-                fun: Commands.exit,
+                fun: this.exit,
                 summary: `close session`,
                 usage: `exit`,
                 desc: `Closes the terminal session.`
@@ -80,7 +80,7 @@ class Commands {
                     If -b or --blank is set, the web page is opened in a new tab.`.trimLines()
             },
             poweroff: {
-                fun: Commands.poweroff,
+                fun: this.poweroff,
                 summary: `close down the system`,
                 usage: `poweroff`,
                 desc: `Automated shutdown procedure to nicely notify users when the system is shutting down.`
@@ -151,8 +151,8 @@ class Commands {
             .replace("hunter2", "*******");
     }
 
-    static exit() {
-        terminal.reset();
+    exit() {
+        this._terminal.logOut();
         return "";
     }
 
@@ -216,7 +216,7 @@ class Commands {
         return "";
     }
 
-    static poweroff() {
+    poweroff() {
         const date = new Date();
         date.setSeconds(date.getSeconds() + 30);
         document.cookie = `poweroff=true; expires=${date.toUTCString()}; path=/`;
@@ -225,7 +225,7 @@ class Commands {
         return "" +
             `Shutdown NOW!
             
-            *** FINAL System shutdown message from felix@fwdekker.com ***
+            *** FINAL System shutdown message from ${terminal._user}@fwdekker.com ***
             
             System going down IMMEDIATELY
             
@@ -255,7 +255,7 @@ class InputArgs {
     constructor(input) {
         this._options = {};
 
-        const args = input.match(/("[^"]+"|[^"\s]+)/g)
+        const args = (input.match(/("[^"]+"|[^"\s]+)/g) || [])
             .map(it => it.replace(/^"/, "").replace(/"$/, ""));
         let i;
         for (i = 1; i < args.length; i++) {

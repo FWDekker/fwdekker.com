@@ -1,53 +1,14 @@
-class InputHistory {
-    constructor() {
-        this._history = [];
-        this._index = -1;
-    }
-
-
-    addEntry(entry) {
-        if (entry.trim() !== "") {
-            this._history.unshift(entry);
-        }
-        this._index = -1;
-    }
-
-    getEntry(index) {
-        if (index >= 0) {
-            return this._history[index];
-        } else {
-            return "";
-        }
-    }
-
-    nextEntry() {
-        this._index--;
-        if (this._index < -1) {
-            this._index = -1;
-        }
-
-        return this.getEntry(this._index);
-    }
-
-    previousEntry() {
-        this._index++;
-        if (this._index >= this._history.length) {
-            this._index = this._history.length - 1;
-        }
-
-        return this.getEntry(this._index);
-    }
-}
-
-
 class Terminal {
     constructor(terminal, input, output, prefixDiv) {
         this._terminal = terminal;
         this._input = input;
         this._output = output;
         this._prefixDiv = prefixDiv;
-        this._inputHistory = new InputHistory();
 
+        this._user = "felix";
+        this._loggedIn = true;
+
+        this._inputHistory = new InputHistory();
         this._fs = new FileSystem();
         this._commands = new Commands(this, this._fs);
 
@@ -86,10 +47,6 @@ class Terminal {
     }
 
 
-    clear() {
-        this.outputText = "";
-    }
-
     static generateHeader() {
         return "" +
             `<span class="wideScreenOnly">${asciiHeader}</span><span class="smallScreenOnly"><b><u>FWDekker</u></b></span>
@@ -104,26 +61,66 @@ class Terminal {
     }
 
     generatePrefix() {
-        return `felix@fwdekker.com <span style="color: green;">${this._fs.pwd}</span>&gt; `;
-    }
-
-    processInput(input) {
-        this._inputHistory.addEntry(input);
-        this.inputText = "";
-        this.outputText += `${this.prefixText}${input}\n`;
-
-        const output = this._commands.parse(input.trim());
-        if (output !== "") {
-            this.outputText += output + `\n`;
+        if (!this._loggedIn) {
+            if (this._user === undefined) {
+                return "login as: ";
+            } else {
+                return `Password for ${this._user}@fwdekker.com: `;
+            }
         }
 
-        this.prefixText = this.generatePrefix();
+        return `${this._user}@fwdekker.com <span style="color: green;">${this._fs.pwd}</span>&gt; `;
+    }
+
+
+    clear() {
+        this.outputText = "";
     }
 
     reset() {
         this._fs.reset();
 
         this.outputText = Terminal.generateHeader();
+        this.prefixText = this.generatePrefix();
+    }
+
+
+    continueLogin(input) {
+        if (this._user === undefined) {
+            this._user = input.trim();
+        } else {
+            if (this._user === "felix" && input === "hotel123") {
+                this._loggedIn = true;
+            } else {
+                this.outputText += "Access denied\n";
+                this._user = undefined;
+            }
+        }
+    }
+
+    logOut() {
+        this._user = undefined;
+        this._loggedIn = false;
+        this._inputHistory.clear();
+
+        this.reset();
+    }
+
+    processInput(input) {
+        this.inputText = "";
+        this.outputText += `${this.prefixText}${input}\n`;
+
+        if (!this._loggedIn) {
+            this.continueLogin(input);
+        } else {
+            this._inputHistory.addEntry(input);
+
+            const output = this._commands.parse(input.trim());
+            if (output !== "") {
+                this.outputText += output + `\n`;
+            }
+        }
+
         this.prefixText = this.generatePrefix();
     }
 
@@ -157,6 +154,52 @@ class Terminal {
                 }
                 break;
         }
+    }
+}
+
+class InputHistory {
+    constructor() {
+        this._history = [];
+        this._index = -1;
+    }
+
+
+    addEntry(entry) {
+        if (entry.trim() !== "") {
+            this._history.unshift(entry);
+        }
+        this._index = -1;
+    }
+
+    clear() {
+        this._history = [];
+        this._index = -1;
+    }
+
+    getEntry(index) {
+        if (index >= 0) {
+            return this._history[index];
+        } else {
+            return "";
+        }
+    }
+
+    nextEntry() {
+        this._index--;
+        if (this._index < -1) {
+            this._index = -1;
+        }
+
+        return this.getEntry(this._index);
+    }
+
+    previousEntry() {
+        this._index++;
+        if (this._index >= this._history.length) {
+            this._index = this._history.length - 1;
+        }
+
+        return this.getEntry(this._index);
     }
 }
 

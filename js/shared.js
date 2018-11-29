@@ -33,7 +33,7 @@ String.prototype.replaceAll = function (regex, replacement) {
         string = string.replace(regex, replacement);
     }
 
-    return string;
+    return "" + string;
 };
 
 String.prototype.trimLines = function () {
