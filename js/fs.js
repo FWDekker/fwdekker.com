@@ -83,7 +83,10 @@ class FileSystem {
     }
 
     _childPath(path) {
-        return this._normalisePath(path).split("/").slice(0, -1).slice(-1).join("/");
+        const childPath = this._normalisePath(path).split("/").slice(0, -1).slice(-1).join("/");
+        return (childPath === "")
+            ? "."
+            : childPath;
     }
 
     _executeForEach(inputs, fun) {
@@ -123,7 +126,10 @@ class FileSystem {
     }
 
     _parentPath(path) {
-        return this._normalisePath(path).split("/").slice(0, -2).join("/");
+        const parentPath = this._normalisePath(path).split("/").slice(0, -2).join("/");
+        return (parentPath === "")
+            ? "/"
+            : parentPath;
     }
 
     static _sanitisePath(path) {
@@ -223,6 +229,10 @@ class FileSystem {
     mkdir(path) {
         const parentDirName = this._parentPath(path);
         const childDirName = this._childPath(path);
+
+        if (parentDirName === "/" && childDirName === ".") {
+            return `The directory '.' already exists`;
+        }
 
         const parentDir = this._getFile(parentDirName);
         if (!FileSystem.isDirectory(parentDir)) {
