@@ -79,8 +79,11 @@ class Commands {
             rm: {
                 fun: this.rm,
                 summary: `remove file`,
-                usage: `rm FILE`,
-                desc: `Removes FILE if it is a file.`
+                usage: `rm FILE...`,
+                desc:
+                    `Removes the files given by FILE.
+                    
+                    If more than one file is given, the files are removed in the order they are given in.`.trimLines()
             },
             rmdir: {
                 fun: this.rmdir,
@@ -208,7 +211,7 @@ class Commands {
     }
 
     rm(args) {
-        return this._fs.rm(args[1]);
+        return this._fs.rms(args.getArgs());
     }
 
     rmdir(args) {

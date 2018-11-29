@@ -267,6 +267,18 @@ class FileSystem {
         return "";
     }
 
+    rms(paths) {
+        for (let i = 0; i < paths.length; i++) {
+            const output = this.rm(paths[i]);
+
+            if (output !== "") {
+                return output;
+            }
+        }
+
+        return "";
+    }
+
     /**
      * Removes a directory from the file system.
      *
