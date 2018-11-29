@@ -48,9 +48,12 @@ class Commands {
             },
             mkdir: {
                 fun: this.mkdir,
-                summary: `make directory`,
-                usage: `mkdir DIRECTORY`,
-                desc: `Creates a directory with name DIRECTORY.`
+                summary: `make directories`,
+                usage: `mkdir DIRECTORY...`,
+                desc: "" +
+                    `Creates the directories given by DIRECTORY.
+                    
+                    If more than one directory is given, the directories are created in the order they are given in`.trimLines()
             },
             open: {
                 fun: this.open,
@@ -81,10 +84,12 @@ class Commands {
             },
             rmdir: {
                 fun: this.rmdir,
-                summary: `remove directory`,
-                usage: `rmdir [-f | --force] DIRECTORY`,
+                summary: `remove directories`,
+                usage: `rmdir [-f | --force] DIRECTORY...`,
                 desc: "" +
-                    `Removes DIRECTORY if it is a directory.
+                    `Removes the directories given by DIRECTORY.
+                    
+                    If more than one directory is given, the directories are removed in the order they are given in.s
 
                     If -f or --force is set, DIRECTORY is deleted even if it contains files or other directories.`.trimLines()
             }
@@ -159,7 +164,7 @@ class Commands {
     }
 
     mkdir(args) {
-        return this._fs.mkdir(args.getArg(0));
+        return this._fs.mkdirs(args.getArgs());
     }
 
     open(args) {
@@ -207,10 +212,7 @@ class Commands {
     }
 
     rmdir(args) {
-        const path = args.getArg(0);
-        const force = args.hasAnyOption(["-f", "--force"]);
-
-        return this._fs.rmdir(path, force);
+        return this._fs.rmdirs(args.getArgs(), args.hasAnyOption(["-f", "--force"]));
     }
 }
 

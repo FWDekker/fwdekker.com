@@ -224,6 +224,17 @@ class FileSystem {
         return "";
     }
 
+    mkdirs(paths) {
+        for (let i = 0; i < paths.length; i++) {
+            const output = this.mkdir(paths[i]);
+            if (output !== "") {
+                return output;
+            }
+        }
+
+        return "";
+    }
+
     /**
      * Resets navigation in the file system.
      */
@@ -293,6 +304,18 @@ class FileSystem {
         }
 
         delete parentDir[childDirName];
+        return "";
+    }
+
+    rmdirs(paths, force) {
+        for (let i = 0; i < paths.length; i++) {
+            const output = this.rmdir(paths[i], force);
+
+            if (output !== "") {
+                return output;
+            }
+        }
+
         return "";
     }
 }
