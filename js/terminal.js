@@ -94,7 +94,8 @@ class Terminal {
         } else {
             this.outputText += `${this.prefixText}\n`;
 
-            if (this._user === "felix" && input === "hotel123") {
+            if ((this._user === "felix" && input === "hotel123")
+                || (this._user === "root" && input === "password")) {
                 this._loggedIn = true;
                 this.outputText += Terminal.generateHeader();
             } else {
