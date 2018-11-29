@@ -94,13 +94,17 @@ class Commands {
             rm: {
                 fun: this.rm,
                 summary: `remove file`,
-                usage: `rm [-f | --f] FILE...`,
+                usage: `rm [-f | --force] [-r | -R | --recursive] [--no-preserve-root] FILE...`,
                 desc:
                     `Removes the files given by FILE.
                     
                     If more than one file is given, the files are removed in the order they are given in.
                     
-                    If -f or --force is set, no warning is given if a file could not be removed.`.trimLines()
+                    If -f or --force is set, no warning is given if a file could not be removed.
+                    
+                    If -r, -R, or --recursive is set, files and directories are removed recursively.
+                    
+                    Unless --no-preserve-root is set, the root directory cannot be removed.`.trimLines()
             },
             rmdir: {
                 fun: this.rmdir,
@@ -202,7 +206,7 @@ class Commands {
             return `The file '${fileName}' does not exist`;
         }
         if (!FileSystem.isFile(file)) {
-            return `'${fileName} is not a file'`;
+            return `'${fileName}' is not a file`;
         }
         if (!(file instanceof LinkFile)) {
             return `Could not open '${fileName}'`;
@@ -234,7 +238,12 @@ class Commands {
     }
 
     rm(args) {
-        return this._fs.rms(args.getArgs());
+        return this._fs.rms(
+            args.getArgs(),
+            args.hasAnyOption(["-f", "--force"]),
+            args.hasAnyOption(["-r", "-R", "--recursive"]),
+            args.hasOption("--no-preserve-root")
+        );
     }
 
     rmdir(args) {

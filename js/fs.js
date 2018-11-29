@@ -331,37 +331,53 @@ class FileSystem {
      *
      * @param path {string} the absolute or relative path to the file to be removed
      * @param force {boolean} true if no warnings should be given if removal is unsuccessful
+     * @param recursive {boolean} true if files and directories should be removed recursively
+     * @param noPreserveRoot {boolean} false if the root directory should not be removed
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
-    rm(path, force) {
-        const dirName = this._parentPath(path);
-        const fileName = this._childPath(path);
+    rm(path, force = false, recursive = false, noPreserveRoot = false) {
+        const absolutePath = this._normalisePath(path);
+        const parentPath = this._parentPath(path);
+        const childPath = this._childPath(path);
 
-        const dir = this._getFile(dirName);
-        if (dir === undefined) {
+        const parentNode = this._getFile(parentPath);
+        if (parentNode === undefined) {
             return force
                 ? ""
-                : `The directory '${dirName}' does not exist`;
+                : `The directory '${parentPath}' does not exist`;
         }
-        if (!FileSystem.isDirectory(dir)) {
+        if (!FileSystem.isDirectory(parentNode)) {
             return force
                 ? ""
-                : `'${dirName}' is not a directory`;
-        }
-
-        const file = dir.getNode(fileName);
-        if (file === undefined) {
-            return force
-                ? ""
-                : `The file '${fileName}' does not exist`;
-        }
-        if (!FileSystem.isFile(file)) {
-            return force
-                ? ""
-                : `'${fileName}' is not a file`;
+                : `'${parentPath}' is not a directory`;
         }
 
-        dir.removeNode(file);
+        const childNode = parentNode.getNode(childPath);
+        if (childNode === undefined) {
+            return force
+                ? ""
+                : `The file '${childPath}' does not exist`;
+        }
+
+        if (recursive) {
+            if (absolutePath === "/") {
+                if (noPreserveRoot) {
+                    this._root = new Directory("/", undefined, []);
+                } else {
+                    return "'/' cannot be removed";
+                }
+            } else {
+                parentNode.removeNode(childNode);
+            }
+        } else {
+            if (!(childNode instanceof File)) {
+                return force
+                    ? ""
+                    : `'${childPath}' is not a file`;
+            }
+
+            parentNode.removeNode(childNode);
+        }
         return "";
     }
 
@@ -370,11 +386,13 @@ class FileSystem {
      *
      * @param paths {string} the absolute or relative paths to the files to be removed
      * @param force {boolean} true if no warnings should be given if removal is unsuccessful
+     * @param recursive {boolean} true if files and directories should be removed recursively
+     * @param noPreserveRoot {boolean} false if the root directory should not be removed
      * @returns {string} the warnings generated during removal of the directories
      */
-    rms(paths, force) {
+    rms(paths, force = false, recursive = false, noPreserveRoot = false) {
         return this._executeForEach(paths, path => {
-            return this.rm(path, force);
+            return this.rm(path, force, recursive, noPreserveRoot);
         });
     }
 
