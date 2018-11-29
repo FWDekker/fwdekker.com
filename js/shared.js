@@ -20,6 +20,7 @@ String.prototype.trimLines = function () {
     return this.split("\n").map(it => it.trim()).join("\n");
 };
 
+
 function addOnLoad(fun) {
     const oldOnLoad = window.onload || (() => {
     });
@@ -28,6 +29,16 @@ function addOnLoad(fun) {
         oldOnLoad();
         fun();
     });
+}
+
+function moveCaretToEndOf(element) {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
 }
 
 function q(query) {

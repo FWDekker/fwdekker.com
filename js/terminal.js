@@ -144,9 +144,11 @@ class Terminal {
         switch (e.key.toLowerCase()) {
             case "arrowup":
                 this.inputText = this._inputHistory.previousEntry();
+                window.setTimeout(() => moveCaretToEndOf(this._input), 0);
                 break;
             case "arrowdown":
                 this.inputText = this._inputHistory.nextEntry();
+                window.setTimeout(() => moveCaretToEndOf(this._input), 0);
                 break;
             case "l":
                 if (e.ctrlKey) {
