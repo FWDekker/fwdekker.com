@@ -382,17 +382,13 @@ class FileSystem {
      * Removes a directory from the file system.
      *
      * @param path {string} the absolute or relative path to the directory to be removed
-     * @param force {boolean} true iff the directory should be removed regardless of whether it is empty
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
-    rmdir(path, force) {
-        force = (force || false);
-
+    rmdir(path) {
         if (this._normalisePath(path) === "/") {
-            if (!force && this._root.getNodeCount() > 0) {
+            if (this._root.getNodeCount() > 0) {
                 return `The directory is not empty.`;
             } else {
-                this._root = new Directory("/", undefined, []);
                 return "";
             }
         }
@@ -402,28 +398,20 @@ class FileSystem {
 
         const parentDir = this._getFile(parentDirName);
         if (parentDir === undefined) {
-            return force
-                ? ""
-                : `The directory '${parentDirName}' does not exist`;
+            return `The directory '${parentDirName}' does not exist`;
         }
         if (!FileSystem.isDirectory(parentDir)) {
-            return force
-                ? ""
-                : `'${parentDirName}' is not a directory`;
+            return `'${parentDirName}' is not a directory`;
         }
 
         const childDir = parentDir.getNode(childDirName);
         if (childDir === undefined) {
-            return force
-                ? ""
-                : `The directory '${childDirName}' does not exist`;
+            return `The directory '${childDirName}' does not exist`;
         }
         if (!FileSystem.isDirectory(childDir)) {
-            return force
-                ? ""
-                : `'${childDirName}' is not a directory`;
+            return `'${childDirName}' is not a directory`;
         }
-        if (!force && childDir.getNodeCount() > 0) {
+        if (childDir.getNodeCount() > 0) {
             return `The directory is not empty`;
         }
 
@@ -435,12 +423,11 @@ class FileSystem {
      * Calls {@link rmdir} on all elements in {@code paths}.
      *
      * @param paths {string[]} the absolute or relative paths to the directories to be removed
-     * @param force {boolean} true iff the directories should be removed regardless of whether they are empty
      * @returns {string} the warnings generated during removal of the directories
      */
-    rmdirs(paths, force) {
+    rmdirs(paths) {
         return this._executeForEach(paths, path => {
-            return this.rmdir(path, force);
+            return this.rmdir(path);
         });
     }
 }

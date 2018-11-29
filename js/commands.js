@@ -105,13 +105,11 @@ class Commands {
             rmdir: {
                 fun: this.rmdir,
                 summary: `remove directories`,
-                usage: `rmdir [-f | --force] DIRECTORY...`,
+                usage: `rmdir DIRECTORY...`,
                 desc: "" +
                     `Removes the directories given by DIRECTORY.
                     
-                    If more than one directory is given, the directories are removed in the order they are given in.s
-
-                    If -f or --force is set, the directories are deleted even if they contain files or other directories, and no warning is given if a directory could not be removed.`.trimLines()
+                    If more than one directory is given, the directories are removed in the order they are given in.`.trimLines()
             }
         };
     }
