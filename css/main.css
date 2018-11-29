@@ -92,3 +92,9 @@ a:hover {
 #terminalCurrentFocusInput br {
     display: none;
 }
+
+.terminalCurrentFocusInputHidden {
+    max-width: 1px !important;
+    overflow: hidden !important;
+    overflow-wrap: normal !important;
+}

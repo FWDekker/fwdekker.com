@@ -87,14 +87,21 @@ class Terminal {
 
     continueLogin(input) {
         if (this._user === undefined) {
+            this.outputText += `${this.prefixText}${input}\n`;
+
             this._user = input.trim();
+            this._input.classList.add("terminalCurrentFocusInputHidden");
         } else {
+            this.outputText += `${this.prefixText}\n`;
+
             if (this._user === "felix" && input === "hotel123") {
                 this._loggedIn = true;
             } else {
                 this.outputText += "Access denied\n";
                 this._user = undefined;
             }
+
+            this._input.classList.remove("terminalCurrentFocusInputHidden");
         }
     }
 
@@ -108,11 +115,11 @@ class Terminal {
 
     processInput(input) {
         this.inputText = "";
-        this.outputText += `${this.prefixText}${input}\n`;
 
         if (!this._loggedIn) {
             this.continueLogin(input);
         } else {
+            this.outputText += `${this.prefixText}${input}\n`;
             this._inputHistory.addEntry(input);
 
             const output = this._commands.parse(input.trim());
