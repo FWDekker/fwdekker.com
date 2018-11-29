@@ -53,7 +53,7 @@ class Terminal {
 
         this._terminal.addEventListener("click", this._onclick.bind(this));
         this._terminal.addEventListener("keypress", this._onkeypress.bind(this));
-        this._input.addEventListener("keydown", this._onkeydown.bind(this));
+        this._terminal.addEventListener("keydown", this._onkeydown.bind(this));
 
         this.reset();
         this._input.focus();
@@ -94,13 +94,13 @@ class Terminal {
         return "" +
             `<span class="wideScreenOnly">${asciiHeader}</span><span class="smallScreenOnly"><b><u>FWDekker</u></b></span>
 
-			Student MSc Computer Science <span class="smallScreenOnly">
-			</span>@ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
-			<span class="wideScreenOnly">${(new Date()).toISOString()}
-			</span>
-			Type "help" for help.
+            Student MSc Computer Science <span class="smallScreenOnly">
+            </span>@ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
+            <span class="wideScreenOnly">${(new Date()).toISOString()}
+            </span>
+            Type "help" for help.
 
-			`.trimLines();
+            `.trimLines();
     }
 
     generatePrefix() {

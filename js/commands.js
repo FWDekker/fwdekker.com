@@ -16,7 +16,7 @@ class Commands {
                 usage: `cd [DIRECTORY]`,
                 desc: "" +
                     `Changes the current working directory to [DIRECTORY].
-			        If [DIRECTORY] is empty, nothing happens.`.trimLines()
+                    If [DIRECTORY] is empty, nothing happens.`.trimLines()
             },
             echo: {
                 fun: Commands.echo,
@@ -36,7 +36,7 @@ class Commands {
                 usage: `help [COMMAND]`,
                 desc: "" +
                     `Displays help documentation for [COMMAND].
-			        If [COMMAND] is empty, a list of all commands is shown.`.trimLines()
+                    If [COMMAND] is empty, a list of all commands is shown.`.trimLines()
             },
             ls: {
                 fun: this.ls,
@@ -44,7 +44,7 @@ class Commands {
                 usage: `ls [DIRECTORY]`,
                 desc: "" +
                     `Displays the files and directories in [DIRECTORY].
-			        If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`.trimLines()
+                    If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`.trimLines()
             },
             mkdir: {
                 fun: this.mkdir,
@@ -57,9 +57,9 @@ class Commands {
                 summary: `open web page`,
                 usage: `open [-b | --blank] FILE`,
                 desc: "" +
-                        `Opens the web page linked to by FILE in this browser window.
+                    `Opens the web page linked to by FILE in this browser window.
                         
-                        If -b or --blank is set, the web page is opened in a new tab.`
+                    If -b or --blank is set, the web page is opened in a new tab.`.trimLines()
             },
             poweroff: {
                 fun: Commands.poweroff,
@@ -136,11 +136,11 @@ class Commands {
             return "" +
                 `${command} - ${info.summary}
 
-			    <b>Usage</b>
-			    ${info.usage}
+                <b>Usage</b>
+                ${info.usage}
 
-			    <b>Description</b>
-			    ${info.desc}`.trimLines();
+                <b>Description</b>
+                ${info.desc}`.trimLines();
         } else {
             const commandWidth = Math.max.apply(null, commandNames.map(it => it.length)) + 4;
             const commandEntries = commandNames.map(
@@ -149,9 +149,9 @@ class Commands {
 
             return "" +
                 `<b>List of commands</b>
-			    ${commandEntries.join("\n")}
+                ${commandEntries.join("\n")}
 
-			    Write "help [COMMAND]" for more information on a command.`.trimLines();
+                Write "help [COMMAND]" for more information on a command.`.trimLines();
         }
     }
 
