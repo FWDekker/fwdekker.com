@@ -79,11 +79,13 @@ class Commands {
             rm: {
                 fun: this.rm,
                 summary: `remove file`,
-                usage: `rm FILE...`,
+                usage: `rm [-f | --f] FILE...`,
                 desc:
                     `Removes the files given by FILE.
                     
-                    If more than one file is given, the files are removed in the order they are given in.`.trimLines()
+                    If more than one file is given, the files are removed in the order they are given in.
+                    
+                    If -f or --force is set, no warning is given if a file could not be removed.`.trimLines()
             },
             rmdir: {
                 fun: this.rmdir,
@@ -94,7 +96,7 @@ class Commands {
                     
                     If more than one directory is given, the directories are removed in the order they are given in.s
 
-                    If -f or --force is set, DIRECTORY is deleted even if it contains files or other directories.`.trimLines()
+                    If -f or --force is set, the directories are deleted even if they contain files or other directories, and no warning is given if a directory could not be removed.`.trimLines()
             }
         };
     }

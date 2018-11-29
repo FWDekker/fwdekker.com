@@ -86,6 +86,21 @@ class FileSystem {
         return this._normalisePath(path).split("/").slice(0, -1).slice(-1).join("/");
     }
 
+    _executeForEach(inputs, fun) {
+        const outputs = [];
+
+        inputs.forEach(input => {
+            console.log(this);
+            const output = fun(input);
+
+            if (output !== "") {
+                outputs.push(output);
+            }
+        });
+
+        return outputs.join("\n");
+    }
+
     _getFile(path) {
         path = this._normalisePath(path);
 
@@ -225,14 +240,7 @@ class FileSystem {
     }
 
     mkdirs(paths) {
-        for (let i = 0; i < paths.length; i++) {
-            const output = this.mkdir(paths[i]);
-            if (output !== "") {
-                return output;
-            }
-        }
-
-        return "";
+        return this._executeForEach(paths, this.mkdir.bind(this));
     }
 
     /**
@@ -247,36 +255,35 @@ class FileSystem {
      * Removes a file from the file system.
      *
      * @param path {string} the absolute or relative path to the file to be removed
+     * @param force {boolean} true if no warnings should be given if removal is unsuccessful
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
-    rm(path) {
+    rm(path, force) {
         const dirName = this._parentPath(path);
         const fileName = this._childPath(path);
 
         const dir = this._getFile(dirName);
         if (!FileSystem.isDirectory(dir)) {
-            return `The directory '${dirName}' does not exist`;
+            return force
+                ? ""
+                : `The directory '${dirName}' does not exist`;
         }
 
         const file = dir[fileName];
         if (!FileSystem.isFile(file)) {
-            return `The file '${fileName}' does not exist`;
+            return force
+                ? ""
+                : `The file '${fileName}' does not exist`;
         }
 
         delete dir[fileName];
         return "";
     }
 
-    rms(paths) {
-        for (let i = 0; i < paths.length; i++) {
-            const output = this.rm(paths[i]);
-
-            if (output !== "") {
-                return output;
-            }
-        }
-
-        return "";
+    rms(paths, force) {
+        return this._executeForEach(paths, path => {
+            this.rm(path, force);
+        });
     }
 
     /**
@@ -304,12 +311,16 @@ class FileSystem {
 
         const parentDir = this._getFile(parentDirName);
         if (!FileSystem.isDirectory(parentDir)) {
-            return `The directory '${parentDirName}' does not exist`;
+            return force
+                ? ""
+                : `The directory '${parentDirName}' does not exist`;
         }
 
         const childDir = parentDir[childDirName];
         if (!FileSystem.isDirectory(childDir)) {
-            return `The directory '${childDirName}' does not exist`;
+            return force
+                ? ""
+                : `The directory '${childDirName}' does not exist`;
         }
         if (!force && Object.keys(childDir).length > 2) {
             return `The directory is not empty`;
@@ -320,15 +331,9 @@ class FileSystem {
     }
 
     rmdirs(paths, force) {
-        for (let i = 0; i < paths.length; i++) {
-            const output = this.rmdir(paths[i], force);
-
-            if (output !== "") {
-                return output;
-            }
-        }
-
-        return "";
+        return this._executeForEach(paths, path => {
+            return this.rmdir(path, force);
+        });
     }
 }
 
