@@ -114,6 +114,15 @@ class Commands {
                     `Removes the directories given by DIRECTORY.
                     
                     If more than one directory is given, the directories are removed in the order they are given in.`.trimLines()
+            },
+            touch: {
+                fun: this.touch,
+                summary: `change file timestamps`,
+                usage: `touch FILE...`,
+                desc: "" +
+                    `Update the access and modification times of each FILE to the current time.
+                    
+                    If a file does not exist, it is created.`.trimLines()
             }
         };
     }
@@ -247,7 +256,11 @@ class Commands {
     }
 
     rmdir(args) {
-        return this._fs.rmdirs(args.getArgs(), args.hasAnyOption(["-f", "--force"]));
+        return this._fs.rmdirs(args.getArgs());
+    }
+
+    touch(args) {
+        return this._fs.createFiles(args.getArgs());
     }
 }
 

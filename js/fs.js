@@ -147,6 +147,41 @@ class FileSystem {
     }
 
     /**
+     * Creates an empty file at {@code path} if it does not exist.
+     *
+     * @param path the path to create a file at if it does not exist
+     * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
+     */
+    createFile(path) {
+        const parentNode = this._getFile(this._parentPath(path));
+        const childPath = this._childPath(path);
+        const childNode = this._getFile(childPath);
+
+        if (parentNode === undefined) {
+            return `The directory '' does not exist`;
+        }
+        if (childNode !== undefined) {
+            return "";
+        }
+
+        const file = new File(childPath);
+        parentNode.addNode(file);
+        return "";
+    }
+
+    /**
+     * Calls {@link createFile} on all elements in {@code paths}.
+     *
+     * @param paths {string[]} the absolute or relative paths to the files to be created
+     * @returns {string} the warnings generated during creation of the files
+     */
+    createFiles(paths) {
+        return this._executeForEach(paths, path => {
+            return this.createFile(path);
+        });
+    }
+
+    /**
      * Copies {@code source} to {@code destination}.
      *
      * If the destination does not exist, the source will be copied to that exact location. If the destination exists
@@ -551,7 +586,7 @@ class File extends Node {
     }
 
     toString() {
-        return name;
+        return this.name;
     }
 
     visit(fun, pre = emptyFunction, post = emptyFunction) {
