@@ -100,7 +100,6 @@ class FileSystem {
     }
 
 
-
     /**
      * Returns true iff {@code node} represents a directory.
      *
@@ -216,6 +215,51 @@ class FileSystem {
      */
     mkdirs(paths) {
         return this._executeForEach(paths, this.mkdir.bind(this));
+    }
+
+    /**
+     * Moves {@code source} to {@code destination}.
+     *
+     * If the destination does not exist, the source will be moved to that exact location. If the destination exists and
+     * is a directory, the source will be moved into the directory. If the destination exists but is not a directory,
+     * the move will fail.
+     *
+     * @param source the absolute or relative path to the file or directory to move
+     * @param destination the absolute or relative path to the destination
+     * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
+     */
+    mv(source, destination) {
+        const sourceNode = this._getFile(source);
+        const destinationNode = this._getFile(destination);
+
+        if (sourceNode === undefined) {
+            return `The file '${source}' does not exist`;
+        }
+
+        const sourceParentDirectory = this._getFile(this._parentPath(source));
+        const destinationParentPath = this._parentPath(destination);
+        const destinationParentDirectory = this._getFile(destinationParentPath);
+
+        if (destinationParentDirectory === undefined) {
+            return `The directory '${this._parentPath(destination)}' does not exist`;
+        }
+
+        const destinationFileName = this._childPath(destination);
+
+        if (destinationNode === undefined) {
+            if (destinationParentDirectory.getNode(destinationFileName) !== undefined) {
+                return `The file '${destinationFileName}' already exists`;
+            }
+
+            sourceParentDirectory.removeNode(sourceNode);
+            destinationParentDirectory.addNode(sourceNode);
+            sourceNode.name = destinationFileName;
+        } else {
+            sourceParentDirectory.removeNode(sourceNode);
+            destinationNode.addNode(sourceNode);
+        }
+
+        return "";
     }
 
     /**

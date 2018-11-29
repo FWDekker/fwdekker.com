@@ -55,6 +55,12 @@ class Commands {
                     
                     If more than one directory is given, the directories are created in the order they are given in`.trimLines()
             },
+            mv: {
+                fun: this.mv,
+                summary: `move file`,
+                usage: `mv SOURCE DESTINATION`,
+                desc: `Renames SOURCE to DESTINATION.`
+            },
             open: {
                 fun: this.open,
                 summary: `open web page`,
@@ -170,6 +176,10 @@ class Commands {
 
     mkdir(args) {
         return this._fs.mkdirs(args.getArgs());
+    }
+
+    mv(args) {
+        return this._fs.mv(args.getArg(0), args.getArg(1));
     }
 
     open(args) {
