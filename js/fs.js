@@ -23,6 +23,18 @@ class FileSystem {
     }
 
 
+    static _sanitisePath(path) {
+        const selfRegex = /\/\.\//; // Match "./"
+        const upRegex = /(\/+)([^./]+)(\/+)(\.\.)(\/+)/; // Match "/directory/../"
+        const doubleRegex = /\/{2,}/; // Match "///"
+
+        return `${path}/`
+            .replaceAll(selfRegex, "/")
+            .replaceAll(upRegex, "/")
+            .replaceAll(doubleRegex, "/")
+            .toString();
+    }
+
     _absolutePath(path) {
         if (path.startsWith("/")) {
             return path;
@@ -31,6 +43,11 @@ class FileSystem {
         }
     }
 
+    _normalisePath(path) {
+        return FileSystem._sanitisePath(this._absolutePath(path));
+    }
+
+
     _childPath(path) {
         const childPath = this._normalisePath(path).split("/").slice(0, -1).slice(-1).join("/");
         return (childPath === "")
@@ -38,19 +55,13 @@ class FileSystem {
             : childPath;
     }
 
-    _executeForEach(inputs, fun) {
-        const outputs = [];
-
-        inputs.forEach(input => {
-            const output = fun(input);
-
-            if (output !== "") {
-                outputs.push(output);
-            }
-        });
-
-        return outputs.join("\n");
+    _parentPath(path) {
+        const parentPath = this._normalisePath(path).split("/").slice(0, -2).join("/");
+        return (parentPath === "")
+            ? "/"
+            : parentPath;
     }
+
 
     _getFile(path) {
         path = this._normalisePath(path);
@@ -73,28 +84,21 @@ class FileSystem {
         return file;
     }
 
-    _normalisePath(path) {
-        return FileSystem._sanitisePath(this._absolutePath(path));
+
+    _executeForEach(inputs, fun) {
+        const outputs = [];
+
+        inputs.forEach(input => {
+            const output = fun(input);
+
+            if (output !== "") {
+                outputs.push(output);
+            }
+        });
+
+        return outputs.join("\n");
     }
 
-    _parentPath(path) {
-        const parentPath = this._normalisePath(path).split("/").slice(0, -2).join("/");
-        return (parentPath === "")
-            ? "/"
-            : parentPath;
-    }
-
-    static _sanitisePath(path) {
-        const selfRegex = /\/\.\//; // Match "./"
-        const upRegex = /(\/+)([^./]+)(\/+)(\.\.)(\/+)/; // Match "/directory/../"
-        const doubleRegex = /\/{2,}/; // Match "///"
-
-        return `${path}/`
-            .replaceAll(selfRegex, "/")
-            .replaceAll(upRegex, "/")
-            .replaceAll(doubleRegex, "/")
-            .toString();
-    }
 
 
     /**
@@ -204,6 +208,12 @@ class FileSystem {
         return "";
     }
 
+    /**
+     * Calls {@link mkdir} on all elements in {@code paths}.
+     *
+     * @param paths {string[]} the absolute or relative paths to the directories to create
+     * @returns {string} the warnings generated during creation of the directories
+     */
     mkdirs(paths) {
         return this._executeForEach(paths, this.mkdir.bind(this));
     }
@@ -255,6 +265,13 @@ class FileSystem {
         return "";
     }
 
+    /**
+     * Calls {@link rm} on all elements in {@code paths}.
+     *
+     * @param paths {string} the absolute or relative paths to the files to be removed
+     * @param force {boolean} true if no warnings should be given if removal is unsuccessful
+     * @returns {string} the warnings generated during removal of the directories
+     */
     rms(paths, force) {
         return this._executeForEach(paths, path => {
             return this.rm(path, force);
@@ -314,6 +331,13 @@ class FileSystem {
         return "";
     }
 
+    /**
+     * Calls {@link rmdir} on all elements in {@code paths}.
+     *
+     * @param paths {string[]} the absolute or relative paths to the directories to be removed
+     * @param force {boolean} true iff the directories should be removed regardless of whether they are empty
+     * @returns {string} the warnings generated during removal of the directories
+     */
     rmdirs(paths, force) {
         return this._executeForEach(paths, path => {
             return this.rmdir(path, force);
