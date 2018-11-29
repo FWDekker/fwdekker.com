@@ -53,6 +53,7 @@ class FileSystem {
         const queue = [this._root];
 
         this._root["."] = this._root;
+        this._root[".."] = this._root;
 
         while (queue.length !== 0) {
             const next = queue.pop();
@@ -229,10 +230,6 @@ class FileSystem {
     mkdir(path) {
         const parentDirName = this._parentPath(path);
         const childDirName = this._childPath(path);
-
-        if (parentDirName === "/" && childDirName === ".") {
-            return `The directory '.' already exists`;
-        }
 
         const parentDir = this._getFile(parentDirName);
         if (!FileSystem.isDirectory(parentDir)) {
