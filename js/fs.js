@@ -1,25 +1,25 @@
 class FileSystem {
     constructor() {
         this.pwd = "/";
-        this._root = new Directory("", undefined, [
-            new Directory("personal", undefined, [
-                new LinkFile("steam", "https://steamcommunity.com/id/Waflix"),
-                new LinkFile("nukapedia", "http://fallout.wikia.com/wiki/User:FDekker")
-            ]),
-            new Directory("projects", undefined, [
-                new Directory("minor", undefined, [
-                    new LinkFile("dice", "https://fwdekker.com/dice")
-                ]),
-                new LinkFile("randomness", "https://github.com/FWDekker/intellij-randomness"),
-                new LinkFile("schaapi", "http://cafejojo.org/schaapi")
-            ]),
-            new Directory("social", undefined, [
-                new LinkFile("github", "https://github.com/FWDekker/"),
-                new LinkFile("stackoverflow", "https://stackoverflow.com/u/3307872"),
-                new LinkFile("linkedin", "https://www.linkedin.com/in/fwdekker/")
-            ]),
-            new LinkFile("resume.pdf", "resume.pdf")
-        ]);
+        this._root = new Directory({
+            personal: new Directory({
+                steam: new LinkFile("https://steamcommunity.com/id/Waflix"),
+                nukapedia: new LinkFile("http://fallout.wikia.com/wiki/User:FDekker")
+            }),
+            projects: new Directory({
+                minor: new Directory({
+                    dice: new LinkFile("https://fwdekker.com/dice")
+                }),
+                randomness: new LinkFile("https://github.com/FWDekker/intellij-randomness"),
+                schaapi: new LinkFile("http://cafejojo.org/schaapi")
+            }),
+            social: new Directory({
+                github: new LinkFile("https://github.com/FWDekker/"),
+                stackoverflow: new LinkFile("https://stackoverflow.com/u/3307872"),
+                linkedin: new LinkFile("https://www.linkedin.com/in/fwdekker/")
+            }),
+            "resume.pdf": new LinkFile("resume.pdf")
+        });
     }
 
 
@@ -76,6 +76,7 @@ class FileSystem {
             }
             if (FileSystem.isFile(file)) {
                 file = undefined;
+                return;
             }
 
             file = file.getNode(part);
@@ -164,8 +165,7 @@ class FileSystem {
             return "";
         }
 
-        const file = new File(childPath);
-        parentNode.addNode(file);
+        parentNode.addNode(childPath, new File(childPath));
         return "";
     }
 
@@ -225,9 +225,7 @@ class FileSystem {
             return `The file '${targetName}' already exists`;
         }
 
-        const copy = sourceChildNode.copy();
-        copy.name = targetName;
-        targetNode.addNode(copy);
+        targetNode.addNode(targetName, sourceChildNode.copy());
 
         return "";
     }
@@ -241,29 +239,31 @@ class FileSystem {
     ls(path) {
         path = (path || this.pwd);
 
-        const node = this._getFile(path);
-        if (node === undefined) {
+        const dir = this._getFile(path);
+        if (dir === undefined) {
             return `The directory '${path}' does not exist`;
         }
-        if (!FileSystem.isDirectory(node)) {
+        if (!FileSystem.isDirectory(dir)) {
             return `'${path}' is not a directory`;
         }
 
         const dirList = ["./", "../"];
         const fileList = [];
 
-        node.getNodes()
-            .sortAlphabetically(node => node.name)
-            .forEach(node => {
-                    if (FileSystem.isDirectory(node)) {
-                        dirList.push(node.toString());
-                    } else if (FileSystem.isFile(node)) {
-                        fileList.push(node.toString());
-                    } else {
-                        throw `${node.name} is neither a file nor a directory!`;
-                    }
+        const nodes = dir.getNodes();
+        Object.keys(nodes)
+            .sortAlphabetically()
+            .forEach(name => {
+                const node = nodes[name];
+
+                if (FileSystem.isDirectory(node)) {
+                    dirList.push(node.toString(name));
+                } else if (FileSystem.isFile(node)) {
+                    fileList.push(node.toString(name));
+                } else {
+                    throw `${name} is neither a file nor a directory!`;
                 }
-            );
+            });
 
         return dirList.concat(fileList).join("\n");
     }
@@ -289,7 +289,7 @@ class FileSystem {
             return `The directory '${childDirName}' already exists`;
         }
 
-        parentDir.addNode(new Directory(childDirName, parentDir, []));
+        parentDir.addNode(childDirName, new Directory());
         return "";
     }
 
@@ -397,7 +397,7 @@ class FileSystem {
         if (recursive) {
             if (absolutePath === "/") {
                 if (noPreserveRoot) {
-                    this._root = new Directory("/", undefined, []);
+                    this._root = new Directory();
                 } else {
                     return "'/' cannot be removed";
                 }
@@ -487,16 +487,11 @@ class FileSystem {
 
 
 class Node {
-    constructor(name) {
-        this.name = name;
-    }
-
-
     copy() {
         throw "Cannot execute abstract method!";
     }
 
-    toString() {
+    toString(name) {
         throw "Cannot execute abstract method!";
     }
 
@@ -506,24 +501,24 @@ class Node {
 }
 
 class Directory extends Node {
-    constructor(name, parent, nodes) {
-        super(name);
+    constructor(nodes = {}) {
+        super();
 
-        this._parent = (parent || this);
-        this._nodes = (nodes || []);
+        this._parent = this;
+        this._nodes = nodes;
 
-        this._nodes.forEach(node => {
-            node._parent = this;
+        Object.keys(this._nodes).forEach(name => {
+            this._nodes[name]._parent = this
         });
     }
 
 
     getNodes() {
-        return this._nodes.slice();
+        return Object.assign({}, this._nodes);
     }
 
     getNodeCount() {
-        return this._nodes.length;
+        return Object.keys(this._nodes).length;
     }
 
     getNode(name) {
@@ -533,60 +528,62 @@ class Directory extends Node {
             case "..":
                 return this._parent;
             default:
-                return this._nodes.find(it => it.name === name);
+                return this._nodes[name];
         }
     }
 
-    addNode(node) {
+    addNode(name, node) {
         if (node instanceof Directory) {
             node._parent = this;
         }
 
-        this._nodes.push(node);
+        this._nodes[name] = node;
     }
 
-    removeNode(node) {
-        const index = this._nodes.indexOf(node);
-
-        if (index >= 0) {
-            this._nodes.splice(index, 1);
-            return true;
+    removeNode(nodeOrName) {
+        if (nodeOrName instanceof Node) {
+            const name = Object.keys(this._nodes).find(key => this._nodes[key] === nodeOrName);
+            delete this._nodes[name];
         } else {
-            return false;
+            delete this._nodes[name];
         }
     }
 
 
     copy() {
-        return new Directory(this.name, this._parent, this._nodes);
+        const copy = new Directory(Object.assign({}, this._nodes));
+        copy._parent = undefined;
+        return copy;
     }
 
-    toString() {
-        return `${this.name}/`;
+    toString(name) {
+        return `${name}/`;
     }
 
     visit(fun, pre = emptyFunction, post = emptyFunction) {
         pre(this);
 
         fun(this);
-        this._nodes.forEach(node => node.visit(fun, pre, post));
+        Object.keys(this._nodes).forEach(name => {
+            this._nodes[name].visit(fun, pre, post);
+        });
 
         post(this);
     }
 }
 
 class File extends Node {
-    constructor(name) {
-        super(name);
+    constructor() {
+        super();
     }
 
 
     copy() {
-        return new File(this.name);
+        return new File();
     }
 
-    toString() {
-        return this.name;
+    toString(name) {
+        return name;
     }
 
     visit(fun, pre = emptyFunction, post = emptyFunction) {
@@ -597,18 +594,18 @@ class File extends Node {
 }
 
 class LinkFile extends File {
-    constructor(name, url) {
-        super(name);
+    constructor(url) {
+        super();
 
         this.url = url;
     }
 
 
     copy() {
-        return new LinkFile(this.name, this.url);
+        return new LinkFile(this.url);
     }
 
-    toString() {
-        return `<a href="${this.url}">${this.name}</a>`;
+    toString(name) {
+        return `<a href="${this.url}">${name}</a>`;
     }
 }
