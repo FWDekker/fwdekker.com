@@ -217,7 +217,7 @@ class Commands {
         if (!FileSystem.isFile(file)) {
             return `'${fileName}' is not a file`;
         }
-        if (!(file instanceof LinkFile)) {
+        if (!(file instanceof UrlFile)) {
             return `Could not open '${fileName}'`;
         }
 

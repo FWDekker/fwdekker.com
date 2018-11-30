@@ -3,22 +3,22 @@ class FileSystem {
         this.pwd = "/";
         this._root = new Directory({
             personal: new Directory({
-                steam: new LinkFile("https://steamcommunity.com/id/Waflix"),
-                nukapedia: new LinkFile("http://fallout.wikia.com/wiki/User:FDekker")
+                steam: new UrlFile("https://steamcommunity.com/id/Waflix"),
+                nukapedia: new UrlFile("http://fallout.wikia.com/wiki/User:FDekker")
             }),
             projects: new Directory({
                 minor: new Directory({
-                    dice: new LinkFile("https://fwdekker.com/dice")
+                    dice: new UrlFile("https://fwdekker.com/dice")
                 }),
-                randomness: new LinkFile("https://github.com/FWDekker/intellij-randomness"),
-                schaapi: new LinkFile("http://cafejojo.org/schaapi")
+                randomness: new UrlFile("https://github.com/FWDekker/intellij-randomness"),
+                schaapi: new UrlFile("http://cafejojo.org/schaapi")
             }),
             social: new Directory({
-                github: new LinkFile("https://github.com/FWDekker/"),
-                stackoverflow: new LinkFile("https://stackoverflow.com/u/3307872"),
-                linkedin: new LinkFile("https://www.linkedin.com/in/fwdekker/")
+                github: new UrlFile("https://github.com/FWDekker/"),
+                stackoverflow: new UrlFile("https://stackoverflow.com/u/3307872"),
+                linkedin: new UrlFile("https://www.linkedin.com/in/fwdekker/")
             }),
-            "resume.pdf": new LinkFile("resume.pdf")
+            "resume.pdf": new UrlFile("resume.pdf")
         });
     }
 
@@ -593,7 +593,7 @@ class File extends Node {
     }
 }
 
-class LinkFile extends File {
+class UrlFile extends File {
     constructor(url) {
         super();
 
@@ -602,7 +602,7 @@ class LinkFile extends File {
 
 
     copy() {
-        return new LinkFile(this.url);
+        return new UrlFile(this.url);
     }
 
     toString(name) {
