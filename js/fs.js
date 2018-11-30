@@ -227,7 +227,7 @@ class FileSystem {
 
         const copy = sourceChildNode.copy();
         copy.name = targetName;
-        targetNode.addNode(sourceChildNode);
+        targetNode.addNode(copy);
 
         return "";
     }
