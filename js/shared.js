@@ -5,6 +5,8 @@ const asciiHeader = `&nbsp;________          _______       _    _
 | |       \\  /\\  /  | |__| |  __/   <|   <  __/ |
 |_|        \\/  \\/   |_____/ \\___|_|\\_\\_|\\_\\___|_|   `;
 
+const asciiHeaderHtml = `<span class="wideScreenOnly">${asciiHeader}</span><span class="smallScreenOnly"><b><u>FWDekker</u></b></span>`;
+
 const emptyFunction = () => {};
 
 const identityFunction = (x) => x;

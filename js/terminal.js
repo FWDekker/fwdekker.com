@@ -49,7 +49,7 @@ class Terminal {
 
     static generateHeader() {
         return "" +
-            `<span class="wideScreenOnly">${asciiHeader}</span><span class="smallScreenOnly"><b><u>FWDekker</u></b></span>
+            `${asciiHeaderHtml}
 
             Student MSc Computer Science <span class="smallScreenOnly">
             </span>@ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
