@@ -224,7 +224,7 @@ class Commands {
 
     open(args) {
         const fileName = args.getArg(0);
-        const target = args.hasAnyOption(["-b", "--blank"]) ? "_blank" : "_self";
+        const target = args.hasAnyOption(["b", "blank"]) ? "_blank" : "_self";
 
         const file = this._fs._getFile(fileName);
         if (file === undefined) {
@@ -265,9 +265,9 @@ class Commands {
     rm(args) {
         return this._fs.rms(
             args.getArgs(),
-            args.hasAnyOption(["-f", "--force"]),
-            args.hasAnyOption(["-r", "-R", "--recursive"]),
-            args.hasOption("--no-preserve-root")
+            args.hasAnyOption(["f", "force"]),
+            args.hasAnyOption(["r", "R", "recursive"]),
+            args.hasOption("no-preserve-root")
         );
     }
 
@@ -282,23 +282,48 @@ class Commands {
 
 class InputArgs {
     constructor(input) {
-        this._options = {};
-
-        const args = (input.match(/("[^"]+"|[^"\s]+)/g) || [])
+        const inputParts = (input.match(/("[^"]+"|[^"\s]+)/g) || [])
             .map(it => it.replace(/^"/, "").replace(/"$/, ""));
+
+        this._command = (inputParts[0] || "").toLowerCase();
+
+        this._options = {};
         let i;
-        for (i = 1; i < args.length; i++) {
-            const arg = args[i];
-            if (!arg.startsWith("-")) {
+        for (i = 1; i < inputParts.length; i++) {
+            const arg = inputParts[i];
+            const argParts = arg.split("=");
+
+            if (arg.startsWith("--")) {
+                // --option, --option=value
+                const argName = argParts[0].substr(2);
+                this._options[argName] = (argParts[1] || "");
+            } else if (arg.startsWith("-")) {
+                // -o, -o=value, -opq
+                if (argParts[0].length === 2) {
+                    // -o, -o=value
+                    const argName = argParts[0].substr(1);
+
+                    this._options[argName] = (argParts[1] || "");
+                } else if (argParts.length === 1) {
+                    // -opq
+                    const argNames = argParts[0].substr(1).split("");
+
+                    argNames.forEach(argName => {
+                        this._options[argName] = "";
+                    });
+                } else {
+                    // Invalid
+                    throw "Cannot assign value to multiple options!";
+                }
+            } else {
+                // Not an option
                 break;
             }
 
-            const argParts = arg.split("=");
             this._options[argParts[0]] = (argParts[1] || "");
         }
 
-        this._command = (args[0] || "").toLowerCase();
-        this._args = args.slice(i);
+        this._args = inputParts.slice(i);
     }
 
 
