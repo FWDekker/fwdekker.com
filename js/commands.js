@@ -55,6 +55,12 @@ class Commands {
                     `Displays the files and directories in [DIRECTORY].
                     If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`.trimLines()
             },
+            man: {
+                fun: this.man,
+                summary: `display manual documentation pages`,
+                usage: `man PAGE`,
+                desc: `Displays the manual page with the name PAGE.`
+            },
             mkdir: {
                 fun: this.mkdir,
                 summary: `make directories`,
@@ -196,6 +202,16 @@ class Commands {
 
     ls(args) {
         return this._fs.ls(args.getArg(0));
+    }
+
+    man(args) {
+        if (args.getArgs().length === 0) {
+            return "What manual page do you want?";
+        } else if (Object.keys(this._list).indexOf(args.getArg(0)) < 0) {
+            return `No manual entry for ${args.getArg(0)}`;
+        } else {
+            return this.help(args);
+        }
     }
 
     mkdir(args) {
