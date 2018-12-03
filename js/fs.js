@@ -285,7 +285,7 @@ class FileSystem {
         if (!FileSystem.isDirectory(parentDir)) {
             return `'${parentDirName}' is not a directory`;
         }
-        if (parentDir[childDirName] !== undefined) {
+        if (parentDir.getNode(childDirName)) {
             return `The directory '${childDirName}' already exists`;
         }
 
