@@ -154,13 +154,18 @@ class FileSystem {
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
     createFile(path) {
-        const parentNode = this._getFile(this._parentPath(path));
-        const childPath = this._childPath(path);
-        const childNode = this._getFile(childPath);
+        const parentPath = this._parentPath(path);
+        const parentNode = this._getFile(parentPath);
 
         if (parentNode === undefined) {
-            return `The directory '' does not exist`;
+            return `The directory '${parentPath}' does not exist`;
         }
+        if (!FileSystem.isDirectory(parentNode)) {
+            return `${parentPath} is not a directory`;
+        }
+
+        const childPath = this._childPath(path);
+        const childNode = this._getFile(childPath);
         if (childNode !== undefined) {
             return "";
         }
