@@ -262,9 +262,9 @@ class FileSystem {
                 const node = nodes[name];
 
                 if (FileSystem.isDirectory(node)) {
-                    dirList.push(node.toString(name));
+                    dirList.push(node.nameString(name));
                 } else if (FileSystem.isFile(node)) {
-                    fileList.push(node.toString(name));
+                    fileList.push(node.nameString(name));
                 } else {
                     throw `${name} is neither a file nor a directory!`;
                 }
@@ -496,7 +496,7 @@ class Node {
         throw "Cannot execute abstract method!";
     }
 
-    toString(name) {
+    nameString(name) {
         throw "Cannot execute abstract method!";
     }
 
@@ -561,7 +561,7 @@ class Directory extends Node {
         return copy;
     }
 
-    toString(name) {
+    nameString(name) {
         return `${name}/`;
     }
 
@@ -587,7 +587,7 @@ class File extends Node {
         return new File();
     }
 
-    toString(name) {
+    nameString(name) {
         return name;
     }
 
@@ -610,7 +610,7 @@ class UrlFile extends File {
         return new UrlFile(this.url);
     }
 
-    toString(name) {
+    nameString(name) {
         return `<a href="${this.url}">${name}</a>`;
     }
 }
