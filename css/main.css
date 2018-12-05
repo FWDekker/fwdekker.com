@@ -32,17 +32,22 @@ a:hover {
 }
 
 
+* {
+    box-sizing: border-box;
+}
+
 body {
     background-color: black;
 }
 
 #terminal {
     position: absolute;
-    top: 0;
     right: 0;
     bottom: 0;
     left: 0;
-    margin: 25px;
+
+    min-height:100%;
+    padding: 25px;
     overflow: hidden;
 
     cursor: text;
