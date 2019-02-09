@@ -113,6 +113,12 @@ class Terminal {
         this._inputHistory.clear();
     }
 
+    ignoreInput() {
+        this.outputText += `${this.prefixText}${this.inputText}\n`;
+        this.prefixText = this.generatePrefix();
+        this.inputText = "";
+    }
+
     processInput(input) {
         this.inputText = "";
 
@@ -154,6 +160,12 @@ class Terminal {
             case "arrowdown":
                 this.inputText = this._inputHistory.nextEntry();
                 window.setTimeout(() => moveCaretToEndOf(this._input), 0);
+                break;
+            case "c":
+                if (e.ctrlKey) {
+                    this.ignoreInput();
+                    e.preventDefault();
+                }
                 break;
             case "l":
                 if (e.ctrlKey) {
