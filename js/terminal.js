@@ -140,6 +140,7 @@ class Terminal {
         switch (e.key.toLowerCase()) {
             case "enter":
                 this.processInput(this.inputText.replaceAll(/&nbsp;/, " "));
+                e.preventDefault();
                 break;
         }
     }
