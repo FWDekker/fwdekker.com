@@ -24,7 +24,7 @@ class FileSystem {
 
 
     _getFile(pathString) {
-        const path = new Path(pathString);
+        const path = new Path(this.pwd, pathString);
 
         let file = this._root;
         path.parts.forEach(part => {
