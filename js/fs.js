@@ -461,7 +461,7 @@ class Path {
             .replaceAll(/\/\.\//, "/")
             .replaceAll(/(\/+)([^./]+)(\/+)(\.\.)(\/+)/, "/")
             .replaceAll(/\/{2,}/, "/")
-            .replace(/^\.?\.\/$/, "/")
+            .replace(/^\/?\.?\.\/$/, "/")
             .toString();
 
         this._parts = this._path.split("/");
