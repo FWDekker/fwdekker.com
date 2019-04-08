@@ -236,3 +236,12 @@ addOnLoad(() => {
 
     terminal.processInput("ls");
 });
+
+
+function run(command) {
+    terminal.processInput(command);
+}
+
+function relToAbs(filename) {
+    return terminal._fs.pwd + filename;
+}

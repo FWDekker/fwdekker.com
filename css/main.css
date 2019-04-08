@@ -1,13 +1,22 @@
-a:link {
-    color: #00CC00;
+a:link, a:visited {
+    color: #00FF00;
 }
-
-a:visited {
-    color: #00CC00;
-}
-
 a:hover {
-    color: #007700;
+    color: #00BF00;
+}
+
+a:link.dirLink, a:visited.dirLink {
+    color: #00FF00;
+}
+a:hover.dirLink {
+    color: #00BF00;
+}
+
+a:link.fileLink, a:visited.fileLink {
+    color: #FFFF00;
+}
+a:hover.fileLink {
+    color: #BFBF00;
 }
 
 

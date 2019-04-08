@@ -212,7 +212,7 @@ class FileSystem {
             return `'${path.path}' is not a directory`;
         }
 
-        const dirList = ["./", "../"];
+        const dirList = [new Directory({}).nameString("."), new Directory({}).nameString("..")];
         const fileList = [];
 
         const nodes = dir.getNodes();
@@ -558,7 +558,7 @@ class Directory extends Node {
     }
 
     nameString(name) {
-        return `${name}/`;
+        return `<a href="#" class="dirLink" onclick="run('cd ${relToAbs(name)}/');run('ls');">${name}/</a>`;
     }
 
     visit(fun, pre = emptyFunction, post = emptyFunction) {
@@ -607,6 +607,6 @@ class UrlFile extends File {
     }
 
     nameString(name) {
-        return `<a href="${this.url}">${name}</a>`;
+        return `<a href="#" class="fileLink" onclick="run('open -b ${relToAbs(name)}')">${name}</a>`;
     }
 }
