@@ -607,6 +607,6 @@ class UrlFile extends File {
     }
 
     nameString(name) {
-        return `<a href="#" class="fileLink" onclick="run('open -b ${relToAbs(name)}')">${name}</a>`;
+        return `<a href="${this.url}" class="fileLink">${name}</a>`;
     }
 }
