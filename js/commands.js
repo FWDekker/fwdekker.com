@@ -193,7 +193,9 @@ class Commands {
             );
 
             return "" +
-                `<b>List of commands</b>
+                `The source code of this terminal is <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on Gitea</a>.
+
+                <b>List of commands</b>
                 ${commandEntries.join("\n")}
 
                 Write "help [COMMAND]" for more information on a command.`.trimLines();
