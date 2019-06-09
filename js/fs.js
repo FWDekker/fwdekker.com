@@ -8,7 +8,8 @@ class FileSystem {
             }),
             projects: new Directory({
                 minor: new Directory({
-                    dice: new UrlFile("https://fwdekker.com/dice")
+                    dice: new UrlFile("https://fwdekker.com/dice"),
+                    "simplify-fractions": new UrlFile("https://fwdekker.com/simplify-fractions")
                 }),
                 randomness: new UrlFile("https://github.com/FWDekker/intellij-randomness"),
                 schaapi: new UrlFile("http://cafejojo.org/schaapi")
