@@ -19,7 +19,7 @@ class FileSystem {
                 stackoverflow: new UrlFile("https://stackoverflow.com/u/3307872"),
                 linkedin: new UrlFile("https://www.linkedin.com/in/fwdekker/")
             }),
-            "resume.pdf": new UrlFile("resume.pdf")
+            "resume.pdf": new UrlFile("https://static.fwdekker.com/misc/resume.pdf")
         });
     }
 
