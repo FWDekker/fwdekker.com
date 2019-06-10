@@ -192,7 +192,7 @@ class Commands {
             );
 
             return "" +
-                `The source code of this terminal is <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on Gitea</a>.
+                `The source code of this website is <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on git</a>.
 
                 <b>List of commands</b>
                 ${commandEntries.join("\n")}

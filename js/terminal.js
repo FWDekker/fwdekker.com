@@ -55,7 +55,7 @@ class Terminal {
             </span>@ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
             <span class="wideScreenOnly">${(new Date()).toISOString()}
             </span>
-            Type "help" for help.
+            Type "<a href="#" onclick="run('help');">help</a>" for help.
 
             `.trimLines();
     }
