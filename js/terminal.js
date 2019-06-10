@@ -185,9 +185,8 @@ class InputHistory {
 
 
     addEntry(entry) {
-        if (entry.trim() !== "") {
+        if (entry.trim() !== "")
             this._history.unshift(entry);
-        }
         this._index = -1;
     }
 
@@ -197,27 +196,24 @@ class InputHistory {
     }
 
     getEntry(index) {
-        if (index >= 0) {
+        if (index >= 0)
             return this._history[index];
-        } else {
+        else
             return "";
-        }
     }
 
     nextEntry() {
         this._index--;
-        if (this._index < -1) {
+        if (this._index < -1)
             this._index = -1;
-        }
 
         return this.getEntry(this._index);
     }
 
     previousEntry() {
         this._index++;
-        if (this._index >= this._history.length) {
+        if (this._index >= this._history.length)
             this._index = this._history.length - 1;
-        }
 
         return this.getEntry(this._index);
     }

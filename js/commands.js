@@ -137,13 +137,12 @@ class Commands {
     parse(input) {
         const args = new InputArgs(input);
 
-        if (Object.keys(this._list).indexOf(args.getCommand()) >= 0) {
+        if (Object.keys(this._list).indexOf(args.getCommand()) >= 0)
             return this._list[args.getCommand()].fun.bind(this)(args);
-        } else if (args.getCommand().trim() === "") {
+        else if (args.getCommand().trim() === "")
             return "";
-        } else {
+        else
             return `Unknown command '${args.getCommand()}'`
-        }
     }
 
 
@@ -207,13 +206,12 @@ class Commands {
     }
 
     man(args) {
-        if (args.getArgs().length === 0) {
+        if (args.getArgs().length === 0)
             return "What manual page do you want?";
-        } else if (Object.keys(this._list).indexOf(args.getArg(0)) < 0) {
+        else if (Object.keys(this._list).indexOf(args.getArg(0)) < 0)
             return `No manual entry for ${args.getArg(0)}`;
-        } else {
+        else
             return this.help(args);
-        }
     }
 
     mkdir(args) {
@@ -229,15 +227,12 @@ class Commands {
         const target = args.hasAnyOption(["b", "blank"]) ? "_blank" : "_self";
 
         const file = this._fs._getFile(fileName);
-        if (file === undefined) {
+        if (file === undefined)
             return `The file '${fileName}' does not exist`;
-        }
-        if (!FileSystem.isFile(file)) {
+        if (!FileSystem.isFile(file))
             return `'${fileName}' is not a file`;
-        }
-        if (!(file instanceof UrlFile)) {
+        if (!(file instanceof UrlFile))
             return `Could not open '${fileName}'`;
-        }
 
         window.open(file.url, target);
         return "";
@@ -358,11 +353,9 @@ class InputArgs {
     }
 
     hasAnyOption(keys) {
-        for (let i = 0; i < keys.length; i++) {
-            if (this.hasOption(keys[i])) {
+        for (let i = 0; i < keys.length; i++)
+            if (this.hasOption(keys[i]))
                 return true;
-            }
-        }
 
         return false;
     }

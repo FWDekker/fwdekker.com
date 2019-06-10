@@ -17,13 +17,12 @@ Array.prototype.sortAlphabetically = function(transform = identityFunction) {
         const aName = transform(a).toLowerCase();
         const bName = transform(b).toLowerCase();
 
-        if (aName < bName) {
+        if (aName < bName)
             return -1;
-        } else if (aName > bName) {
+        else if (aName > bName)
             return 1;
-        } else {
+        else
             return 0;
-        }
     });
 };
 
@@ -31,9 +30,8 @@ Array.prototype.sortAlphabetically = function(transform = identityFunction) {
 String.prototype.replaceAll = function (regex, replacement) {
     let string = this;
 
-    while (regex.test(string)) {
+    while (regex.test(string))
         string = string.replace(regex, replacement);
-    }
 
     return "" + string;
 };
