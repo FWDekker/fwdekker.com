@@ -167,12 +167,6 @@ class Terminal {
                     e.preventDefault();
                 }
                 break;
-            case "l":
-                if (e.ctrlKey) {
-                    this.clear();
-                    e.preventDefault();
-                }
-                break;
         }
     }
 }
