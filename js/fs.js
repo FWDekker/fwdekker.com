@@ -4,15 +4,13 @@ class FileSystem {
         this._root = new Directory({
             personal: new Directory({
                 steam: new UrlFile("https://steamcommunity.com/id/Waflix"),
-                nukapedia: new UrlFile("http://fallout.wikia.com/wiki/User:FDekker")
+                nukapedia: new UrlFile("http://fallout.wikia.com/wiki/User:FDekker"),
+                blog: new UrlFile("https://blog.fwdekker.com/"),
             }),
             projects: new Directory({
-                minor: new Directory({
-                    dice: new UrlFile("https://fwdekker.com/dice"),
-                    "simplify-fractions": new UrlFile("https://fwdekker.com/simplify-fractions")
-                }),
                 randomness: new UrlFile("https://github.com/FWDekker/intellij-randomness"),
-                schaapi: new UrlFile("http://cafejojo.org/schaapi")
+                schaapi: new UrlFile("http://cafejojo.org/schaapi"),
+                gitea: new UrlFile("https://git.fwdekker.com/explore/"),
             }),
             social: new Directory({
                 github: new UrlFile("https://github.com/FWDekker/"),
