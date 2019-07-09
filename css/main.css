@@ -7,20 +7,15 @@ a:link, a:visited {
 }
 a:hover {
     color: #00BF00;
+    text-decoration: underline;
 }
 
 a:link.dirLink, a:visited.dirLink {
     color: #00FF00;
 }
-a:hover.dirLink {
-    color: #00BF00;
-}
 
 a:link.fileLink, a:visited.fileLink {
     color: #FFFF00;
-}
-a:hover.fileLink {
-    color: #BFBF00;
 }
 
 
