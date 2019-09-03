@@ -11,6 +11,7 @@ class FileSystem {
                 randomness: new UrlFile("https://github.com/FWDekker/intellij-randomness"),
                 schaapi: new UrlFile("http://cafejojo.org/schaapi"),
                 gitea: new UrlFile("https://git.fwdekker.com/explore/"),
+                github: new UrlFile("https://github.com/FWDekker/"),
             }),
             social: new Directory({
                 github: new UrlFile("https://github.com/FWDekker/"),
