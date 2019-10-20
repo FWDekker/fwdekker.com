@@ -3,9 +3,14 @@
     "module": "esnext",
     "target": "es2019",
     "sourceMap": true,
-    "outDir": "./build"
+    "outDir": "./build/js"
   },
-  "include": [
-    "**/*"
+  "files": [
+    "js/commands.ts",
+    "js/extensions.d.ts",
+    "js/extensions.ts",
+    "js/fs.ts",
+    "js/shared.ts",
+    "js/terminal.ts"
   ]
 }
