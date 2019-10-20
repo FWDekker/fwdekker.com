@@ -1,4 +1,14 @@
-class Commands {
+import "./extensions.js"
+import {FileSystem, UrlFile} from "./fs.js"
+import {terminal} from "./terminal.js";
+
+
+export class Commands {
+    private _terminal: any;
+    private _fs: any;
+    private _list: any;
+
+
     constructor(terminal, fileSystem) {
         this._terminal = terminal;
         this._fs = fileSystem;
@@ -278,6 +288,11 @@ class Commands {
 }
 
 class InputArgs {
+    private _command: any;
+    private _options: any;
+    private _args: any;
+
+
     constructor(input) {
         const inputParts = (input.match(/("[^"]+"|[^"\s]+)/g) || [])
             .map(it => it.replace(/^"/, "").replace(/"$/, ""));
@@ -342,7 +357,7 @@ class InputArgs {
         return this._command;
     }
 
-    getOption(key, def) {
+    getOption(key, def = undefined) {
         return (def === undefined)
             ? this._options[key]
             : this._options[key] || def;

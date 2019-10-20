@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "es2019",
+    "sourceMap": true,
+    "outDir": "./build"
+  },
+  "include": [
+    "**/*"
+  ]
+}

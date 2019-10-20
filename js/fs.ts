@@ -1,4 +1,13 @@
-class FileSystem {
+import {emptyFunction} from "./shared.js";
+import {relToAbs} from "./terminal.js";
+
+
+export class FileSystem {
+    pwd: string;
+    private _root: Directory;
+    private files: Directory;
+
+
     constructor() {
         this.pwd = "/";
         this._root = new Directory({
@@ -123,7 +132,7 @@ class FileSystem {
         if (tailNode !== undefined)
             return "";
 
-        headNode.addNode(path.tail, new File(path.tail));
+        headNode.addNode(path.tail, new File());
         return "";
     }
 
@@ -203,7 +212,7 @@ class FileSystem {
 
         const nodes = dir.getNodes();
         Object.keys(nodes)
-            .sortAlphabetically()
+            .sortAlphabetically((x) => x)
             .forEach(name => {
                 const node = nodes[name];
 
@@ -225,7 +234,7 @@ class FileSystem {
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
     mkdir(pathString) {
-        const path = new Path(pathString);
+        const path = new Path(pathString, undefined);
 
         const headNode = this._getFile(path.head);
         if (headNode === undefined)
@@ -261,11 +270,11 @@ class FileSystem {
      * @returns {string} an empty string if the move was successful, or a message explaining what went wrong
      */
     mv(sourceString, destinationString) {
-        const sourcePath = new Path(sourceString);
+        const sourcePath = new Path(sourceString, undefined);
         const sourceHeadNode = this._getFile(sourcePath.head);
         const sourceTailNode = this._getFile(sourcePath.path);
 
-        const destinationPath = new Path(destinationString);
+        const destinationPath = new Path(destinationString, undefined);
         const destinationHeadNode = this._getFile(destinationPath.head);
         const destinationTailNode = this._getFile(destinationPath.path);
 
@@ -288,7 +297,7 @@ class FileSystem {
             return `The file '${targetName}' already exists`;
 
         sourceHeadNode.removeNode(sourceTailNode);
-        targetNode.addNode(sourceTailNode);
+        targetNode.addNode(sourceTailNode, undefined);
         sourceTailNode.name = targetName;
 
         return "";
@@ -312,7 +321,7 @@ class FileSystem {
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
     rm(pathString, force = false, recursive = false, noPreserveRoot = false) {
-        const path = new Path(pathString);
+        const path = new Path(pathString, undefined);
 
         const parentNode = this._getFile(path.head);
         if (parentNode === undefined)
@@ -371,7 +380,7 @@ class FileSystem {
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
     rmdir(pathString) {
-        const path = new Path(pathString);
+        const path = new Path(pathString, undefined);
 
         if (path.path === "/") {
             if (this._root.getNodeCount() > 0)
@@ -412,7 +421,13 @@ class FileSystem {
 }
 
 
-class Path {
+export class Path {
+    private _path: string;
+    private _parts: string[];
+    private _head: string;
+    private _tail: string;
+
+
     constructor(currentPath, relativePath) {
         let path;
         if (relativePath === undefined)
@@ -453,7 +468,7 @@ class Path {
     }
 }
 
-class Node {
+export class Node {
     copy() {
         throw "Cannot execute abstract method!";
     }
@@ -467,7 +482,12 @@ class Node {
     }
 }
 
-class Directory extends Node {
+export class Directory extends Node {
+    private _parent: this;
+    private _nodes: {};
+    name: string;
+
+
     constructor(nodes = {}) {
         super();
 
@@ -527,7 +547,7 @@ class Directory extends Node {
         return `<a href="#" class="dirLink" onclick="run('cd ${relToAbs(name)}/');run('ls');">${name}/</a>`;
     }
 
-    visit(fun, pre = emptyFunction, post = emptyFunction) {
+    visit(fun, pre: (dir: Directory) => void = emptyFunction, post: (dir: Directory) => void = emptyFunction) {
         pre(this);
 
         fun(this);
@@ -539,7 +559,7 @@ class Directory extends Node {
     }
 }
 
-class File extends Node {
+export class File extends Node {
     constructor() {
         super();
     }
@@ -553,14 +573,17 @@ class File extends Node {
         return name;
     }
 
-    visit(fun, pre = emptyFunction, post = emptyFunction) {
+    visit(fun, pre: (dir: File) => void = emptyFunction, post: (dir: File) => void = emptyFunction) {
         pre(this);
         fun(this);
         post(this);
     }
 }
 
-class UrlFile extends File {
+export class UrlFile extends File {
+    url: any;
+
+
     constructor(url) {
         super();
 

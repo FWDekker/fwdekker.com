@@ -1,4 +1,20 @@
-class Terminal {
+import {addOnLoad, asciiHeaderHtml, moveCaretToEndOf, q} from "./shared.js";
+import {FileSystem} from "./fs.js";
+import {Commands} from "./commands.js";
+
+
+export class Terminal {
+    private _terminal: any;
+    private _input: any;
+    private _output: any;
+    private _prefixDiv: any;
+    private _user: string;
+    private _loggedIn: boolean;
+    private _inputHistory: InputHistory;
+    private _fs:FileSystem;
+    private _commands: Commands;
+
+
     constructor(terminal, input, output, prefixDiv) {
         this._terminal = terminal;
         this._input = input;
@@ -172,15 +188,20 @@ class Terminal {
 }
 
 class InputHistory {
+    private _history: string[];
+    private _index: number;
+
+
     constructor() {
         this._history = [];
         this._index = -1;
     }
 
 
-    addEntry(entry) {
+    addEntry(entry: string) {
         if (entry.trim() !== "")
             this._history.unshift(entry);
+
         this._index = -1;
     }
 
@@ -214,7 +235,7 @@ class InputHistory {
 }
 
 
-let terminal;
+export let terminal;
 
 addOnLoad(() => {
     terminal = new Terminal(
@@ -227,11 +248,10 @@ addOnLoad(() => {
     terminal.processInput("ls");
 });
 
-
-function run(command) {
+export function run(command: string) {
     terminal.processInput(command);
 }
 
-function relToAbs(filename) {
+export function relToAbs(filename) {
     return terminal._fs.pwd + filename;
 }
