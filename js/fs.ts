@@ -2,13 +2,13 @@ import {emptyFunction} from "./shared.js";
 
 
 export class FileSystem {
-    pwd: string;
+    private _pwd: string;
     private root: Directory;
     private files: Directory;
 
 
     constructor() {
-        this.pwd = "/";
+        this._pwd = "/";
         this.root = new Directory({
             personal: new Directory({
                 steam: new UrlFile("https://steamcommunity.com/id/Waflix"),
@@ -31,8 +31,13 @@ export class FileSystem {
     }
 
 
+    get pwd(): string {
+        return this._pwd;
+    }
+
+
     getNode(pathString: string): Node {
-        const path = new Path(this.pwd, pathString);
+        const path = new Path(this._pwd, pathString);
 
         let node: Node = this.root;
         path.parts.forEach(part => {
@@ -52,7 +57,7 @@ export class FileSystem {
      * Resets navigation in the file system.
      */
     reset() {
-        this.pwd = "/";
+        this._pwd = "/";
         this.files = this.root;
     }
 
@@ -81,7 +86,7 @@ export class FileSystem {
         if (pathString === undefined)
             return "";
 
-        const path = new Path(this.pwd, pathString);
+        const path = new Path(this._pwd, pathString);
 
         const node = this.getNode(path.path);
         if (node === undefined)
@@ -89,7 +94,7 @@ export class FileSystem {
         if (!(node instanceof Directory))
             return `'${path.path}' is not a directory.`;
 
-        this.pwd = path.path;
+        this._pwd = path.path;
         this.files = node;
         return "";
     }
@@ -101,7 +106,7 @@ export class FileSystem {
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
     private createFile(pathString: string): string {
-        const path = new Path(this.pwd, pathString);
+        const path = new Path(this._pwd, pathString);
 
         const headNode = this.getNode(path.head);
         if (headNode === undefined)
@@ -139,10 +144,10 @@ export class FileSystem {
      * @returns {string} an empty string if the copy was successful, or a message explaining what went wrong
      */
     cp(sourceString: string, destinationString: string): string {
-        const sourcePath = new Path(this.pwd, sourceString);
+        const sourcePath = new Path(this._pwd, sourceString);
         const sourceTailNode = this.getNode(sourcePath.path);
 
-        const destinationPath = new Path(this.pwd, destinationString);
+        const destinationPath = new Path(this._pwd, destinationString);
         const destinationHeadNode = this.getNode(destinationPath.head);
         const destinationTailNode = this.getNode(destinationPath.path);
 
@@ -178,7 +183,7 @@ export class FileSystem {
      * @returns {Object} the directory at {@code path}, or the current directory if no path is given
      */
     ls(pathString: string): string {
-        const path = new Path(this.pwd, pathString);
+        const path = new Path(this._pwd, pathString);
 
         const node = this.getNode(path.path);
         if (node === undefined)
@@ -213,7 +218,7 @@ export class FileSystem {
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
     private mkdir(pathString: string): string {
-        const path = new Path(pathString, undefined);
+        const path = new Path(pathString);
 
         const headNode = this.getNode(path.head);
         if (headNode === undefined)
@@ -249,11 +254,11 @@ export class FileSystem {
      * @returns {string} an empty string if the move was successful, or a message explaining what went wrong
      */
     mv(sourceString: string, destinationString: string): string {
-        const sourcePath = new Path(sourceString, undefined);
+        const sourcePath = new Path(sourceString);
         const sourceHeadNode = this.getNode(sourcePath.head);
         const sourceTailNode = this.getNode(sourcePath.path);
 
-        const destinationPath = new Path(destinationString, undefined);
+        const destinationPath = new Path(destinationString);
         const destinationHeadNode = this.getNode(destinationPath.head);
         const destinationTailNode = this.getNode(destinationPath.path);
 
@@ -293,7 +298,7 @@ export class FileSystem {
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
     private rm(pathString: string, force: boolean = false, recursive: boolean = false, noPreserveRoot: boolean = false): string {
-        const path = new Path(pathString, undefined);
+        const path = new Path(pathString);
 
         const parentNode = this.getNode(path.head);
         if (parentNode === undefined)
@@ -352,7 +357,7 @@ export class FileSystem {
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
     private rmdir(pathString: string): string {
-        const path = new Path(pathString, undefined);
+        const path = new Path(pathString);
 
         if (path.path === "/") {
             if (this.root.nodeCount > 0)
@@ -398,7 +403,7 @@ export class Path {
     readonly tail: string;
 
 
-    constructor(currentPath: string, relativePath: string) {
+    constructor(currentPath: string, relativePath: string = undefined) {
         let path;
         if (relativePath === undefined)
             path = currentPath;

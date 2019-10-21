@@ -1,6 +1,6 @@
 import "./extensions.js"
-import {FileSystem, UrlFile} from "./fs.js"
-import {Terminal, terminal} from "./terminal.js";
+import {File, FileSystem, Path, UrlFile} from "./fs.js"
+import {Terminal} from "./terminal.js";
 
 
 export class Commands {
@@ -159,7 +159,7 @@ export class Commands {
         return "";
     }
 
-    private echo(input): string {
+    private echo(input: InputArgs): string {
         return input.args
             .join(" ")
             .replace("hunter2", "*******");
@@ -234,6 +234,7 @@ export class Commands {
         if (!(node instanceof UrlFile))
             return `Could not open '${fileName}'`;
 
+        // @ts-ignore: False positive
         window.open(node.url, target);
         return "";
     }
@@ -247,7 +248,7 @@ export class Commands {
         return "" +
             `Shutdown NOW!
             
-            *** FINAL System shutdown message from ${terminal.currentUser}@fwdekker.com ***
+            *** FINAL System shutdown message from ${this.terminal.currentUser}@fwdekker.com ***
             
             System going down IMMEDIATELY
             
