@@ -1,5 +1,5 @@
 import "./extensions.js"
-import {File, FileSystem, Path, UrlFile} from "./fs.js"
+import {File, FileSystem, UrlFile} from "./fs.js"
 import {Terminal} from "./terminal.js";
 
 

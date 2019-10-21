@@ -1,7 +1,5 @@
-#!/usr/local/bin/bash
-mkdir -p build
-mkdir -p build/js
-mkdir -p build/css
+#!/usr/bin/env bash
+mkdir -p build build/js build/css
 
 tsc -p ./tsconfig.json
 
