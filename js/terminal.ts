@@ -181,6 +181,9 @@ export class Terminal {
                 this.inputText = this.inputHistory.nextEntry();
                 window.setTimeout(() => moveCaretToEndOf(this.input), 0);
                 break;
+            case "tab":
+                event.preventDefault();
+                break;
             case "c":
                 if (event.ctrlKey) {
                     this.ignoreInput();
