@@ -3,7 +3,7 @@ mkdir -p build
 mkdir -p build/js
 mkdir -p build/css
 
-jsc -p ./tsconfig.json
+tsc -p ./tsconfig.json
 
 cp ./*.html ./build/
 cp ./css/*.css ./build/css
