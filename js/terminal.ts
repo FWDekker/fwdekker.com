@@ -13,7 +13,7 @@ export class Terminal {
     private readonly fileSystem: FileSystem;
     private readonly commands: Commands;
 
-    private _currentUser: string;
+    private _currentUser: string | undefined;
     private isLoggedIn: boolean;
 
 
@@ -64,7 +64,7 @@ export class Terminal {
         this.prefixDiv.innerHTML = prefixText;
     }
 
-    get currentUser(): string {
+    get currentUser(): string | undefined {
         return this._currentUser;
     }
 
@@ -149,7 +149,7 @@ export class Terminal {
             this.outputText += `${this.prefixText}${input}\n`;
             this.inputHistory.addEntry(input);
 
-            const output = this.commands.parse(input.trim());
+            const output = this.commands.execute(input.trim());
             if (output !== "")
                 this.outputText += output + `\n`;
         }
@@ -162,7 +162,7 @@ export class Terminal {
         this.input.focus();
     }
 
-    private onkeypress(event) {
+    private onkeypress(event: KeyboardEvent) {
         switch (event.key.toLowerCase()) {
             case "enter":
                 this.processInput(this.inputText.replaceAll(/&nbsp;/, " "));
@@ -171,7 +171,7 @@ export class Terminal {
         }
     }
 
-    private onkeydown(event) {
+    private onkeydown(event: KeyboardEvent) {
         switch (event.key.toLowerCase()) {
             case "arrowup":
                 this.inputText = this.inputHistory.previousEntry();
@@ -200,7 +200,8 @@ class InputHistory {
 
 
     constructor() {
-        this.clear();
+        this.history = [];
+        this.index = -1;
     }
 
 

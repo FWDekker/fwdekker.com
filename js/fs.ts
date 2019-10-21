@@ -28,6 +28,7 @@ export class FileSystem {
             }),
             "resume.pdf": new UrlFile("https://static.fwdekker.com/misc/resume.pdf")
         });
+        this.files = this.root;
     }
 
 
@@ -62,8 +63,8 @@ export class FileSystem {
     }
 
 
-    private executeForEach(inputs: string[], fun: (string) => string): string {
-        const outputs = [];
+    private executeForEach(inputs: string[], fun: (_: string) => string): string {
+        const outputs: string[] = [];
 
         inputs.forEach(input => {
             const output = fun(input);
@@ -161,9 +162,15 @@ export class FileSystem {
         let targetNode;
         let targetName;
         if (destinationTailNode === undefined) {
+            if (!(destinationHeadNode instanceof Directory))
+                return `The path '${destinationPath.head}' does not point to a directory`;
+
             targetNode = destinationHeadNode;
             targetName = destinationPath.tail;
         } else {
+            if (!(destinationTailNode instanceof Directory))
+                return `The path '${destinationPath.tail}' does not point to a directory`;
+
             targetNode = destinationTailNode;
             targetName = sourcePath.tail;
         }
@@ -192,7 +199,7 @@ export class FileSystem {
             return `'${path.path}' is not a directory`;
 
         const dirList = [new Directory({}).nameString("."), new Directory({}).nameString("..")];
-        const fileList = [];
+        const fileList: string[] = [];
 
         const nodes = node.nodes;
         Object.keys(nodes)
@@ -272,9 +279,15 @@ export class FileSystem {
         let targetNode;
         let targetName;
         if (destinationTailNode === undefined) {
+            if (!(destinationHeadNode instanceof Directory))
+                return `The path '${destinationPath.head}' does not point to a directory`;
+
             targetNode = destinationHeadNode;
             targetName = destinationPath.tail;
         } else {
+            if (!(destinationTailNode instanceof Directory))
+                return `The path '${destinationPath.tail}' does not point to a directory`;
+
             targetNode = destinationTailNode;
             targetName = sourcePath.tail;
         }
@@ -403,7 +416,7 @@ export class Path {
     readonly tail: string;
 
 
-    constructor(currentPath: string, relativePath: string = undefined) {
+    constructor(currentPath: string, relativePath: string | undefined = undefined) {
         let path;
         if (relativePath === undefined)
             path = currentPath;
@@ -435,26 +448,29 @@ export abstract class Node {
 
     abstract nameString(name: string): string;
 
-    abstract visit(fun: (node: Node) => void, pre: (node: Node) => void, post: (node: Node) => void);
+    abstract visit(fun: (node: Node) => void, pre: (node: Node) => void, post: (node: Node) => void): void;
 }
 
 export class Directory extends Node {
-    private readonly _nodes: object;
+    private readonly _nodes: { [key: string]: Node };
     // noinspection TypeScriptFieldCanBeMadeReadonly: False positive
     private _parent: Directory;
 
 
-    constructor(nodes: object = {}) {
+    constructor(nodes: { [key: string]: Node } = {}) {
         super();
 
         this._parent = this;
         this._nodes = nodes;
 
-        Object.keys(this._nodes).forEach(name => this._nodes[name]._parent = this);
+        Object.values(this._nodes)
+            .forEach(node => {
+                if (node instanceof Directory) node._parent = this;
+            });
     }
 
 
-    get nodes(): object {
+    get nodes(): { [key: string]: Node } {
         return Object.assign({}, this._nodes);
     }
 
@@ -488,6 +504,9 @@ export class Directory extends Node {
     removeNode(nodeOrName: Node | string) {
         if (nodeOrName instanceof Node) {
             const name = Object.keys(this._nodes).find(key => this._nodes[key] === nodeOrName);
+            if (name === undefined)
+                throw `Could not remove node '${nodeOrName}'.`;
+
             delete this._nodes[name];
         } else {
             delete this._nodes[name];
@@ -496,9 +515,7 @@ export class Directory extends Node {
 
 
     copy(): Directory {
-        const copy = new Directory(this.nodes);
-        copy._parent = undefined;
-        return copy;
+        return new Directory(this.nodes);
     }
 
     nameString(name: string): string {

@@ -26,10 +26,16 @@ export function moveCaretToEndOf(element: Node) {
     range.collapse(false);
 
     const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
+    if (selection !== null) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
 }
 
 export function q(query: string): HTMLElement {
-    return document.querySelector(query);
+    const element = document.querySelector(query);
+    if (!(element instanceof HTMLElement))
+        throw "Could not find element `query`.";
+
+    return element;
 }

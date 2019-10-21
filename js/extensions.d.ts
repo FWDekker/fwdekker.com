@@ -3,5 +3,5 @@ interface String {
 }
 
 interface Array<T> {
-    sortAlphabetically(transform: (element: T) => string);
+    sortAlphabetically(transform: (element: T) => string): T[];
 }

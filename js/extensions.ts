@@ -9,7 +9,7 @@ String.prototype.trimLines = function (): string {
 };
 
 String.prototype.replaceAll = function (regex, replacement) {
-    let string = this;
+    let string = this.toString();
 
     while (regex.test(string))
         string = string.replace(regex, replacement);
@@ -19,10 +19,10 @@ String.prototype.replaceAll = function (regex, replacement) {
 
 
 interface Array<T> {
-    sortAlphabetically(transform: (element: T) => string);
+    sortAlphabetically(transform: (element: T) => string): T[];
 }
 
-Array.prototype.sortAlphabetically = function (transform = (x) => x) {
+Array.prototype.sortAlphabetically = function (transform: (_: any) => string = (it) => it) {
     return this.sort((a, b) => {
         const aName = transform(a).toLowerCase();
         const bName = transform(b).toLowerCase();

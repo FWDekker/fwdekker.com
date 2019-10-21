@@ -6,7 +6,7 @@ import {Terminal} from "./terminal.js";
 export class Commands {
     private readonly terminal: Terminal;
     private readonly fileSystem: FileSystem;
-    private readonly commands: object;
+    private readonly commands: { [key: string]: Command };
 
 
     constructor(terminal: Terminal, fileSystem: FileSystem) {
@@ -134,7 +134,7 @@ export class Commands {
     }
 
 
-    parse(input: string): string {
+    execute(input: string): string {
         const args = new InputArgs(input);
 
         if (args.command.trim() === "")
@@ -296,7 +296,7 @@ class Command {
 
 class InputArgs {
     readonly command: string;
-    private readonly _options: object;
+    private readonly _options: { [key: string]: string };
     private readonly _args: string[];
 
 
@@ -353,7 +353,7 @@ class InputArgs {
     }
 
 
-    getArg(index: number, def: string = undefined): string {
+    getArg(index: number, def: string | undefined = undefined): string {
         return (def === undefined)
             ? this._args[index]
             : (this.hasArg(index) ? this._args[index] : def);
@@ -364,7 +364,7 @@ class InputArgs {
     }
 
 
-    getOption(key: string, def: string = undefined) {
+    getOption(key: string, def: string | undefined = undefined) {
         return (def === undefined)
             ? this._options[key]
             : (this.hasOption(key) ? this._options[key] : def);

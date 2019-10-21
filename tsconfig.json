@@ -3,6 +3,7 @@
     "module": "esnext",
     "target": "es2019",
     "sourceMap": true,
+    "strict": true,
     "outDir": "./build/js"
   },
   "files": [
