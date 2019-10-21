@@ -4,66 +4,72 @@ import {Commands} from "./commands.js";
 
 
 export class Terminal {
-    private _terminal: any;
-    private _input: any;
-    private _output: any;
-    private _prefixDiv: any;
-    private _user: string;
-    private _loggedIn: boolean;
-    private _inputHistory: InputHistory;
-    private _fs:FileSystem;
-    private _commands: Commands;
+    private readonly terminal: HTMLElement;
+    private readonly input: HTMLElement;
+    private readonly output: HTMLElement;
+    private readonly prefixDiv: HTMLElement;
+
+    private readonly inputHistory: InputHistory;
+    private readonly fileSystem: FileSystem;
+    private readonly commands: Commands;
+
+    private _currentUser: string;
+    private isLoggedIn: boolean;
 
 
-    constructor(terminal, input, output, prefixDiv) {
-        this._terminal = terminal;
-        this._input = input;
-        this._output = output;
-        this._prefixDiv = prefixDiv;
+    constructor(terminal: HTMLElement, input: HTMLElement, output: HTMLElement, prefixDiv: HTMLElement) {
+        this.terminal = terminal;
+        this.input = input;
+        this.output = output;
+        this.prefixDiv = prefixDiv;
 
-        this._user = "felix";
-        this._loggedIn = true;
+        this._currentUser = "felix";
+        this.isLoggedIn = true;
 
-        this._inputHistory = new InputHistory();
-        this._fs = new FileSystem();
-        this._commands = new Commands(this, this._fs);
+        this.inputHistory = new InputHistory();
+        this.fileSystem = new FileSystem();
+        this.commands = new Commands(this, this.fileSystem);
 
-        this._terminal.addEventListener("click", this._onclick.bind(this));
-        this._terminal.addEventListener("keypress", this._onkeypress.bind(this));
-        this._terminal.addEventListener("keydown", this._onkeydown.bind(this));
+        this.terminal.addEventListener("click", this.onclick.bind(this));
+        this.terminal.addEventListener("keypress", this.onkeypress.bind(this));
+        this.terminal.addEventListener("keydown", this.onkeydown.bind(this));
 
         this.reset();
-        this._input.focus();
+        this.input.focus();
     }
 
 
-    get inputText() {
-        return this._input.innerHTML
+    get inputText(): string {
+        return this.input.innerHTML
             .replaceAll(/<br>/, "");
     }
 
-    set inputText(inputText) {
-        this._input.innerHTML = inputText;
+    set inputText(inputText: string) {
+        this.input.innerHTML = inputText;
     }
 
-    get outputText() {
-        return this._output.innerHTML;
+    get outputText(): string {
+        return this.output.innerHTML;
     }
 
-    set outputText(outputText) {
-        this._output.innerHTML = outputText;
+    set outputText(outputText: string) {
+        this.output.innerHTML = outputText;
     }
 
-    get prefixText() {
-        return this._prefixDiv.innerHTML;
+    get prefixText(): string {
+        return this.prefixDiv.innerHTML;
     }
 
-    set prefixText(prefixText) {
-        this._prefixDiv.innerHTML = prefixText;
+    set prefixText(prefixText: string) {
+        this.prefixDiv.innerHTML = prefixText;
+    }
+
+    get currentUser(): string {
+        return this._currentUser;
     }
 
 
-    static generateHeader() {
+    static generateHeader(): string {
         return "" +
             `${asciiHeaderHtml}
 
@@ -76,16 +82,15 @@ export class Terminal {
             `.trimLines();
     }
 
-    generatePrefix() {
-        if (!this._loggedIn) {
-            if (this._user === undefined) {
+    generatePrefix(): string {
+        if (!this.isLoggedIn) {
+            if (this._currentUser === undefined)
                 return "login as: ";
-            } else {
-                return `Password for ${this._user}@fwdekker.com: `;
-            }
+            else
+                return `Password for ${this._currentUser}@fwdekker.com: `;
         }
 
-        return `${this._user}@fwdekker.com <span style="color: green;">${this._fs.pwd}</span>&gt; `;
+        return `${this._currentUser}@fwdekker.com <span style="color: green;">${this.fileSystem.pwd}</span>&gt; `;
     }
 
 
@@ -94,39 +99,39 @@ export class Terminal {
     }
 
     reset() {
-        this._fs.reset();
+        this.fileSystem.reset();
 
         this.outputText = Terminal.generateHeader();
         this.prefixText = this.generatePrefix();
     }
 
 
-    continueLogin(input) {
-        if (this._user === undefined) {
+    private continueLogin(input: string) {
+        if (this._currentUser === undefined) {
             this.outputText += `${this.prefixText}${input}\n`;
 
-            this._user = input.trim();
-            this._input.classList.add("terminalCurrentFocusInputHidden");
+            this._currentUser = input.trim();
+            this.input.classList.add("terminalCurrentFocusInputHidden");
         } else {
             this.outputText += `${this.prefixText}\n`;
 
-            if ((this._user === "felix" && input === "hotel123")
-                || (this._user === "root" && input === "password")) {
-                this._loggedIn = true;
+            if ((this._currentUser === "felix" && input === "password")
+                || (this._currentUser === "root" && input === "root")) {
+                this.isLoggedIn = true;
                 this.outputText += Terminal.generateHeader();
             } else {
-                this._user = undefined;
+                this._currentUser = undefined;
                 this.outputText += "Access denied\n";
             }
 
-            this._input.classList.remove("terminalCurrentFocusInputHidden");
+            this.input.classList.remove("terminalCurrentFocusInputHidden");
         }
     }
 
     logOut() {
-        this._user = undefined;
-        this._loggedIn = false;
-        this._inputHistory.clear();
+        this._currentUser = undefined;
+        this.isLoggedIn = false;
+        this.inputHistory.clear();
     }
 
     ignoreInput() {
@@ -135,52 +140,51 @@ export class Terminal {
         this.inputText = "";
     }
 
-    processInput(input) {
+    processInput(input: string) {
         this.inputText = "";
 
-        if (!this._loggedIn) {
+        if (!this.isLoggedIn) {
             this.continueLogin(input);
         } else {
             this.outputText += `${this.prefixText}${input}\n`;
-            this._inputHistory.addEntry(input);
+            this.inputHistory.addEntry(input);
 
-            const output = this._commands.parse(input.trim());
-            if (output !== "") {
+            const output = this.commands.parse(input.trim());
+            if (output !== "")
                 this.outputText += output + `\n`;
-            }
         }
 
         this.prefixText = this.generatePrefix();
     }
 
 
-    _onclick() {
-        this._input.focus();
+    private onclick() {
+        this.input.focus();
     }
 
-    _onkeypress(e) {
-        switch (e.key.toLowerCase()) {
+    private onkeypress(event) {
+        switch (event.key.toLowerCase()) {
             case "enter":
                 this.processInput(this.inputText.replaceAll(/&nbsp;/, " "));
-                e.preventDefault();
+                event.preventDefault();
                 break;
         }
     }
 
-    _onkeydown(e) {
-        switch (e.key.toLowerCase()) {
+    private onkeydown(event) {
+        switch (event.key.toLowerCase()) {
             case "arrowup":
-                this.inputText = this._inputHistory.previousEntry();
-                window.setTimeout(() => moveCaretToEndOf(this._input), 0);
+                this.inputText = this.inputHistory.previousEntry();
+                window.setTimeout(() => moveCaretToEndOf(this.input), 0);
                 break;
             case "arrowdown":
-                this.inputText = this._inputHistory.nextEntry();
-                window.setTimeout(() => moveCaretToEndOf(this._input), 0);
+                this.inputText = this.inputHistory.nextEntry();
+                window.setTimeout(() => moveCaretToEndOf(this.input), 0);
                 break;
             case "c":
-                if (e.ctrlKey) {
+                if (event.ctrlKey) {
                     this.ignoreInput();
-                    e.preventDefault();
+                    event.preventDefault();
                 }
                 break;
         }
@@ -188,54 +192,53 @@ export class Terminal {
 }
 
 class InputHistory {
-    private _history: string[];
-    private _index: number;
+    private history: string[];
+    private index: number;
 
 
     constructor() {
-        this._history = [];
-        this._index = -1;
+        this.clear();
     }
 
 
     addEntry(entry: string) {
         if (entry.trim() !== "")
-            this._history.unshift(entry);
+            this.history.unshift(entry);
 
-        this._index = -1;
+        this.index = -1;
     }
 
     clear() {
-        this._history = [];
-        this._index = -1;
+        this.history = [];
+        this.index = -1;
     }
 
-    getEntry(index) {
+    getEntry(index: number): string {
         if (index >= 0)
-            return this._history[index];
+            return this.history[index];
         else
             return "";
     }
 
-    nextEntry() {
-        this._index--;
-        if (this._index < -1)
-            this._index = -1;
+    nextEntry(): string {
+        this.index--;
+        if (this.index < -1)
+            this.index = -1;
 
-        return this.getEntry(this._index);
+        return this.getEntry(this.index);
     }
 
-    previousEntry() {
-        this._index++;
-        if (this._index >= this._history.length)
-            this._index = this._history.length - 1;
+    previousEntry(): string {
+        this.index++;
+        if (this.index >= this.history.length)
+            this.index = this.history.length - 1;
 
-        return this.getEntry(this._index);
+        return this.getEntry(this.index);
     }
 }
 
 
-export let terminal;
+export let terminal: Terminal;
 
 addOnLoad(() => {
     terminal = new Terminal(
@@ -245,13 +248,10 @@ addOnLoad(() => {
         q("#terminalCurrentPrefix")
     );
 
+    // @ts-ignore: Force definition
+    window.relToAbs = (filename: string) => terminal.fileSystem.pwd + filename;
+    // @ts-ignore: Force definition
+    window.run = (command: string) => terminal.processInput(command);
+
     terminal.processInput("ls");
 });
-
-export function run(command: string) {
-    terminal.processInput(command);
-}
-
-export function relToAbs(filename) {
-    return terminal._fs.pwd + filename;
-}

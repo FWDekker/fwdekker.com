@@ -11,11 +11,10 @@ export const emptyFunction = () => {};
 
 
 export function addOnLoad(fun: () => void) {
-    const oldOnLoad = window.onload || (() => {
-    });
+    const oldOnLoad = window.onload || emptyFunction;
 
     window.onload = (() => {
-        // @ts-ignore TODO Find out how to resolve this
+        // @ts-ignore: Call works without parameters as well
         oldOnLoad();
         fun();
     });
@@ -31,6 +30,6 @@ export function moveCaretToEndOf(element: Node) {
     selection.addRange(range);
 }
 
-export function q(query: string) {
+export function q(query: string): HTMLElement {
     return document.querySelector(query);
 }

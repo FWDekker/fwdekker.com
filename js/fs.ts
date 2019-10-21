@@ -1,16 +1,15 @@
 import {emptyFunction} from "./shared.js";
-import {relToAbs} from "./terminal.js";
 
 
 export class FileSystem {
     pwd: string;
-    private _root: Directory;
+    private root: Directory;
     private files: Directory;
 
 
     constructor() {
         this.pwd = "/";
-        this._root = new Directory({
+        this.root = new Directory({
             personal: new Directory({
                 steam: new UrlFile("https://steamcommunity.com/id/Waflix"),
                 nukapedia: new UrlFile("http://fallout.wikia.com/wiki/User:FDekker"),
@@ -32,28 +31,33 @@ export class FileSystem {
     }
 
 
-    _getFile(pathString) {
+    getNode(pathString: string): Node {
         const path = new Path(this.pwd, pathString);
 
-        let file = this._root;
+        let node: Node = this.root;
         path.parts.forEach(part => {
-            if (part === "")
+            if (part === "" || node === undefined || node instanceof File)
                 return;
-            if (file === undefined)
-                return;
-            if (FileSystem.isFile(file)) {
-                file = undefined;
-                return;
-            }
 
-            file = file.getNode(part);
+            if (node instanceof Directory)
+                node = node.getNode(part);
+            else
+                throw "Node must be file or directory.";
         });
 
-        return file;
+        return node;
+    }
+
+    /**
+     * Resets navigation in the file system.
+     */
+    reset() {
+        this.pwd = "/";
+        this.files = this.root;
     }
 
 
-    _executeForEach(inputs, fun) {
+    private executeForEach(inputs: string[], fun: (string) => string): string {
         const outputs = [];
 
         inputs.forEach(input => {
@@ -68,69 +72,46 @@ export class FileSystem {
 
 
     /**
-     * Returns true iff {@code node} represents a directory.
-     *
-     * @param node {Object} a node from the file system
-     * @returns {boolean} true iff {@code node} represents a directory
-     */
-    static isDirectory(node) {
-        return node instanceof Directory;
-    }
-
-    /**
-     * Returns true iff {@code node} represents a file.
-     *
-     * @param node {Object} an object from the file system
-     * @returns {boolean} true iff {@code node} represents a file
-     */
-    static isFile(node) {
-        return node instanceof File;
-    }
-
-
-    /**
      * Changes the current directory to {@code path}, if it exists.
      *
      * @param pathString the absolute or relative path to change the current directory to
      * @returns {string} an empty string if the change was successful, or an error message explaining what went wrong
      */
-    cd(pathString) {
-        if (pathString === undefined) {
+    cd(pathString: string): string {
+        if (pathString === undefined)
             return "";
-        }
 
         const path = new Path(this.pwd, pathString);
 
-        const file = this._getFile(path.path);
-        if (file === undefined)
+        const node = this.getNode(path.path);
+        if (node === undefined)
             return `The directory '${path.path}' does not exist`;
-        if (!FileSystem.isDirectory(file))
-            return `'${path.path}' is not a directory`;
+        if (!(node instanceof Directory))
+            return `'${path.path}' is not a directory.`;
 
         this.pwd = path.path;
-        this.files = file;
-
+        this.files = node;
         return "";
     }
 
     /**
      * Creates an empty file at {@code path} if it does not exist.
      *
-     * @param path the path to create a file at if it does not exist
+     * @param pathString the path to create a file at if it does not exist
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
-    createFile(path) {
-        path = new Path(this.pwd, path);
+    private createFile(pathString: string): string {
+        const path = new Path(this.pwd, pathString);
 
-        const headNode = this._getFile(path.head);
+        const headNode = this.getNode(path.head);
         if (headNode === undefined)
             return `The directory '${path.head}' does not exist`;
-        if (!FileSystem.isDirectory(headNode))
+        if (!(headNode instanceof Directory))
             return `${path.head} is not a directory`;
 
         const tailNode = headNode.getNode(path.tail);
         if (tailNode !== undefined)
-            return "";
+            return ""; // File already exists
 
         headNode.addNode(path.tail, new File());
         return "";
@@ -142,10 +123,8 @@ export class FileSystem {
      * @param paths {string[]} the absolute or relative paths to the files to be created
      * @returns {string} the warnings generated during creation of the files
      */
-    createFiles(paths) {
-        return this._executeForEach(paths, path => {
-            return this.createFile(path);
-        });
+    createFiles(paths: string[]): string {
+        return this.executeForEach(paths, path => this.createFile(path));
     }
 
     /**
@@ -159,13 +138,13 @@ export class FileSystem {
      * @param destinationString {string} the absolute or relative path to the destination
      * @returns {string} an empty string if the copy was successful, or a message explaining what went wrong
      */
-    cp(sourceString, destinationString) {
+    cp(sourceString: string, destinationString: string): string {
         const sourcePath = new Path(this.pwd, sourceString);
-        const sourceTailNode = this._getFile(sourcePath.path);
+        const sourceTailNode = this.getNode(sourcePath.path);
 
         const destinationPath = new Path(this.pwd, destinationString);
-        const destinationHeadNode = this._getFile(destinationPath.head);
-        const destinationTailNode = this._getFile(destinationPath.path);
+        const destinationHeadNode = this.getNode(destinationPath.head);
+        const destinationTailNode = this.getNode(destinationPath.path);
 
         if (sourceTailNode === undefined)
             return `The file '${sourcePath.path}' does not exist`;
@@ -198,27 +177,27 @@ export class FileSystem {
      * @param pathString {string} the absolute or relative path to the directory to return
      * @returns {Object} the directory at {@code path}, or the current directory if no path is given
      */
-    ls(pathString) {
+    ls(pathString: string): string {
         const path = new Path(this.pwd, pathString);
 
-        const dir = this._getFile(path.path);
-        if (dir === undefined)
+        const node = this.getNode(path.path);
+        if (node === undefined)
             return `The directory '${path.path}' does not exist`;
-        if (!FileSystem.isDirectory(dir))
+        if (!(node instanceof Directory))
             return `'${path.path}' is not a directory`;
 
         const dirList = [new Directory({}).nameString("."), new Directory({}).nameString("..")];
         const fileList = [];
 
-        const nodes = dir.getNodes();
+        const nodes = node.nodes;
         Object.keys(nodes)
             .sortAlphabetically((x) => x)
             .forEach(name => {
                 const node = nodes[name];
 
-                if (FileSystem.isDirectory(node))
+                if (node instanceof Directory)
                     dirList.push(node.nameString(name));
-                else if (FileSystem.isFile(node))
+                else if (node instanceof File)
                     fileList.push(node.nameString(name));
                 else
                     throw `${name} is neither a file nor a directory!`;
@@ -233,13 +212,13 @@ export class FileSystem {
      * @param pathString {string} the absolute or relative path to the directory to create
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
-    mkdir(pathString) {
+    private mkdir(pathString: string): string {
         const path = new Path(pathString, undefined);
 
-        const headNode = this._getFile(path.head);
+        const headNode = this.getNode(path.head);
         if (headNode === undefined)
             return `The directory '${path.head}' does not exist`;
-        if (!FileSystem.isDirectory(headNode))
+        if (!(headNode instanceof Directory))
             return `'${path.head}' is not a directory`;
         if (headNode.getNode(path.tail))
             return `The directory '${path.tail}' already exists`;
@@ -254,8 +233,8 @@ export class FileSystem {
      * @param paths {string[]} the absolute or relative paths to the directories to create
      * @returns {string} the warnings generated during creation of the directories
      */
-    mkdirs(paths) {
-        return this._executeForEach(paths, this.mkdir.bind(this));
+    mkdirs(paths: string[]): string {
+        return this.executeForEach(paths, this.mkdir.bind(this));
     }
 
     /**
@@ -269,15 +248,17 @@ export class FileSystem {
      * @param destinationString {string} the absolute or relative path to the destination
      * @returns {string} an empty string if the move was successful, or a message explaining what went wrong
      */
-    mv(sourceString, destinationString) {
+    mv(sourceString: string, destinationString: string): string {
         const sourcePath = new Path(sourceString, undefined);
-        const sourceHeadNode = this._getFile(sourcePath.head);
-        const sourceTailNode = this._getFile(sourcePath.path);
+        const sourceHeadNode = this.getNode(sourcePath.head);
+        const sourceTailNode = this.getNode(sourcePath.path);
 
         const destinationPath = new Path(destinationString, undefined);
-        const destinationHeadNode = this._getFile(destinationPath.head);
-        const destinationTailNode = this._getFile(destinationPath.path);
+        const destinationHeadNode = this.getNode(destinationPath.head);
+        const destinationTailNode = this.getNode(destinationPath.path);
 
+        if (!(sourceHeadNode instanceof Directory))
+            return `The path '${sourcePath.head}' does not point to a directory`;
         if (sourceTailNode === undefined)
             return `The file '${sourcePath.path}' does not exist`;
         if (destinationHeadNode === undefined)
@@ -297,18 +278,9 @@ export class FileSystem {
             return `The file '${targetName}' already exists`;
 
         sourceHeadNode.removeNode(sourceTailNode);
-        targetNode.addNode(sourceTailNode, undefined);
-        sourceTailNode.name = targetName;
+        targetNode.addNode(targetName, sourceTailNode);
 
         return "";
-    }
-
-    /**
-     * Resets navigation in the file system.
-     */
-    reset() {
-        this.pwd = "/";
-        this.files = this._root;
     }
 
     /**
@@ -320,20 +292,20 @@ export class FileSystem {
      * @param noPreserveRoot {boolean} false if the root directory should not be removed
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
-    rm(pathString, force = false, recursive = false, noPreserveRoot = false) {
+    private rm(pathString: string, force: boolean = false, recursive: boolean = false, noPreserveRoot: boolean = false): string {
         const path = new Path(pathString, undefined);
 
-        const parentNode = this._getFile(path.head);
+        const parentNode = this.getNode(path.head);
         if (parentNode === undefined)
             return force
                 ? ""
                 : `The directory '${path.head}' does not exist`;
-        if (!FileSystem.isDirectory(parentNode))
+        if (!(parentNode instanceof Directory))
             return force
                 ? ""
                 : `'${path.head}' is not a directory`;
 
-        const childNode = this._getFile(path.path);
+        const childNode = this.getNode(path.path);
         if (childNode === undefined)
             return force
                 ? ""
@@ -342,7 +314,7 @@ export class FileSystem {
         if (recursive) {
             if (path.path === "/")
                 if (noPreserveRoot)
-                    this._root = new Directory();
+                    this.root = new Directory();
                 else
                     return "'/' cannot be removed";
             else
@@ -367,8 +339,8 @@ export class FileSystem {
      * @param noPreserveRoot {boolean} false if the root directory should not be removed
      * @returns {string} the warnings generated during removal of the directories
      */
-    rms(paths, force = false, recursive = false, noPreserveRoot = false) {
-        return this._executeForEach(paths, path => {
+    rms(paths: string[], force: boolean = false, recursive: boolean = false, noPreserveRoot: boolean = false): string {
+        return this.executeForEach(paths, path => {
             return this.rm(path, force, recursive, noPreserveRoot);
         });
     }
@@ -379,28 +351,28 @@ export class FileSystem {
      * @param pathString {string} the absolute or relative path to the directory to be removed
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
-    rmdir(pathString) {
+    private rmdir(pathString: string): string {
         const path = new Path(pathString, undefined);
 
         if (path.path === "/") {
-            if (this._root.getNodeCount() > 0)
+            if (this.root.nodeCount > 0)
                 return `The directory is not empty.`;
             else
                 return "";
         }
 
-        const parentDir = this._getFile(path.head);
+        const parentDir = this.getNode(path.head);
         if (parentDir === undefined)
             return `The directory '${path.head}' does not exist`;
-        if (!FileSystem.isDirectory(parentDir))
+        if (!(parentDir instanceof Directory))
             return `'${path.head}' is not a directory`;
 
         const childDir = parentDir.getNode(path.tail);
         if (childDir === undefined)
             return `The directory '${path.tail}' does not exist`;
-        if (!FileSystem.isDirectory(childDir))
+        if (!(childDir instanceof Directory))
             return `'${path.tail}' is not a directory`;
-        if (childDir.getNodeCount() > 0)
+        if (childDir.nodeCount > 0)
             return `The directory is not empty`;
 
         parentDir.removeNode(childDir);
@@ -413,22 +385,20 @@ export class FileSystem {
      * @param paths {string[]} the absolute or relative paths to the directories to be removed
      * @returns {string} the warnings generated during removal of the directories
      */
-    rmdirs(paths) {
-        return this._executeForEach(paths, path => {
-            return this.rmdir(path);
-        });
+    rmdirs(paths: string[]): string {
+        return this.executeForEach(paths, path => this.rmdir(path));
     }
 }
 
 
 export class Path {
-    private _path: string;
-    private _parts: string[];
-    private _head: string;
-    private _tail: string;
+    private readonly _parts: string[];
+    readonly path: string;
+    readonly head: string;
+    readonly tail: string;
 
 
-    constructor(currentPath, relativePath) {
+    constructor(currentPath: string, relativePath: string) {
         let path;
         if (relativePath === undefined)
             path = currentPath;
@@ -437,78 +407,62 @@ export class Path {
         else
             path = `${currentPath}/${relativePath}`;
 
-
-        this._path = `${path}/`
+        this.path = `${path}/`
             .replaceAll(/\/\.\//, "/")
             .replaceAll(/(\/+)([^./]+)(\/+)(\.\.)(\/+)/, "/")
             .replaceAll(/\/{2,}/, "/")
             .replace(/^\/?\.?\.\/$/, "/")
             .toString();
 
-        this._parts = this._path.split("/");
-        this._head = this._parts.slice(0, -2).join("/");
-        this._tail = this._parts.slice(0, -1).slice(-1).join("/");
+        this._parts = this.path.split("/");
+        this.head = this.parts.slice(0, -2).join("/");
+        this.tail = this.parts.slice(0, -1).slice(-1).join("/");
     }
 
 
-    get path() {
-        return this._path;
-    }
-
-    get parts() {
+    get parts(): string[] {
         return this._parts.slice();
-    }
-
-    get head() {
-        return this._head;
-    }
-
-    get tail() {
-        return this._tail;
     }
 }
 
-export class Node {
-    copy() {
-        throw "Cannot execute abstract method!";
-    }
+export abstract class Node {
+    abstract copy(): Node;
 
-    nameString(name) {
-        throw "Cannot execute abstract method!";
-    }
+    abstract nameString(name: string): string;
 
-    visit(fun, pre, post) {
-        throw "Cannot execute abstract method!";
-    }
+    abstract visit(fun: (node: Node) => void, pre: (node: Node) => void, post: (node: Node) => void);
 }
 
 export class Directory extends Node {
-    private _parent: this;
-    private _nodes: {};
-    name: string;
+    private readonly _nodes: object;
+    // noinspection TypeScriptFieldCanBeMadeReadonly: False positive
+    private _parent: Directory;
 
 
-    constructor(nodes = {}) {
+    constructor(nodes: object = {}) {
         super();
 
         this._parent = this;
         this._nodes = nodes;
 
-        Object.keys(this._nodes).forEach(name => {
-            this._nodes[name]._parent = this
-        });
+        Object.keys(this._nodes).forEach(name => this._nodes[name]._parent = this);
     }
 
 
-    getNodes() {
+    get nodes(): object {
         return Object.assign({}, this._nodes);
     }
 
-    getNodeCount() {
+    get nodeCount(): number {
         return Object.keys(this._nodes).length;
     }
 
-    getNode(name) {
+    get parent(): Directory {
+        return this._parent;
+    }
+
+
+    getNode(name: string): Node {
         switch (name) {
             case ".":
                 return this;
@@ -519,15 +473,14 @@ export class Directory extends Node {
         }
     }
 
-    addNode(name, node) {
-        if (node instanceof Directory) {
+    addNode(name: string, node: Node) {
+        if (node instanceof Directory)
             node._parent = this;
-        }
 
         this._nodes[name] = node;
     }
 
-    removeNode(nodeOrName) {
+    removeNode(nodeOrName: Node | string) {
         if (nodeOrName instanceof Node) {
             const name = Object.keys(this._nodes).find(key => this._nodes[key] === nodeOrName);
             delete this._nodes[name];
@@ -537,23 +490,24 @@ export class Directory extends Node {
     }
 
 
-    copy() {
-        const copy = new Directory(Object.assign({}, this._nodes));
+    copy(): Directory {
+        const copy = new Directory(this.nodes);
         copy._parent = undefined;
         return copy;
     }
 
-    nameString(name) {
+    nameString(name: string): string {
+        // @ts-ignore: Defined in `terminal.ts`
         return `<a href="#" class="dirLink" onclick="run('cd ${relToAbs(name)}/');run('ls');">${name}/</a>`;
     }
 
-    visit(fun, pre: (dir: Directory) => void = emptyFunction, post: (dir: Directory) => void = emptyFunction) {
+    visit(fun: (node: Node) => void,
+          pre: (node: Node) => void = emptyFunction,
+          post: (node: Node) => void = emptyFunction) {
         pre(this);
 
         fun(this);
-        Object.keys(this._nodes).forEach(name => {
-            this._nodes[name].visit(fun, pre, post);
-        });
+        Object.keys(this._nodes).forEach(name => this._nodes[name].visit(fun, pre, post));
 
         post(this);
     }
@@ -565,15 +519,17 @@ export class File extends Node {
     }
 
 
-    copy() {
+    copy(): File {
         return new File();
     }
 
-    nameString(name) {
+    nameString(name: string): string {
         return name;
     }
 
-    visit(fun, pre: (dir: File) => void = emptyFunction, post: (dir: File) => void = emptyFunction) {
+    visit(fun: (node: Node) => void,
+          pre: (node: Node) => void = emptyFunction,
+          post: (node: Node) => void = emptyFunction) {
         pre(this);
         fun(this);
         post(this);
@@ -581,21 +537,21 @@ export class File extends Node {
 }
 
 export class UrlFile extends File {
-    url: any;
+    readonly url: string;
 
 
-    constructor(url) {
+    constructor(url: string) {
         super();
 
         this.url = url;
     }
 
 
-    copy() {
+    copy(): UrlFile {
         return new UrlFile(this.url);
     }
 
-    nameString(name) {
+    nameString(name: string): string {
         return `<a href="${this.url}" class="fileLink">${name}</a>`;
     }
 }

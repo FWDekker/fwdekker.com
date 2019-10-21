@@ -1,191 +1,181 @@
 import "./extensions.js"
 import {FileSystem, UrlFile} from "./fs.js"
-import {terminal} from "./terminal.js";
+import {Terminal, terminal} from "./terminal.js";
 
 
 export class Commands {
-    private _terminal: any;
-    private _fs: any;
-    private _list: any;
+    private readonly terminal: Terminal;
+    private readonly fileSystem: FileSystem;
+    private readonly commands: object;
 
 
-    constructor(terminal, fileSystem) {
-        this._terminal = terminal;
-        this._fs = fileSystem;
-
-        this._list = {
-            clear: {
-                fun: this.clear,
-                summary: `clear terminal output`,
-                usage: `clear`,
-                desc: `Clears all previous terminal output.`
-            },
-            cd: {
-                fun: this.cd,
-                summary: `change directory`,
-                usage: `cd [DIRECTORY]`,
-                desc: "" +
-                    `Changes the current working directory to [DIRECTORY].
-                    If [DIRECTORY] is empty, nothing happens.`.trimLines()
-            },
-            cp: {
-                fun: this.cp,
-                summary: `copy file`,
-                usage: `cp SOURCE DESTINATION`,
-                desc: "" +
-                    `Copies SOURCE to DESTINATION.
-                    SOURCE must be a file.
-                    If DESTINATION exists and is a directory, SOURCE is copied into the directory.`.trimLines()
-            },
-            echo: {
-                fun: Commands.echo,
-                summary: `display text`,
-                usage: `echo [TEXT]`,
-                desc: `Displays [TEXT].`.trimLines()
-            },
-            exit: {
-                fun: this.exit,
-                summary: `close session`,
-                usage: `exit`,
-                desc: `Closes the terminal session.`
-            },
-            help: {
-                fun: this.help,
-                summary: `display documentation`,
-                usage: `help [COMMAND]`,
-                desc: "" +
-                    `Displays help documentation for [COMMAND].
-                    If [COMMAND] is empty, a list of all commands is shown.`.trimLines()
-            },
-            ls: {
-                fun: this.ls,
-                summary: `list directory contents`,
-                usage: `ls [DIRECTORY]`,
-                desc: "" +
-                    `Displays the files and directories in [DIRECTORY].
-                    If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`.trimLines()
-            },
-            man: {
-                fun: this.man,
-                summary: `display manual documentation pages`,
-                usage: `man PAGE`,
-                desc: `Displays the manual page with the name PAGE.`
-            },
-            mkdir: {
-                fun: this.mkdir,
-                summary: `make directories`,
-                usage: `mkdir DIRECTORY...`,
-                desc: "" +
-                    `Creates the directories given by DIRECTORY.
+    constructor(terminal: Terminal, fileSystem: FileSystem) {
+        this.terminal = terminal;
+        this.fileSystem = fileSystem;
+        this.commands = {
+            clear: new Command(
+                this.clear,
+                `clear terminal output`,
+                `clear`,
+                `Clears all previous terminal output.`.trimLines()
+            ),
+            cd: new Command(
+                this.cd,
+                `change directory`,
+                `cd [DIRECTORY]`,
+                `Changes the current working directory to [DIRECTORY].
+                If [DIRECTORY] is empty, nothing happens.`.trimLines()
+            ),
+            cp: new Command(
+                this.cp,
+                `copy file`,
+                `cp SOURCE DESTINATION`,
+                `Copies SOURCE to DESTINATION.
+                SOURCE must be a file.
+                If DESTINATION exists and is a directory, SOURCE is copied into the directory.`.trimLines()
+            ),
+            echo: new Command(
+                this.echo,
+                `display text`,
+                `echo [TEXT]`,
+                `Displays [TEXT].`.trimLines()
+            ),
+            exit: new Command(
+                this.exit,
+                `close session`,
+                `exit`,
+                `Closes the terminal session.`.trimLines()
+            ),
+            help: new Command(
+                this.help,
+                `display documentation`,
+                `help [COMMAND]`,
+                `Displays help documentation for [COMMAND].
+                If [COMMAND] is empty, a list of all commands is shown.`.trimLines()
+            ),
+            ls: new Command(
+                this.ls,
+                `list directory contents`,
+                `ls [DIRECTORY]`,
+                `Displays the files and directories in [DIRECTORY].
+                If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`.trimLines()
+            ),
+            man: new Command(
+                this.man,
+                `display manual documentation pages`,
+                `man PAGE`,
+                `Displays the manual page with the name PAGE.`.trimLines()
+            ),
+            mkdir: new Command(
+                this.mkdir,
+                `make directories`,
+                `mkdir DIRECTORY...`,
+                `Creates the directories given by DIRECTORY.
                     
-                    If more than one directory is given, the directories are created in the order they are given in`.trimLines()
-            },
-            mv: {
-                fun: this.mv,
-                summary: `move file`,
-                usage: `mv SOURCE DESTINATION`,
-                desc: `Renames SOURCE to DESTINATION.`
-            },
-            open: {
-                fun: this.open,
-                summary: `open web page`,
-                usage: `open [-b | --blank] FILE`,
-                desc: "" +
-                    `Opens the web page linked to by FILE in this browser window.
+                If more than one directory is given, the directories are created in the order they are given in`.trimLines()
+            ),
+            mv: new Command(
+                this.mv,
+                `move file`,
+                `mv SOURCE DESTINATION`,
+                `Renames SOURCE to DESTINATION.`.trimLines()
+            ),
+            open: new Command(
+                this.open,
+                `open web page`,
+                `open [-b | --blank] FILE`,
+                `Opens the web page linked to by FILE in this browser window.
                         
-                    If -b or --blank is set, the web page is opened in a new tab.`.trimLines()
-            },
-            poweroff: {
-                fun: this.poweroff,
-                summary: `close down the system`,
-                usage: `poweroff`,
-                desc: `Automated shutdown procedure to nicely notify users when the system is shutting down.`
-            },
-            pwd: {
-                fun: this.pwd,
-                summary: `print working directory`,
-                usage: `pwd`,
-                desc: `Displays the current working directory.`
-            },
-            rm: {
-                fun: this.rm,
-                summary: `remove file`,
-                usage: `rm [-f | --force] [-r | -R | --recursive] [--no-preserve-root] FILE...`,
-                desc:
-                    `Removes the files given by FILE.
+                If -b or --blank is set, the web page is opened in a new tab.`.trimLines()
+            ),
+            poweroff: new Command(
+                this.poweroff,
+                `close down the system`,
+                `poweroff`,
+                `Automated shutdown procedure to nicely notify users when the system is shutting down.`.trimLines()
+            ),
+            pwd: new Command(
+                this.pwd,
+                `print working directory`,
+                `pwd`,
+                `Displays the current working directory.`.trimLines()
+            ),
+            rm: new Command(
+                this.rm,
+                `remove file`,
+                `rm [-f | --force] [-r | -R | --recursive] [--no-preserve-root] FILE...`,
+                `Removes the files given by FILE.
+                
+                If more than one file is given, the files are removed in the order they are given in.
+                
+                If -f or --force is set, no warning is given if a file could not be removed.
+                
+                If -r, -R, or --recursive is set, files and directories are removed recursively.
+                
+                Unless --no-preserve-root is set, the root directory cannot be removed.`.trimLines()
+            ),
+            rmdir: new Command(
+                this.rmdir,
+                `remove directories`,
+                `rmdir DIRECTORY...`,
+                `Removes the directories given by DIRECTORY.
                     
-                    If more than one file is given, the files are removed in the order they are given in.
+                If more than one directory is given, the directories are removed in the order they are given in.`.trimLines()
+            ),
+            touch: new Command(
+                this.touch,
+                `change file timestamps`,
+                `touch FILE...`,
+                `Update the access and modification times of each FILE to the current time.
                     
-                    If -f or --force is set, no warning is given if a file could not be removed.
-                    
-                    If -r, -R, or --recursive is set, files and directories are removed recursively.
-                    
-                    Unless --no-preserve-root is set, the root directory cannot be removed.`.trimLines()
-            },
-            rmdir: {
-                fun: this.rmdir,
-                summary: `remove directories`,
-                usage: `rmdir DIRECTORY...`,
-                desc: "" +
-                    `Removes the directories given by DIRECTORY.
-                    
-                    If more than one directory is given, the directories are removed in the order they are given in.`.trimLines()
-            },
-            touch: {
-                fun: this.touch,
-                summary: `change file timestamps`,
-                usage: `touch FILE...`,
-                desc: "" +
-                    `Update the access and modification times of each FILE to the current time.
-                    
-                    If a file does not exist, it is created.`.trimLines()
-            }
+                If a file does not exist, it is created.`.trimLines()
+            )
         };
     }
 
 
-    parse(input) {
+    parse(input: string): string {
         const args = new InputArgs(input);
 
-        if (Object.keys(this._list).indexOf(args.getCommand()) >= 0)
-            return this._list[args.getCommand()].fun.bind(this)(args);
-        else if (args.getCommand().trim() === "")
+        if (args.command.trim() === "")
             return "";
+        else if (this.commands.hasOwnProperty(args.command))
+            return this.commands[args.command].fun.bind(this)(args);
         else
-            return `Unknown command '${args.getCommand()}'`
+            return `Unknown command '${args.command}'`;
     }
 
 
-    cd(args) {
-        return this._fs.cd(args.getArg(0));
+    private cd(input: InputArgs): string {
+        return this.fileSystem.cd(input.getArg(0));
     }
 
-    cp(args) {
-        return this._fs.cp(args.getArg(0), args.getArg(1));
+    private cp(input: InputArgs): string {
+        return this.fileSystem.cp(input.getArg(0), input.getArg(1));
     }
 
-    clear() {
-        this._terminal.clear();
+    private clear(): string {
+        this.terminal.clear();
         return "";
     }
 
-    static echo(args) {
-        return args.getArgs()
+    private echo(input): string {
+        return input.args
             .join(" ")
             .replace("hunter2", "*******");
     }
 
-    exit() {
-        this._terminal.logOut();
+    private exit(): string {
+        this.terminal.logOut();
         return "";
     }
 
-    help(args) {
-        const command = args.getArg(0, "").toLowerCase();
-        const commandNames = Object.keys(this._list);
+    private help(input: InputArgs): string {
+        const command = input.getArg(0, "").toLowerCase();
+        const commandNames = Object.keys(this.commands);
 
         if (commandNames.indexOf(command) >= 0) {
-            const info = this._list[command];
+            const info = this.commands[command];
 
             return "" +
                 `${command} - ${info.summary}
@@ -198,7 +188,7 @@ export class Commands {
         } else {
             const commandWidth = Math.max.apply(null, commandNames.map(it => it.length)) + 4;
             const commandEntries = commandNames.map(
-                it => `${it.padEnd(commandWidth, ' ')}${this._list[it].summary}`
+                it => `${it.padEnd(commandWidth, ' ')}${this.commands[it].summary}`
             );
 
             return "" +
@@ -211,44 +201,44 @@ export class Commands {
         }
     }
 
-    ls(args) {
-        return this._fs.ls(args.getArg(0));
+    private ls(input: InputArgs): string {
+        return this.fileSystem.ls(input.getArg(0));
     }
 
-    man(args) {
-        if (args.getArgs().length === 0)
+    private man(args: InputArgs): string {
+        if (args.args.length === 0)
             return "What manual page do you want?";
-        else if (Object.keys(this._list).indexOf(args.getArg(0)) < 0)
+        else if (Object.keys(this.commands).indexOf(args.getArg(0)) < 0)
             return `No manual entry for ${args.getArg(0)}`;
         else
             return this.help(args);
     }
 
-    mkdir(args) {
-        return this._fs.mkdirs(args.getArgs());
+    private mkdir(args: InputArgs): string {
+        return this.fileSystem.mkdirs(args.args);
     }
 
-    mv(args) {
-        return this._fs.mv(args.getArg(0), args.getArg(1));
+    private mv(args: InputArgs): string {
+        return this.fileSystem.mv(args.getArg(0), args.getArg(1));
     }
 
-    open(args) {
+    private open(args: InputArgs): string {
         const fileName = args.getArg(0);
         const target = args.hasAnyOption(["b", "blank"]) ? "_blank" : "_self";
 
-        const file = this._fs._getFile(fileName);
-        if (file === undefined)
+        const node = this.fileSystem.getNode(fileName);
+        if (node === undefined)
             return `The file '${fileName}' does not exist`;
-        if (!FileSystem.isFile(file))
+        if (!(node instanceof File))
             return `'${fileName}' is not a file`;
-        if (!(file instanceof UrlFile))
+        if (!(node instanceof UrlFile))
             return `Could not open '${fileName}'`;
 
-        window.open(file.url, target);
+        window.open(node.url, target);
         return "";
     }
 
-    poweroff() {
+    private poweroff(): string {
         const date = new Date();
         date.setSeconds(date.getSeconds() + 30);
         document.cookie = `poweroff=true; expires=${date.toUTCString()}; path=/`;
@@ -257,7 +247,7 @@ export class Commands {
         return "" +
             `Shutdown NOW!
             
-            *** FINAL System shutdown message from ${terminal._user}@fwdekker.com ***
+            *** FINAL System shutdown message from ${terminal.currentUser}@fwdekker.com ***
             
             System going down IMMEDIATELY
             
@@ -265,39 +255,55 @@ export class Commands {
             System shutdown time has arrived`.trimLines();
     }
 
-    pwd() {
-        return this._fs.pwd;
+    private pwd(): string {
+        return this.fileSystem.pwd;
     }
 
-    rm(args) {
-        return this._fs.rms(
-            args.getArgs(),
+    private rm(args: InputArgs): string {
+        return this.fileSystem.rms(
+            args.args,
             args.hasAnyOption(["f", "force"]),
             args.hasAnyOption(["r", "R", "recursive"]),
             args.hasOption("no-preserve-root")
         );
     }
 
-    rmdir(args) {
-        return this._fs.rmdirs(args.getArgs());
+    private rmdir(args: InputArgs): string {
+        return this.fileSystem.rmdirs(args.args);
     }
 
-    touch(args) {
-        return this._fs.createFiles(args.getArgs());
+    private touch(args: InputArgs): string {
+        return this.fileSystem.createFiles(args.args);
+    }
+}
+
+
+class Command {
+    readonly fun: (args: InputArgs) => string;
+    readonly summary: string;
+    readonly usage: string;
+    readonly desc: string;
+
+
+    constructor(fun: (args: InputArgs) => string, summary: string, usage: string, desc: string) {
+        this.fun = fun;
+        this.summary = summary;
+        this.usage = usage;
+        this.desc = desc;
     }
 }
 
 class InputArgs {
-    private _command: any;
-    private _options: any;
-    private _args: any;
+    readonly command: string;
+    private readonly _options: object;
+    private readonly _args: string[];
 
 
-    constructor(input) {
+    constructor(input: string) {
         const inputParts = (input.match(/("[^"]+"|[^"\s]+)/g) || [])
             .map(it => it.replace(/^"/, "").replace(/"$/, ""));
 
-        this._command = (inputParts[0] || "").toLowerCase();
+        this.command = (inputParts[0] || "").toLowerCase();
 
         this._options = {};
         let i;
@@ -320,9 +326,7 @@ class InputArgs {
                     // -opq
                     const argNames = argParts[0].substr(1).split("");
 
-                    argNames.forEach(argName => {
-                        this._options[argName] = "";
-                    });
+                    argNames.forEach(argName => this._options[argName] = "");
                 } else {
                     // Invalid
                     throw "Cannot assign value to multiple options!";
@@ -339,35 +343,37 @@ class InputArgs {
     }
 
 
-    getArgs() {
+    get options(): object {
+        return Object.assign({}, this._options);
+    }
+
+    get args(): string[] {
         return this._args.slice();
     }
 
-    getArg(index, def) {
+
+    getArg(index: number, def: string = undefined): string {
         return (def === undefined)
             ? this._args[index]
-            : this._args[index] || def;
+            : (this.hasArg(index) ? this._args[index] : def);
     }
 
-    hasArg(index) {
-        return (this._args[index] !== undefined);
+    hasArg(index: number): boolean {
+        return index >= 0 && index < this._args.length;
     }
 
-    getCommand() {
-        return this._command;
-    }
 
-    getOption(key, def = undefined) {
+    getOption(key: string, def: string = undefined) {
         return (def === undefined)
             ? this._options[key]
-            : this._options[key] || def;
+            : (this.hasOption(key) ? this._options[key] : def);
     }
 
-    hasOption(key) {
-        return (this.getOption(key) !== undefined);
+    hasOption(key: string): boolean {
+        return this._options.hasOwnProperty(key);
     }
 
-    hasAnyOption(keys) {
+    hasAnyOption(keys: string[]): boolean {
         for (let i = 0; i < keys.length; i++)
             if (this.hasOption(keys[i]))
                 return true;
