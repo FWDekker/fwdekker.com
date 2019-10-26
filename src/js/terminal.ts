@@ -1,4 +1,4 @@
-import {addOnLoad, asciiHeaderHtml, moveCaretToEndOf, q} from "./shared.js";
+import {asciiHeaderHtml, moveCaretToEndOf} from "./shared.js";
 import {FileSystem} from "./fs.js";
 import {Commands} from "./commands.js";
 import {System} from "./system.js";
@@ -242,22 +242,3 @@ class InputHistory {
         return this.getEntry(this.index);
     }
 }
-
-
-export let terminal: Terminal;
-
-addOnLoad(() => {
-    terminal = new Terminal(
-        q("#terminal"),
-        q("#terminalCurrentFocusInput"),
-        q("#terminalOutput"),
-        q("#terminalCurrentPrefix")
-    );
-
-    // @ts-ignore: Force definition
-    window.relToAbs = (filename: string) => terminal.fileSystem.pwd + filename;
-    // @ts-ignore: Force definition
-    window.run = (command: string) => terminal.processInput(command);
-
-    terminal.processInput("ls");
-});
