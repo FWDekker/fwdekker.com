@@ -1,20 +1,18 @@
 import "./extensions.js"
 import {File, FileSystem, UrlFile} from "./fs.js"
-import {Terminal} from "./terminal.js";
+import {OutputAction, Terminal} from "./terminal.js";
 import {stripHtmlTags} from "./shared.js";
 import {System} from "./system.js";
 
 
 export class Commands {
     private readonly system: System;
-    private readonly terminal: Terminal;
     private readonly fileSystem: FileSystem;
     private readonly commands: { [key: string]: Command };
 
 
-    constructor(system: System, terminal: Terminal, fileSystem: FileSystem) {
+    constructor(system: System, fileSystem: FileSystem) {
         this.system = system;
-        this.terminal = terminal;
         this.fileSystem = fileSystem;
         this.commands = {
             clear: new Command(
@@ -144,118 +142,120 @@ export class Commands {
     }
 
 
-    execute(input: string): string {
+    execute(input: string): OutputAction {
         const args = new InputArgs(stripHtmlTags(input));
 
         if (args.command === "")
-            return "";
+            return ["nothing"];
         else if (this.commands.hasOwnProperty(args.command))
             return this.commands[args.command].fun.bind(this)(args);
         else
-            return `Unknown command '${args.command}'`;
+            return ["append", `Unknown command '${args.command}'`];
     }
 
 
-    private cd(input: InputArgs): string {
-        return this.fileSystem.cd(input.getArg(0));
+    private cd(input: InputArgs): OutputAction {
+        return ["append", this.fileSystem.cd(input.getArg(0))];
     }
 
-    private cp(input: InputArgs): string {
-        return this.fileSystem.cp(input.getArg(0), input.getArg(1));
+    private cp(input: InputArgs): OutputAction {
+        return ["append", this.fileSystem.cp(input.getArg(0), input.getArg(1))];
     }
 
-    private clear(): string {
-        this.terminal.clear();
-        return "";
+    private clear(): OutputAction {
+        return ["clear"];
     }
 
-    private echo(input: InputArgs): string {
-        return input.args
-            .join(" ")
-            .replace("hunter2", "*******");
+    private echo(input: InputArgs): OutputAction {
+        return [
+            "append",
+            input.args
+                .join(" ")
+                .replace("hunter2", "*******")
+        ];
     }
 
-    private exit(): string {
-        this.terminal.logOut();
-        return "";
+    private exit(): OutputAction {
+        this.system.logOut();
+        return ["nothing"];
     }
 
-    private help(input: InputArgs): string {
+    private help(input: InputArgs): OutputAction {
         const command = input.getArg(0, "").toLowerCase();
         const commandNames = Object.keys(this.commands);
 
         if (commandNames.indexOf(command) >= 0) {
             const info = this.commands[command];
 
-            return "" +
+            return ["append",
                 `${command} - ${info.summary}
 
                 <b>Usage</b>
                 ${info.usage}
 
                 <b>Description</b>
-                ${info.desc}`.trimLines();
+                ${info.desc}`.trimLines()];
         } else {
             const commandWidth = Math.max.apply(null, commandNames.map(it => it.length)) + 4;
             const commandEntries = commandNames.map(
                 it => `${it.padEnd(commandWidth, ' ')}${this.commands[it].summary}`
             );
 
-            return "" +
+            return ["append",
                 `The source code of this website is <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on git</a>.
 
                 <b>List of commands</b>
                 ${commandEntries.join("\n")}
 
-                Write "help [COMMAND]" for more information on a command.`.trimLines();
+                Write "help [COMMAND]" for more information on a command.`.trimLines()];
         }
     }
 
-    private ls(input: InputArgs): string {
-        return this.fileSystem.ls(input.getArg(0));
+    private ls(input: InputArgs): OutputAction {
+        return ["append", this.fileSystem.ls(input.getArg(0))];
     }
 
-    private man(args: InputArgs): string {
+    private man(args: InputArgs): OutputAction {
         if (args.args.length === 0)
-            return "What manual page do you want?";
+            return ["append", "What manual page do you want?"];
         else if (Object.keys(this.commands).indexOf(args.getArg(0)) < 0)
-            return `No manual entry for ${args.getArg(0)}`;
+            return ["append", `No manual entry for ${args.getArg(0)}`];
         else
             return this.help(args);
     }
 
-    private mkdir(args: InputArgs): string {
-        return this.fileSystem.mkdirs(args.args);
+    private mkdir(args: InputArgs): OutputAction {
+        return ["append", this.fileSystem.mkdirs(args.args)];
     }
 
-    private mv(args: InputArgs): string {
-        return this.fileSystem.mv(args.getArg(0), args.getArg(1));
+    private mv(args: InputArgs): OutputAction {
+        return ["append", this.fileSystem.mv(args.getArg(0), args.getArg(1))];
     }
 
-    private open(args: InputArgs): string {
+    private open(args: InputArgs): OutputAction {
         const fileName = args.getArg(0);
         const target = args.hasAnyOption(["b", "blank"]) ? "_blank" : "_self";
 
         const node = this.fileSystem.getNode(fileName);
         if (node === undefined)
-            return `The file '${fileName}' does not exist`;
+            return ["append", `The file '${fileName}' does not exist`];
         if (!(node instanceof File))
-            return `'${fileName}' is not a file`;
+            return ["append", `'${fileName}' is not a file`];
         if (!(node instanceof UrlFile))
-            return `Could not open '${fileName}'`;
+            return ["append", `Could not open '${fileName}'`];
 
         // @ts-ignore: False positive
         window.open(node.url, target);
-        return "";
+        return ["nothing"];
     }
 
-    private poweroff(): string {
+    private poweroff(): OutputAction {
         const date = new Date();
         date.setSeconds(date.getSeconds() + 30);
         document.cookie = `poweroff=true; expires=${date.toUTCString()}; path=/`;
 
         setTimeout(() => location.reload(), 2000);
-        return "" +
+        return ["append",
             `Shutdown NOW!
             
             *** FINAL System shutdown message from ${this.system.currentUser}@fwdekker.com ***
@@ -263,48 +263,51 @@ export class Commands {
             System going down IMMEDIATELY
             
             
-            System shutdown time has arrived`.trimLines();
+            System shutdown time has arrived`.trimLines()];
     }
 
-    private pwd(): string {
-        return this.fileSystem.pwd;
+    private pwd(): OutputAction {
+        return ["append", this.fileSystem.pwd];
     }
 
-    private rm(args: InputArgs): string {
-        return this.fileSystem.rms(
-            args.args,
-            args.hasAnyOption(["f", "force"]),
-            args.hasAnyOption(["r", "R", "recursive"]),
-            args.hasOption("no-preserve-root")
-        );
+    private rm(args: InputArgs): OutputAction {
+        return [
+            "append",
+            this.fileSystem.rms(
+                args.args,
+                args.hasAnyOption(["f", "force"]),
+                args.hasAnyOption(["r", "R", "recursive"]),
+                args.hasOption("no-preserve-root")
+            )
+        ];
     }
 
-    private rmdir(args: InputArgs): string {
-        return this.fileSystem.rmdirs(args.args);
+    private rmdir(args: InputArgs): OutputAction {
+        return ["append", this.fileSystem.rmdirs(args.args)];
     }
 
-    private touch(args: InputArgs): string {
-        return this.fileSystem.createFiles(args.args);
+    private touch(args: InputArgs): OutputAction {
+        return ["append", this.fileSystem.createFiles(args.args)];
     }
 
-    private whoami(): string {
+    private whoami(): OutputAction {
         const user = this.system.currentUser;
         if (user === undefined)
             throw "Cannot execute `whoami` while not logged in.";
 
-        return user.description;
+        return ["append", user.description];
     }
 }
 
 
 class Command {
-    readonly fun: (args: InputArgs) => string;
+    readonly fun: (args: InputArgs) => OutputAction;
     readonly summary: string;
     readonly usage: string;
     readonly desc: string;
 
 
-    constructor(fun: (args: InputArgs) => string, summary: string, usage: string, desc: string) {
+    constructor(fun: (args: InputArgs) => OutputAction, summary: string, usage: string, desc: string) {
         this.fun = fun;
         this.summary = summary;
         this.usage = usage;

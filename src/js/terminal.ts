@@ -27,7 +27,7 @@ export class Terminal {
         this.system = new System();
         this.inputHistory = new InputHistory();
         this.fileSystem = new FileSystem();
-        this.commands = new Commands(this.system, this, this.fileSystem);
+        this.commands = new Commands(this.system, this.fileSystem);
 
         this.terminal.addEventListener("click", this.onclick.bind(this));
         this.terminal.addEventListener("keypress", this.onkeypress.bind(this));
@@ -91,10 +91,6 @@ export class Terminal {
     }
 
 
-    clear() {
-        this.outputText = "";
-    }
-
     private reset() {
         this.fileSystem.reset();
 
@@ -126,12 +122,6 @@ export class Terminal {
         }
     }
 
-    logOut(): void {
-        this.system.logOut();
-        this.inputHistory.clear();
-        this.fileSystem.reset();
-    }
-
     ignoreInput() {
         this.outputText += `${this.prefixText}${this.inputText}\n`;
         this.prefixText = this.generatePrefix();
@@ -148,8 +138,20 @@ export class Terminal {
             this.inputHistory.addEntry(input);
 
             const output = this.commands.execute(input.trim());
-            if (output !== "")
-                this.outputText += output + `\n`;
+            switch (output[0]) {
+                case "append":
+                    if (output[1] !== "")
+                        this.outputText += output[1] + `\n`;
+                    break;
+                case "clear":
+                    this.outputText = "";
+                    break;
+            }
+
+            if (!this.system.isLoggedIn) {
+                this.inputHistory.clear();
+                this.fileSystem.reset();
+            }
         }
 
         this.prefixText = this.generatePrefix();
@@ -191,6 +193,8 @@ export class Terminal {
         }
     }
 }
+
+export type OutputAction = ["nothing"] | ["clear"] | ["append", string]
 
 class InputHistory {
     private history: string[];
