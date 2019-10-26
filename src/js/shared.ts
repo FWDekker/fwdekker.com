@@ -39,3 +39,9 @@ export function q(query: string): HTMLElement {
 
     return element;
 }
+
+export function stripHtmlTags(string: string): string {
+    const div = document.createElement("div");
+    div.innerHTML = string;
+    return div.textContent || div.innerText || "";
+}

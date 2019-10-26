@@ -1,6 +1,7 @@
 import "./extensions.js"
 import {File, FileSystem, UrlFile} from "./fs.js"
 import {Terminal} from "./terminal.js";
+import {stripHtmlTags} from "./shared.js";
 
 
 export class Commands {
@@ -141,9 +142,9 @@ export class Commands {
 
 
     execute(input: string): string {
-        const args = new InputArgs(input);
+        const args = new InputArgs(stripHtmlTags(input));
 
-        if (args.command.trim() === "")
+        if (args.command === "")
             return "";
         else if (this.commands.hasOwnProperty(args.command))
             return this.commands[args.command].fun.bind(this)(args);
@@ -318,7 +319,7 @@ class InputArgs {
         const inputParts = (input.match(/("[^"]+"|[^"\s]+)/g) || [])
             .map(it => it.replace(/^"/, "").replace(/"$/, ""));
 
-        this.command = (inputParts[0] || "").toLowerCase();
+        this.command = (inputParts[0] || "").toLowerCase().trim();
 
         this._options = {};
         let i;
