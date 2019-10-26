@@ -129,6 +129,12 @@ export class Commands {
                 `Update the access and modification times of each FILE to the current time.
                     
                 If a file does not exist, it is created.`.trimLines()
+            ),
+            whoami: new Command(
+                this.whoami,
+                `print short description of user`,
+                `whoami`,
+                `Print a description of the user associated with the current effective user ID.`
             )
         };
     }
@@ -275,6 +281,14 @@ export class Commands {
 
     private touch(args: InputArgs): string {
         return this.fileSystem.createFiles(args.args);
+    }
+
+    private whoami(): string {
+        const user = this.terminal.currentUser;
+        if (user === undefined)
+            throw "Cannot execute `whoami` while not logged in.";
+
+        return user.description;
     }
 }
 

@@ -13,7 +13,8 @@ export class Terminal {
     private readonly fileSystem: FileSystem;
     private readonly commands: Commands;
 
-    private _currentUser: string | undefined;
+    private readonly users: User[];
+    private _currentUser: User | undefined;
     private isLoggedIn: boolean;
 
 
@@ -23,7 +24,13 @@ export class Terminal {
         this.output = output;
         this.prefixDiv = prefixDiv;
 
-        this._currentUser = "felix";
+        this.users = [
+            new User("felix", "password", "Why are you logged in on <i>my</i> account?"),
+            new User("root", "root", "Wait how did you get here?")
+        ];
+        this._currentUser = this.users.find(it => it.name === "felix");
+        if (this._currentUser === undefined)
+            throw "Could not find user `felix`.";
         this.isLoggedIn = true;
 
         this.inputHistory = new InputHistory();
@@ -64,7 +71,7 @@ export class Terminal {
         this.prefixDiv.innerHTML = prefixText;
     }
 
-    get currentUser(): string | undefined {
+    get currentUser(): User | undefined {
         return this._currentUser;
     }
 
@@ -87,10 +94,13 @@ export class Terminal {
             if (this._currentUser === undefined)
                 return "login as: ";
             else
-                return `Password for ${this._currentUser}@fwdekker.com: `;
+                return `Password for ${this._currentUser.name}@fwdekker.com: `;
         }
 
-        return `${this._currentUser}@fwdekker.com <span style="color: green;">${this.fileSystem.pwd}</span>&gt; `;
+        if (this._currentUser === undefined)
+            throw "User is logged in as undefined.";
+
+        return `${this._currentUser.name}@fwdekker.com <span style="color: green;">${this.fileSystem.pwd}</span>&gt; `;
     }
 
 
@@ -107,16 +117,22 @@ export class Terminal {
 
 
     private continueLogin(input: string) {
-        if (this._currentUser === undefined) {
-            this.outputText += `${this.prefixText}${input}\n`;
+        if (this.isLoggedIn)
+            throw "`continueLogin` is called while user is already logged in.";
 
-            this._currentUser = input.trim();
+        const user = this._currentUser;
+        if (user === undefined) {
+            this.outputText += `${this.prefixText}${input.trim()}\n`;
+
+            this._currentUser = this.users.find(it => it.name === input.trim());
+            if (this._currentUser === undefined)
+                this._currentUser = new User(input.trim(), "temp", "temp");
+
             this.input.classList.add("terminalCurrentFocusInputHidden");
         } else {
             this.outputText += `${this.prefixText}\n`;
 
-            if ((this._currentUser === "felix" && input === "password")
-                || (this._currentUser === "root" && input === "root")) {
+            if (this.users.find(it => it.name === user.name) && input === user.password) {
                 this.isLoggedIn = true;
                 this.outputText += Terminal.generateHeader();
             } else {
@@ -239,6 +255,19 @@ class InputHistory {
             this.index = this.history.length - 1;
 
         return this.getEntry(this.index);
+    }
+}
+
+class User {
+    readonly name: string;
+    readonly password: string;
+    readonly description: string;
+
+
+    constructor(name: string, password: string, description: string) {
+        this.name = name;
+        this.password = password;
+        this.description = description;
     }
 }
 
