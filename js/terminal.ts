@@ -98,7 +98,7 @@ export class Terminal {
         this.outputText = "";
     }
 
-    reset() {
+    private reset() {
         this.fileSystem.reset();
 
         this.outputText = Terminal.generateHeader();
@@ -132,6 +132,7 @@ export class Terminal {
         this._currentUser = undefined;
         this.isLoggedIn = false;
         this.inputHistory.clear();
+        this.fileSystem.reset();
     }
 
     ignoreInput() {

@@ -57,7 +57,7 @@ export class FileSystem {
     /**
      * Resets navigation in the file system.
      */
-    reset() {
+    reset(): void {
         this._pwd = "/";
         this.files = this.root;
     }
