@@ -4,6 +4,7 @@
     "target": "es2019",
     "sourceMap": true,
     "strict": true,
+    "removeComments": true,
     "outDir": "./build/js"
   },
   "files": [
