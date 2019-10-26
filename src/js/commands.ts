@@ -2,15 +2,18 @@ import "./extensions.js"
 import {File, FileSystem, UrlFile} from "./fs.js"
 import {Terminal} from "./terminal.js";
 import {stripHtmlTags} from "./shared.js";
+import {System} from "./system.js";
 
 
 export class Commands {
+    private readonly system: System;
     private readonly terminal: Terminal;
     private readonly fileSystem: FileSystem;
     private readonly commands: { [key: string]: Command };
 
 
-    constructor(terminal: Terminal, fileSystem: FileSystem) {
+    constructor(system: System, terminal: Terminal, fileSystem: FileSystem) {
+        this.system = system;
         this.terminal = terminal;
         this.fileSystem = fileSystem;
         this.commands = {
@@ -255,7 +258,7 @@ export class Commands {
         return "" +
             `Shutdown NOW!
             
-            *** FINAL System shutdown message from ${this.terminal.currentUser}@fwdekker.com ***
+            *** FINAL System shutdown message from ${this.system.currentUser}@fwdekker.com ***
             
             System going down IMMEDIATELY
             
@@ -285,7 +288,7 @@ export class Commands {
     }
 
     private whoami(): string {
-        const user = this.terminal.currentUser;
+        const user = this.system.currentUser;
         if (user === undefined)
             throw "Cannot execute `whoami` while not logged in.";
 
