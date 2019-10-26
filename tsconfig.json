@@ -6,12 +6,7 @@
     "rootDir": "./src/js/",
     "outDir": "./build/js/"
   },
-  "files": [
-    "src/js/commands.ts",
-    "src/js/extensions.d.ts",
-    "src/js/extensions.ts",
-    "src/js/fs.ts",
-    "src/js/shared.ts",
-    "src/js/terminal.ts"
+  "include": [
+    "src/js/**/*.ts"
   ]
 }
