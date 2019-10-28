@@ -180,6 +180,7 @@ export class Terminal {
         }
 
         this.prefixText = this.generatePrefix();
+        this.scroll = 0;
     }
 
 
@@ -198,6 +199,7 @@ export class Terminal {
     }
 
     private onkeydown(event: KeyboardEvent): void {
+        this.scroll = 0;
         switch (event.key.toLowerCase()) {
             case "arrowup":
                 this.inputText = this.inputHistory.previousEntry();
