@@ -32,6 +32,17 @@ export function moveCaretToEndOf(element: Node) {
     }
 }
 
+export function parseCssPixels(string: string | null): number {
+    if (string === null || string.trim() === "") {
+        return 0;
+    } else {
+        if (!string.endsWith("px"))
+            throw "CSS string is not expressed in pixels.";
+
+        return parseFloat(string);
+    }
+}
+
 export function q(query: string): HTMLElement {
     const element = document.querySelector(query);
     if (!(element instanceof HTMLElement))

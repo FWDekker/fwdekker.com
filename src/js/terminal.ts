@@ -1,10 +1,12 @@
-import {asciiHeaderHtml, moveCaretToEndOf} from "./shared.js";
+import {asciiHeaderHtml, moveCaretToEndOf, parseCssPixels} from "./shared.js";
 import {FileSystem} from "./fs.js";
 import {Commands} from "./commands.js";
 import {System} from "./system.js";
 
 
 export class Terminal {
+    private readonly lineHeight: number = 21;
+
     private readonly terminal: HTMLElement;
     private readonly input: HTMLElement;
     private readonly output: HTMLElement;
@@ -32,6 +34,7 @@ export class Terminal {
         this.terminal.addEventListener("click", this.onclick.bind(this));
         this.terminal.addEventListener("keypress", this.onkeypress.bind(this));
         this.terminal.addEventListener("keydown", this.onkeydown.bind(this));
+        this.terminal.addEventListener("wheel", this.onscroll.bind(this));
 
         this.reset();
         this.input.focus();
@@ -60,6 +63,28 @@ export class Terminal {
 
     set prefixText(prefixText: string) {
         this.prefixDiv.innerHTML = prefixText;
+    }
+
+    get scroll(): number {
+        return -Math.round(parseCssPixels(this.terminal.style.marginBottom) / this.lineHeight);
+    }
+
+    set scroll(lines: number) {
+        lines = Math.round(lines); // input must be whole number
+
+        const screenHeight = document.documentElement.clientHeight
+            - 2 * parseCssPixels(getComputedStyle(this.terminal).paddingTop); // top and bottom padding
+        const linesFitOnScreen = Math.round(screenHeight / this.lineHeight);
+        const linesInHistory = Math.round(this.output.offsetHeight / this.lineHeight) + 1; // +1 for input line
+
+        if (lines < 0)
+            lines = 0;
+        else if (linesInHistory <= linesFitOnScreen)
+            lines = 0;
+        else if (lines > linesInHistory - linesFitOnScreen)
+            lines = linesInHistory - linesFitOnScreen;
+
+        this.terminal.style.marginBottom = (-lines * this.lineHeight) + "px";
     }
 
 
@@ -91,7 +116,7 @@ export class Terminal {
     }
 
 
-    private reset() {
+    private reset(): void {
         this.fileSystem.reset();
 
         this.outputText = Terminal.generateHeader();
@@ -99,7 +124,7 @@ export class Terminal {
     }
 
 
-    private continueLogin(input: string) {
+    private continueLogin(input: string): void {
         if (this.system.isLoggedIn)
             throw "`continueLogin` is called while user is already logged in.";
 
@@ -122,13 +147,13 @@ export class Terminal {
         }
     }
 
-    ignoreInput() {
+    ignoreInput(): void {
         this.outputText += `${this.prefixText}${this.inputText}\n`;
         this.prefixText = this.generatePrefix();
         this.inputText = "";
     }
 
-    processInput(input: string) {
+    processInput(input: string): void {
         this.inputText = "";
 
         if (!this.system.isLoggedIn) {
@@ -158,11 +183,12 @@ export class Terminal {
     }
 
 
-    private onclick() {
+    private onclick(): void {
         this.input.focus();
     }
 
-    private onkeypress(event: KeyboardEvent) {
+    private onkeypress(event: KeyboardEvent): void {
+        this.scroll = 0;
         switch (event.key.toLowerCase()) {
             case "enter":
                 this.processInput(this.inputText.replaceAll(/&nbsp;/, " "));
@@ -171,7 +197,7 @@ export class Terminal {
         }
     }
 
-    private onkeydown(event: KeyboardEvent) {
+    private onkeydown(event: KeyboardEvent): void {
         switch (event.key.toLowerCase()) {
             case "arrowup":
                 this.inputText = this.inputHistory.previousEntry();
@@ -192,6 +218,10 @@ export class Terminal {
                 break;
         }
     }
+
+    private onscroll(event: WheelEvent): void {
+        this.scroll += -event.deltaY / 100;
+    }
 }
 
 export type OutputAction = ["nothing"] | ["clear"] | ["append", string]
@@ -207,14 +237,14 @@ class InputHistory {
     }
 
 
-    addEntry(entry: string) {
+    addEntry(entry: string): void {
         if (entry.trim() !== "")
             this.history.unshift(entry);
 
         this.index = -1;
     }
 
-    clear() {
+    clear(): void {
         this.history = [];
         this.index = -1;
     }
