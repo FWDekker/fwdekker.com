@@ -34,7 +34,23 @@ export class Terminal {
         this.terminal.addEventListener("click", this.onclick.bind(this));
         this.terminal.addEventListener("keypress", this.onkeypress.bind(this));
         this.terminal.addEventListener("keydown", this.onkeydown.bind(this));
-        this.terminal.addEventListener("wheel", this.onscroll.bind(this));
+
+        let scrollStartPosition: number = 0;
+        this.terminal.addEventListener("wheel", (event: WheelEvent) => {
+            this.scroll += -event.deltaY / 100;
+        });
+        this.terminal.addEventListener("touchstart", (event: TouchEvent) => {
+            scrollStartPosition = event.changedTouches[0].clientY;
+        });
+        this.terminal.addEventListener("touchmove", (event: TouchEvent) => {
+            const newPosition = event.changedTouches[0].clientY;
+            const diff = scrollStartPosition - newPosition;
+            if (Math.abs(diff) < this.lineHeight)
+                return;
+
+            this.scroll -= Math.floor(diff / this.lineHeight); // -= because swipe down => increase scroll
+            scrollStartPosition = newPosition - (newPosition % this.lineHeight);
+        });
 
         this.reset();
         this.input.focus();
@@ -219,10 +235,6 @@ export class Terminal {
                 }
                 break;
         }
-    }
-
-    private onscroll(event: WheelEvent): void {
-        this.scroll += -event.deltaY / 100;
     }
 }
 
