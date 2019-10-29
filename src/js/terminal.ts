@@ -43,6 +43,8 @@ export class Terminal {
             scrollStartPosition = event.changedTouches[0].clientY;
         });
         this.terminal.addEventListener("touchmove", (event: TouchEvent) => {
+            event.preventDefault();
+
             const newPosition = event.changedTouches[0].clientY;
             const diff = scrollStartPosition - newPosition;
             if (Math.abs(diff) < this.lineHeight)
