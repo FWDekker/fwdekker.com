@@ -1,12 +1,27 @@
 import {emptyFunction} from "./shared.js";
 
 
+/**
+ * A file system.
+ */
 export class FileSystem {
+    /**
+     * The current working directory.
+     */
     private _pwd: string;
+    /**
+     * The root directory.
+     */
     private root: Directory;
+    /**
+     * The current directory.
+     */
     private files: Directory;
 
 
+    /**
+     * Constructs a new file system.
+     */
     constructor() {
         this._pwd = "/";
         this.root = new Directory({
@@ -32,11 +47,22 @@ export class FileSystem {
     }
 
 
+    /**
+     * Returns the current working directory.
+     *
+     * @return the current working directory
+     */
     get pwd(): string {
         return this._pwd;
     }
 
 
+    /**
+     * Returns the node at the given path.
+     *
+     * @param pathString the path of the node to return; interpreted as a relative path unless it starts with a `/`
+     * @return the node at the given path
+     */
     getNode(pathString: string): Node {
         const path = new Path(this._pwd, pathString);
 
@@ -55,7 +81,7 @@ export class FileSystem {
     }
 
     /**
-     * Resets navigation in the file system.
+     * Sets the current working directory to the root directory.
      */
     reset(): void {
         this._pwd = "/";
@@ -63,6 +89,13 @@ export class FileSystem {
     }
 
 
+    /**
+     * Executes the given function for each string in the given array.
+     *
+     * @param inputs the inputs to process using the given function
+     * @param fun the function to execute on each string in the given array
+     * @return the concatenation of outputs of the given function, separated by newlines
+     */
     private executeForEach(inputs: string[], fun: (_: string) => string): string {
         const outputs: string[] = [];
 
@@ -203,7 +236,7 @@ export class FileSystem {
 
         const nodes = node.nodes;
         Object.keys(nodes)
-            .sortAlphabetically((x) => x)
+            .sortAlphabetically((x) => x, false)
             .forEach(name => {
                 const node = nodes[name];
 
@@ -409,13 +442,36 @@ export class FileSystem {
 }
 
 
+// TODO Write tests for this class
+/**
+ * A path to a node in the file system.
+ */
 export class Path {
+    /**
+     * The parts of the absolute path, resulting from splitting `this.path` by `/`.
+     */
     private readonly _parts: string[];
+    /**
+     * The full absolute path to the node.
+     */
     readonly path: string;
+    /**
+     * The name of the parent, i.e. the part before the last `/` in `this.path`.
+     */
     readonly head: string;
+    /**
+     * The name of the node, i.e. the part after the last `/` in `this.path`.
+     */
     readonly tail: string;
 
 
+    /**
+     * Constructs a new path.
+     *
+     * @param currentPath the absolute path
+     * @param relativePath the relative path to append to `currentPath`, or an absolute path if it starts with a `/`,
+     * in which case `currentPath` is ignored
+     */
     constructor(currentPath: string, relativePath: string | undefined = undefined) {
         let path;
         if (relativePath === undefined)
@@ -433,30 +489,77 @@ export class Path {
             .toString();
 
         this._parts = this.path.split("/");
-        this.head = this.parts.slice(0, -2).join("/");
-        this.tail = this.parts.slice(0, -1).slice(-1).join("/");
+        this.head = this.parts.slice(0, -2).join("/"); // TODO Turn this into a getter
+        this.tail = this.parts.slice(0, -1).slice(-1).join("/"); // TODO Turn this into a getter
     }
 
 
+    /**
+     * Returns a copy of the parts of the path.
+     *
+     * @return a copy of the parts of the path
+     */
     get parts(): string[] {
         return this._parts.slice();
     }
 }
 
+
+/**
+ * A node in the file system.
+ *
+ * Nodes do not know their own name, instead they are similar to how real file systems manage nodes. The name of a node
+ * is determined by the directory it is in.
+ */
 export abstract class Node {
+    /**
+     * Returns a deep copy of this node.
+     */
     abstract copy(): Node;
 
+    /**
+     * Returns a string representation of this node given the name of this node.
+     *
+     * @param name the name of this node
+     * @return a string representation of this node given the name of this node
+     */
     abstract nameString(name: string): string;
 
+    /**
+     * Recursively visits all nodes contained within this node.
+     *
+     * @param fun the function to apply to each node, including this node
+     * @param pre the function to apply to the current node before applying the first `fun`
+     * @param post the function to apply to the current node after applying the last `fun`
+     */
     abstract visit(fun: (node: Node) => void, pre: (node: Node) => void, post: (node: Node) => void): void;
 }
 
+// TODO Remove the parent directory because directories should be true "nodes" just like files are!
+/**
+ * A directory that can contain other nodes.
+ */
 export class Directory extends Node {
+    /**
+     * The nodes contained in this directory, indexed by name.
+     *
+     * The reflexive directory (`"."`) and parent directory (`".."`) are not stored in this field.
+     */
     private readonly _nodes: { [key: string]: Node };
-    // noinspection TypeScriptFieldCanBeMadeReadonly: False positive
+    // noinspection TypeScriptFieldCanBeMadeReadonly
+    /**
+     * The parent directory of this node.
+     */
     private _parent: Directory;
 
 
+    /**
+     * Constructs a new directory with the given nodes.
+     *
+     * The parent of each given node is set to this directory. The parent of this directory is itself by default.
+     *
+     * @param nodes the nodes the directory should contain
+     */
     constructor(nodes: { [key: string]: Node } = {}) {
         super();
 
@@ -470,19 +573,40 @@ export class Directory extends Node {
     }
 
 
+    /**
+     * Returns a copy of all nodes contained in this directory.
+     *
+     * @return a copy of all nodes contained in this directory
+     */
     get nodes(): { [key: string]: Node } {
         return Object.assign({}, this._nodes);
     }
 
+    /**
+     * Returns the number of nodes in this directory.
+     *
+     * @return the number of nodes in this directory
+     */
     get nodeCount(): number {
         return Object.keys(this._nodes).length;
     }
 
+    /**
+     * Returns the parent directory of this node.
+     *
+     * @return the parent directory of this node
+     */
     get parent(): Directory {
         return this._parent;
     }
 
 
+    /**
+     * Returns the node with the given name.
+     *
+     * @param name the name of the node to return
+     * @throws when there is no node with the given name in this directory
+     */
     getNode(name: string): Node {
         switch (name) {
             case ".":
@@ -494,14 +618,29 @@ export class Directory extends Node {
         }
     }
 
-    addNode(name: string, node: Node) {
+    /**
+     * Adds the given node with the given name to this directory.
+     *
+     * If the given node is a directory, its parent is set to this directory.
+     *
+     * @param name the name of the node in this directory
+     * @param node the node to add to this directory
+     */
+    addNode(name: string, node: Node): void {
         if (node instanceof Directory)
             node._parent = this;
 
         this._nodes[name] = node;
     }
 
-    removeNode(nodeOrName: Node | string) {
+    // TODO Check if this one works
+    /**
+     * Removes the given node or the node with the given name.
+     *
+     * @param nodeOrName the node to remove or the name of the node to remove
+     * @throws if the given node is not contained in this directory
+     */
+    removeNode(nodeOrName: Node | string): void {
         if (nodeOrName instanceof Node) {
             const name = Object.keys(this._nodes).find(key => this._nodes[key] === nodeOrName);
             if (name === undefined)
@@ -518,6 +657,12 @@ export class Directory extends Node {
         return new Directory(this.nodes);
     }
 
+    /**
+     * Returns a string that contains an HTML hyperlink that runs a command to `cd` to this directory.
+     *
+     * @param name the name of this node
+     * @return a string that contains an HTML hyperlink that runs a command to `cd` to this directory
+     */
     nameString(name: string): string {
         // @ts-ignore: Defined in `terminal.ts`
         return `<a href="#" class="dirLink" onclick="run('cd ${relToAbs(name)}/');run('ls');">${name}/</a>`;
@@ -535,7 +680,13 @@ export class Directory extends Node {
     }
 }
 
+/**
+ * A simple file without contents.
+ */
 export class File extends Node {
+    /**
+     * Constructs a new file.
+     */
     constructor() {
         super();
     }
@@ -558,10 +709,21 @@ export class File extends Node {
     }
 }
 
+/**
+ * A file that contains a link to an external resource.
+ */
 export class UrlFile extends File {
+    /**
+     * The link to the external resource.
+     */
     readonly url: string;
 
 
+    /**
+     * Constructs a new link.
+     *
+     * @param url the link to the external resource
+     */
     constructor(url: string) {
         super();
 
