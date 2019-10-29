@@ -3,10 +3,10 @@
     "module": "esnext",
     "target": "es2019",
     "strict": true,
-    "rootDir": "./src/js/",
+    "rootDir": "./src/main/js/",
     "outDir": "./build/js/"
   },
   "include": [
-    "src/js/**/*.ts"
+    "src/main/js/**/*.ts"
   ]
 }

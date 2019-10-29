@@ -7,13 +7,13 @@ module.exports = grunt => {
         },
         copy: {
             images: {
-                files: [{expand: true, cwd: "src/", src: ["**/*.png", "**/*.ico"], dest: "build/"}]
+                files: [{expand: true, cwd: "src/main/", src: ["**/*.png", "**/*.ico"], dest: "build/"}]
             },
             html: {
-                files: [{expand: true, cwd: "src/", src: "**/*.html", dest: "build/"}]
+                files: [{expand: true, cwd: "src/main/", src: "**/*.html", dest: "build/"}]
             },
             css: {
-                files: [{expand: true, cwd: "src/", src: "**/*.css", dest: "build/"}]
+                files: [{expand: true, cwd: "src/main/", src: "**/*.css", dest: "build/"}]
             }
         },
         cssmin: {
@@ -72,6 +72,7 @@ module.exports = grunt => {
         // Post
         "clean:after"
     ]);
+    grunt.registerTask("dev", ["default"]);
     grunt.registerTask("deploy", [
         // Pre
         "clean:before",

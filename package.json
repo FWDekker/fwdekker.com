@@ -4,6 +4,7 @@
   "description": "The source code of [my personal website](https://fwdekker.com/).",
   "dependencies": {},
   "devDependencies": {
+    "ava": "2.4.0",
     "grunt": "1.0.4",
     "grunt-contrib-clean": "2.0.0",
     "grunt-contrib-copy": "1.0.0",
@@ -12,6 +13,9 @@
     "grunt-terser": "1.0.0",
     "grunt-ts": "6.0.0-beta.22",
     "typescript": "3.6.4"
+  },
+  "scripts": {
+    "test": "ava"
   },
   "repository": {
     "type": "git",

@@ -14,10 +14,12 @@ $> npm install
 
 ```shell script
 # Build the application in `build/` for development
-$> grunt
+$> grunt dev
+# Build the application in `build/` for deployment
+$> grunt deploy
 ```
 
 ```shell script
-# Build the application in `build/` for deployment
-$> grunt deploy
+# Run tests on the application in `build/`
+$> npm test
 ```
