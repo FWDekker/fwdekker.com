@@ -193,7 +193,7 @@ export class Terminal {
     /**
      * Generates the header that is displayed when a user logs in.
      *
-     * @returns the header that is displayed when a user logs in
+     * @return the header that is displayed when a user logs in
      */
     static generateHeader(): string {
         return "" +

@@ -147,7 +147,7 @@ export class FileSystem {
      * Changes the current directory to {@code path}, if it exists.
      *
      * @param pathString the absolute or relative path to change the current directory to
-     * @returns {string} an empty string if the change was successful, or an error message explaining what went wrong
+     * @return an empty string if the change was successful, or an error message explaining what went wrong
      */
     cd(pathString: string): string {
         if (pathString === undefined)
@@ -170,7 +170,7 @@ export class FileSystem {
      * Creates an empty file at {@code path} if it does not exist.
      *
      * @param pathString the path to create a file at if it does not exist
-     * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
+     * @return an empty string if the removal was successful, or a message explaining what went wrong
      */
     private createFile(pathString: string): string {
         const path = new Path(this._cwd, pathString);
@@ -193,7 +193,7 @@ export class FileSystem {
      * Calls {@link createFile} on all elements in {@code paths}.
      *
      * @param paths {string[]} the absolute or relative paths to the files to be created
-     * @returns {string} the warnings generated during creation of the files
+     * @return the warnings generated during creation of the files
      */
     createFiles(paths: string[]): string {
         return this.executeForEach(paths, path => this.createFile(path));
@@ -208,7 +208,7 @@ export class FileSystem {
      *
      * @param sourceString {string} the absolute or relative path to the file or directory to copy
      * @param destinationString {string} the absolute or relative path to the destination
-     * @returns {string} an empty string if the copy was successful, or a message explaining what went wrong
+     * @return an empty string if the copy was successful, or a message explaining what went wrong
      */
     cp(sourceString: string, destinationString: string): string {
         const sourcePath = new Path(this._cwd, sourceString);
@@ -253,7 +253,7 @@ export class FileSystem {
      * Returns the directory at {@code path}, or the current directory if no path is given.
      *
      * @param pathString {string} the absolute or relative path to the directory to return
-     * @returns {Object} the directory at {@code path}, or the current directory if no path is given
+     * @return the directory at {@code path}, or the current directory if no path is given
      */
     ls(pathString: string): string {
         const path = new Path(this._cwd, pathString);
@@ -288,7 +288,7 @@ export class FileSystem {
      * Creates an empty directory in the file system.
      *
      * @param pathString {string} the absolute or relative path to the directory to create
-     * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
+     * @return an empty string if the removal was successful, or a message explaining what went wrong
      */
     private mkdir(pathString: string): string {
         const path = new Path(pathString);
@@ -309,7 +309,7 @@ export class FileSystem {
      * Calls {@link mkdir} on all elements in {@code paths}.
      *
      * @param paths {string[]} the absolute or relative paths to the directories to create
-     * @returns {string} the warnings generated during creation of the directories
+     * @return the warnings generated during creation of the directories
      */
     mkdirs(paths: string[]): string {
         return this.executeForEach(paths, this.mkdir.bind(this));
@@ -324,7 +324,7 @@ export class FileSystem {
      *
      * @param sourceString {string} the absolute or relative path to the file or directory to move
      * @param destinationString {string} the absolute or relative path to the destination
-     * @returns {string} an empty string if the move was successful, or a message explaining what went wrong
+     * @return an empty string if the move was successful, or a message explaining what went wrong
      */
     mv(sourceString: string, destinationString: string): string {
         const sourcePath = new Path(sourceString);
@@ -374,7 +374,7 @@ export class FileSystem {
      * @param force {boolean} true if no warnings should be given if removal is unsuccessful
      * @param recursive {boolean} true if files and directories should be removed recursively
      * @param noPreserveRoot {boolean} false if the root directory should not be removed
-     * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
+     * @return an empty string if the removal was successful, or a message explaining what went wrong
      */
     private rm(pathString: string, force: boolean = false, recursive: boolean = false, noPreserveRoot: boolean = false): string {
         const path = new Path(pathString);
@@ -421,7 +421,7 @@ export class FileSystem {
      * @param force {boolean} true if no warnings should be given if removal is unsuccessful
      * @param recursive {boolean} true if files and directories should be removed recursively
      * @param noPreserveRoot {boolean} false if the root directory should not be removed
-     * @returns {string} the warnings generated during removal of the directories
+     * @return the warnings generated during removal of the directories
      */
     rms(paths: string[], force: boolean = false, recursive: boolean = false, noPreserveRoot: boolean = false): string {
         return this.executeForEach(paths, path => {
@@ -433,7 +433,7 @@ export class FileSystem {
      * Removes a directory from the file system.
      *
      * @param pathString {string} the absolute or relative path to the directory to be removed
-     * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
+     * @return an empty string if the removal was successful, or a message explaining what went wrong
      */
     private rmdir(pathString: string): string {
         const path = new Path(pathString);
@@ -467,7 +467,7 @@ export class FileSystem {
      * Calls {@link rmdir} on all elements in {@code paths}.
      *
      * @param paths {string[]} the absolute or relative paths to the directories to be removed
-     * @returns {string} the warnings generated during removal of the directories
+     * @return the warnings generated during removal of the directories
      */
     rmdirs(paths: string[]): string {
         return this.executeForEach(paths, path => this.rmdir(path));
