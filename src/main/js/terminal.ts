@@ -286,7 +286,7 @@ export class Terminal {
             switch (output[0]) {
                 case "append":
                     if (output[1] !== "")
-                        this.outputText += output[1] + `\n`;
+                        this.outputText += output[1] + (output[1].endsWith("\n") ? "" : "\n");
                     break;
                 case "clear":
                     this.outputText = "";

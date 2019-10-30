@@ -37,14 +37,16 @@ export class Commands {
                 this.clear,
                 `clear terminal output`,
                 `clear`,
-                `Clears all previous terminal output.`.trimLines()
+                `Clears all previous terminal output.`.trimLines(),
+                new InputValidator({maxArgs: 0})
             ),
             "cd": new Command(
                 this.cd,
                 `change directory`,
                 `cd [DIRECTORY]`,
                 `Changes the current working directory to [DIRECTORY].
-                If [DIRECTORY] is empty, nothing happens.`.trimLines()
+                If [DIRECTORY] is empty, nothing happens.`.trimLines(),
+                new InputValidator({maxArgs: 1})
             ),
             "cp": new Command(
                 this.cp,
@@ -52,39 +54,45 @@ export class Commands {
                 `cp SOURCE DESTINATION`,
                 `Copies SOURCE to DESTINATION.
                 SOURCE must be a file.
-                If DESTINATION exists and is a directory, SOURCE is copied into the directory.`.trimLines()
+                If DESTINATION exists and is a directory, SOURCE is copied into the directory.`.trimLines(),
+                new InputValidator({minArgs: 2, maxArgs: 2})
             ),
             "echo": new Command(
                 this.echo,
                 `display text`,
                 `echo [TEXT]`,
-                `Displays [TEXT].`.trimLines()
+                `Displays [TEXT].`.trimLines(),
+                new InputValidator({minArgs: 0, maxArgs: Number.MAX_SAFE_INTEGER})
             ),
             "exit": new Command(
                 this.exit,
                 `close session`,
                 `exit`,
-                `Closes the terminal session.`.trimLines()
+                `Closes the terminal session.`.trimLines(),
+                new InputValidator({maxArgs: 0})
             ),
             "help": new Command(
                 this.help,
                 `display documentation`,
                 `help [COMMAND]`,
                 `Displays help documentation for [COMMAND].
-                If [COMMAND] is empty, a list of all commands is shown.`.trimLines()
+                If [COMMAND] is empty, a list of all commands is shown.`.trimLines(),
+                new InputValidator({maxArgs: 1})
             ),
             "ls": new Command(
                 this.ls,
                 `list directory contents`,
                 `ls [DIRECTORY]`,
                 `Displays the files and directories in [DIRECTORY].
-                If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`.trimLines()
+                If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`.trimLines(),
+                new InputValidator({maxArgs: 1})
             ),
             "man": new Command(
                 this.man,
                 `display manual documentation pages`,
                 `man PAGE`,
-                `Displays the manual page with the name PAGE.`.trimLines()
+                `Displays the manual page with the name PAGE.`.trimLines(),
+                new InputValidator({maxArgs: 1})
             ),
             mkdir: new Command(
                 this.mkdir,
@@ -92,13 +100,15 @@ export class Commands {
                 `mkdir DIRECTORY...`,
                 `Creates the directories given by DIRECTORY.
                     
-                If more than one directory is given, the directories are created in the order they are given in`.trimLines()
+                If more than one directory is given, the directories are created in the order they are given in`.trimLines(),
+                new InputValidator({minArgs: 1})
             ),
             mv: new Command(
                 this.mv,
                 `move file`,
                 `mv SOURCE DESTINATION`,
-                `Renames SOURCE to DESTINATION.`.trimLines()
+                `Renames SOURCE to DESTINATION.`.trimLines(),
+                new InputValidator({minArgs: 2, maxArgs: 2})
             ),
             open: new Command(
                 this.open,
@@ -106,19 +116,22 @@ export class Commands {
                 `open [-b | --blank] FILE`,
                 `Opens the web page linked to by FILE in this browser window.
                         
-                If -b or --blank is set, the web page is opened in a new tab.`.trimLines()
+                If -b or --blank is set, the web page is opened in a new tab.`.trimLines(),
+                new InputValidator({minArgs: 1, maxArgs: 1})
             ),
             poweroff: new Command(
                 this.poweroff,
                 `close down the system`,
                 `poweroff`,
-                `Automated shutdown procedure to nicely notify users when the system is shutting down.`.trimLines()
+                `Automated shutdown procedure to nicely notify users when the system is shutting down.`.trimLines(),
+                new InputValidator({maxArgs: 0})
             ),
             pwd: new Command(
                 this.pwd,
                 `print working directory`,
                 `pwd`,
-                `Displays the current working directory.`.trimLines()
+                `Displays the current working directory.`.trimLines(),
+                new InputValidator({maxArgs: 0})
             ),
             rm: new Command(
                 this.rm,
@@ -132,7 +145,8 @@ export class Commands {
                 
                 If -r, -R, or --recursive is set, files and directories are removed recursively.
                 
-                Unless --no-preserve-root is set, the root directory cannot be removed.`.trimLines()
+                Unless --no-preserve-root is set, the root directory cannot be removed.`.trimLines(),
+                new InputValidator({minArgs: 1})
             ),
             rmdir: new Command(
                 this.rmdir,
@@ -140,7 +154,8 @@ export class Commands {
                 `rmdir DIRECTORY...`,
                 `Removes the directories given by DIRECTORY.
                     
-                If more than one directory is given, the directories are removed in the order they are given in.`.trimLines()
+                If more than one directory is given, the directories are removed in the order they are given in.`.trimLines(),
+                new InputValidator({minArgs: 1})
             ),
             touch: new Command(
                 this.touch,
@@ -148,13 +163,15 @@ export class Commands {
                 `touch FILE...`,
                 `Update the access and modification times of each FILE to the current time.
                     
-                If a file does not exist, it is created.`.trimLines()
+                If a file does not exist, it is created.`.trimLines(),
+                new InputValidator({minArgs: 1})
             ),
             whoami: new Command(
                 this.whoami,
                 `print short description of user`,
                 `whoami`,
-                `Print a description of the user associated with the current effective user ID.`
+                `Print a description of the user associated with the current effective user ID.`,
+                new InputValidator({maxArgs: 0})
             )
         };
     }
@@ -163,11 +180,11 @@ export class Commands {
     /**
      * Parses and executes the given input string and returns the output generated by that command.
      *
-     * @param input the input string to parse and execute
+     * @param inputString the input string to parse and execute
      * @return the output generated by that command
      */
-    execute(input: string): OutputAction {
-        if (input === "factory-reset") {
+    execute(inputString: string): OutputAction {
+        if (inputString === "factory-reset") {
             // @ts-ignore
             Cookies.remove("files");
             // @ts-ignore
@@ -176,23 +193,47 @@ export class Commands {
             throw "Goodbye";
         }
 
-        const args = new InputArgs(stripHtmlTags(input));
-
-        if (args.command === "")
+        const input = new InputArgs(stripHtmlTags(inputString));
+        if (input.command === "")
             return ["nothing"];
-        else if (this.commands.hasOwnProperty(args.command))
-            return this.commands[args.command].fun.bind(this)(args);
-        else
-            return ["append", `Unknown command '${args.command}'`];
+        if (!this.commands.hasOwnProperty(input.command))
+            return ["append", `Unknown command '${input.command}'`];
+
+        const command = this.commands[input.command];
+        const validation = command.validator.validate(input);
+        if (!validation[0])
+            return this.createUsageErrorOutput(input.command, validation[1]);
+
+        return command.fun.bind(this)(input);
+    }
+
+    /**
+     * Returns an output action corresponding to an error message about invalid usage of a command.
+     *
+     * @param commandName the name of the command that was used incorrectly
+     * @param errorMessage the message describing how the command was used incorrectly; preferably ended with a `.`
+     * @return an output action corresponding to an error message about invalid usage of a command
+     */
+    private createUsageErrorOutput(commandName: string, errorMessage: string | undefined): OutputAction {
+        const command = this.commands[commandName];
+        if (command === undefined)
+            throw `Unknown command \`${commandName}\`.`;
+
+        return ["append",
+            `Invalid usage of ${commandName}.${errorMessage === undefined ? "" : ` ${errorMessage}`}
+            
+            <b>Usage</b>
+            ${command.usage}`.trimLines()
+        ];
     }
 
 
     private cd(input: InputArgs): OutputAction {
-        return ["append", this.fileSystem.cd(input.getArg(0))];
+        return ["append", this.fileSystem.cd(input.args[0])];
     }
 
     private cp(input: InputArgs): OutputAction {
-        return ["append", this.fileSystem.cp(input.getArg(0), input.getArg(1))];
+        return ["append", this.fileSystem.cp(input.args[0], input.args[1])];
     }
 
     private clear(): OutputAction {
@@ -200,7 +241,7 @@ export class Commands {
     }
 
     private echo(input: InputArgs): OutputAction {
-        return ["append", input.args.join(" ").replace("hunter2", "*******")];
+        return ["append", input.args.join(" ").replace("hunter2", "*******") + "\n"];
     }
 
     private exit(): OutputAction {
@@ -208,8 +249,9 @@ export class Commands {
         return ["nothing"];
     }
 
+    // TODO Support multiple help pages
     private help(input: InputArgs): OutputAction {
-        const command = input.getArg(0, "").toLowerCase();
+        const command = (input.args[0] || "").toLowerCase();
         const commandNames = Object.keys(this.commands);
 
         if (commandNames.indexOf(command) >= 0) {
@@ -239,30 +281,32 @@ export class Commands {
         }
     }
 
+    // TODO Support multiple folders
     private ls(input: InputArgs): OutputAction {
-        return ["append", this.fileSystem.ls(input.getArg(0))];
+        return ["append", this.fileSystem.ls(input.args[0] || "")];
     }
 
-    private man(args: InputArgs): OutputAction {
-        if (args.args.length === 0)
+    // TODO Support multiple help pages
+    private man(input: InputArgs): OutputAction {
+        if (input.args.length === 0)
             return ["append", "What manual page do you want?"];
-        else if (Object.keys(this.commands).indexOf(args.getArg(0)) < 0)
-            return ["append", `No manual entry for ${args.getArg(0)}`];
+        else if (Object.keys(this.commands).indexOf(input.args[0]) < 0)
+            return ["append", `No manual entry for ${input.args[0]}`];
         else
-            return this.help(args);
+            return this.help(input);
     }
 
-    private mkdir(args: InputArgs): OutputAction {
-        return ["append", this.fileSystem.mkdirs(args.args)];
+    private mkdir(input: InputArgs): OutputAction {
+        return ["append", this.fileSystem.mkdirs(input.args)];
     }
 
-    private mv(args: InputArgs): OutputAction {
-        return ["append", this.fileSystem.mv(args.getArg(0), args.getArg(1))];
+    private mv(input: InputArgs): OutputAction {
+        return ["append", this.fileSystem.mv(input.args[0], input.args[1])];
     }
 
-    private open(args: InputArgs): OutputAction {
-        const fileName = args.getArg(0);
-        const target = args.hasAnyOption(["b", "blank"]) ? "_blank" : "_self";
+    private open(input: InputArgs): OutputAction {
+        const fileName = input.args[0];
+        const target = input.hasAnyOption(["b", "blank"]) ? "_blank" : "_self";
 
         const node = this.fileSystem.getNode(fileName);
         if (node === undefined)
@@ -304,24 +348,24 @@ export class Commands {
         return ["append", this.fileSystem.cwd];
     }
 
-    private rm(args: InputArgs): OutputAction {
+    private rm(input: InputArgs): OutputAction {
         return [
             "append",
             this.fileSystem.rms(
-                args.args,
-                args.hasAnyOption(["f", "force"]),
-                args.hasAnyOption(["r", "R", "recursive"]),
-                args.hasOption("no-preserve-root")
+                input.args,
+                input.hasAnyOption(["f", "force"]),
+                input.hasAnyOption(["r", "R", "recursive"]),
+                input.hasOption("no-preserve-root")
             )
         ];
     }
 
-    private rmdir(args: InputArgs): OutputAction {
-        return ["append", this.fileSystem.rmdirs(args.args)];
+    private rmdir(input: InputArgs): OutputAction {
+        return ["append", this.fileSystem.rmdirs(input.args)];
     }
 
-    private touch(args: InputArgs): OutputAction {
-        return ["append", this.fileSystem.createFiles(args.args)];
+    private touch(input: InputArgs): OutputAction {
+        return ["append", this.fileSystem.createFiles(input.args)];
     }
 
     private whoami(): OutputAction {
@@ -354,6 +398,10 @@ class Command {
      * A longer description of what the command does and how its parameters work.
      */
     readonly desc: string;
+    /**
+     * A function that validates input for this command.
+     */
+    readonly validator: InputValidator;
 
 
     /**
@@ -363,12 +411,15 @@ class Command {
      * @param summary a short summary of what the command does
      * @param usage a string describing how the command is to be used
      * @param desc a longer description of what the command does and how its parameters work
+     * @param validator a function that validates input for this command
      */
-    constructor(fun: (args: InputArgs) => OutputAction, summary: string, usage: string, desc: string) {
+    constructor(fun: (args: InputArgs) => OutputAction, summary: string, usage: string, desc: string,
+                validator: InputValidator) {
         this.fun = fun;
         this.summary = summary;
         this.usage = usage;
         this.desc = desc;
+        this.validator = validator;
     }
 }
 
@@ -459,20 +510,6 @@ class InputArgs {
 
 
     /**
-     * Returns the value of the given option, or the given default value if that option has not been set.
-     *
-     * @param key the key of the option to return the value of
-     * @param def the default value to return in case the option with the given key has not been set
-     * @return the value of the given option, or the given default value if that option has not been set
-     * @throws if the option with the given key has not been set and no default value is given
-     */
-    getOption(key: string, def: string | undefined = undefined): string | undefined {
-        return (def === undefined)
-            ? this._options[key]
-            : (this.hasOption(key) ? this._options[key] : def);
-    }
-
-    /**
      * Returns `true` if and only if the option with the given key has been set.
      *
      * @param key the key to check
@@ -498,26 +535,71 @@ class InputArgs {
 
 
     /**
-     * Returns the argument at the given index, or the given default value if that argument could not be found.
-     *
-     * @param index the index of the argument to return
-     * @param def the default value to return in case there is no argument at the given index
-     * @return the argument at the given index, or the given default value if that argument could not be found
-     * @throws if there is no argument at the given index and no default value is given
-     */
-    getArg(index: number, def: string | undefined = undefined): string {
-        return (def === undefined)
-            ? this._args[index]
-            : (this.hasArg(index) ? this._args[index] : def);
-    }
-
-    /**
      * Returns `true` if and only if there is an argument at the given index.
      *
      * @param index the index to check
      * @return `true` if and only if there is an argument at the given index
      */
     hasArg(index: number): boolean {
-        return index >= 0 && index < this._args.length;
+        return this._args[index] !== undefined;
+    }
+}
+
+/**
+ * Validates the input of a command.
+ */
+class InputValidator {
+    /**
+     * The minimum number of arguments allowed.
+     */
+    readonly minArgs: number;
+    /**
+     * The maximum number of arguments allowed.
+     */
+    readonly maxArgs: number;
+
+
+    /**
+     * Constructs a new input validator.
+     *
+     * @param minArgs the minimum number of arguments allowed
+     * @param maxArgs the maximum number of arguments allowed
+     */
+    constructor({minArgs = 0, maxArgs = Number.MAX_SAFE_INTEGER}: { minArgs?: number, maxArgs?: number } = {}) {
+        if (minArgs > maxArgs)
+            throw "`minArgs` must be less than or equal to `maxArgs`.";
+
+        this.minArgs = minArgs;
+        this.maxArgs = maxArgs;
+    }
+
+
+    /**
+     * Returns `[true]` if the input is valid, or `[false, string]` where the string is a reason if the input is not
+     * valid.
+     *
+     * @param input the input to validate
+     * @return `[true]` if the input is valid, or `[false, string]` where the string is a reason if the input is not
+     * valid
+     */
+    validate(input: InputArgs): [true] | [false, string] {
+        if (this.minArgs === this.maxArgs && input.args.length !== this.minArgs)
+            return [false, `Expected ${this.arguments(this.minArgs)} but got ${input.args.length}.`];
+        if (input.args.length < this.minArgs)
+            return [false, `Expected at least ${this.arguments(this.minArgs)} but got ${input.args.length}.`];
+        if (input.args.length > this.maxArgs)
+            return [false, `Expected at most ${this.arguments(this.maxArgs)} but got ${input.args.length}.`];
+
+        return [true];
+    }
+
+    /**
+     * Returns `"1 argument"` if the given amount is `1` and returns `"$n arguments"` otherwise.
+     *
+     * @param amount the amount to check
+     * @return `"1 argument"` if the given amount is `1` and returns `"$n arguments"` otherwise.
+     */
+    private arguments(amount: number): string {
+        return amount === 1 ? `1 argument` : `${amount} arguments`;
     }
 }

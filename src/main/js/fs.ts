@@ -149,7 +149,7 @@ export class FileSystem {
      * @param pathString the absolute or relative path to change the current directory to
      * @return an empty string if the change was successful, or an error message explaining what went wrong
      */
-    cd(pathString: string): string {
+    cd(pathString: string | undefined): string {
         if (pathString === undefined)
             return "";
 
