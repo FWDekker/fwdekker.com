@@ -6,10 +6,6 @@ import {emptyFunction} from "./shared.js";
  */
 export class FileSystem {
     /**
-     * The current working directory.
-     */
-    private _pwd: string;
-    /**
      * The root directory.
      */
     private root: Directory;
@@ -17,16 +13,21 @@ export class FileSystem {
      * The current directory.
      */
     private files: Directory;
+    /**
+     * The current working directory.
+     */
+    private _cwd: string;
 
 
     /**
      * Constructs a new file system.
      *
      * @param json a serialization of the root node that should be parsed and used as the file system's contents
-     * @throws if the given serialization string is invalid
+     * @param cwd the desired initial current working directory
+     * @throws if the given serialization string is invalid or the desired initial current working directory does not
+     * point to an existing directory
      */
-    constructor(json: string | undefined = undefined) {
-        this._pwd = "/";
+    constructor(json: string | undefined = undefined, cwd: string | undefined = undefined) {
         if (json === undefined) {
             this.root = new Directory({
                 personal: new Directory({
@@ -53,7 +54,12 @@ export class FileSystem {
                 throw "Cannot set non-directory as file system root.";
             this.root = parsedJson;
         }
+
+        this._cwd = "/";
         this.files = this.root;
+
+        if (cwd !== undefined)
+            this.cwd = cwd; // Overwrites defaults above
     }
 
 
@@ -62,8 +68,25 @@ export class FileSystem {
      *
      * @return the current working directory
      */
-    get pwd(): string {
-        return this._pwd;
+    get cwd(): string {
+        return this._cwd;
+    }
+
+    /**
+     * Sets the current working directory.
+     *
+     * @param cwd the desired current working directory
+     * @throws if the desired current working directory does not point to an existing directory
+     */
+    set cwd(cwd: string) {
+        cwd = new Path(cwd).path; // Shorten path
+
+        const target = this.getNode(cwd);
+        if (!(target instanceof Directory))
+            throw `The directory \`${cwd}\` does not exist.`;
+
+        this._cwd = cwd;
+        this.files = target;
     }
 
     /**
@@ -83,7 +106,7 @@ export class FileSystem {
      * @return the node at the given path
      */
     getNode(pathString: string): Node {
-        const path = new Path(this._pwd, pathString);
+        const path = new Path(this._cwd, pathString);
 
         let node: Node = this.root;
         path.parts.forEach(part => {
@@ -97,14 +120,6 @@ export class FileSystem {
         });
 
         return node;
-    }
-
-    /**
-     * Sets the current working directory to the root directory.
-     */
-    reset(): void {
-        this._pwd = "/";
-        this.files = this.root;
     }
 
 
@@ -138,7 +153,7 @@ export class FileSystem {
         if (pathString === undefined)
             return "";
 
-        const path = new Path(this._pwd, pathString);
+        const path = new Path(this._cwd, pathString);
 
         const node = this.getNode(path.path);
         if (node === undefined)
@@ -146,7 +161,7 @@ export class FileSystem {
         if (!(node instanceof Directory))
             return `'${path.path}' is not a directory.`;
 
-        this._pwd = path.path;
+        this._cwd = path.path;
         this.files = node;
         return "";
     }
@@ -158,7 +173,7 @@ export class FileSystem {
      * @returns {string} an empty string if the removal was successful, or a message explaining what went wrong
      */
     private createFile(pathString: string): string {
-        const path = new Path(this._pwd, pathString);
+        const path = new Path(this._cwd, pathString);
 
         const headNode = this.getNode(path.head);
         if (headNode === undefined)
@@ -196,10 +211,10 @@ export class FileSystem {
      * @returns {string} an empty string if the copy was successful, or a message explaining what went wrong
      */
     cp(sourceString: string, destinationString: string): string {
-        const sourcePath = new Path(this._pwd, sourceString);
+        const sourcePath = new Path(this._cwd, sourceString);
         const sourceTailNode = this.getNode(sourcePath.path);
 
-        const destinationPath = new Path(this._pwd, destinationString);
+        const destinationPath = new Path(this._cwd, destinationString);
         const destinationHeadNode = this.getNode(destinationPath.head);
         const destinationTailNode = this.getNode(destinationPath.path);
 
@@ -241,7 +256,7 @@ export class FileSystem {
      * @returns {Object} the directory at {@code path}, or the current directory if no path is given
      */
     ls(pathString: string): string {
-        const path = new Path(this._pwd, pathString);
+        const path = new Path(this._cwd, pathString);
 
         const node = this.getNode(path.path);
         if (node === undefined)

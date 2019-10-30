@@ -71,7 +71,7 @@ export class Terminal {
         this.userSession = new UserSession("felix");
         this.inputHistory = new InputHistory();
         // @ts-ignore
-        this.fileSystem = new FileSystem(Cookies.get("files"));
+        this.fileSystem = new FileSystem(Cookies.get("files"), Cookies.get("cwd"));
         this.commands = new Commands(this.userSession, this.fileSystem);
 
         this.terminal.addEventListener("click", this.onclick.bind(this));
@@ -223,7 +223,7 @@ export class Terminal {
             if (this.userSession.currentUser === undefined)
                 throw "User is logged in as undefined.";
 
-            return `${this.userSession.currentUser.name}@fwdekker.com <span style="color: green;">${this.fileSystem.pwd}</span>&gt; `;
+            return `${this.userSession.currentUser.name}@fwdekker.com <span style="color: green;">${this.fileSystem.cwd}</span>&gt; `;
         }
     }
 
@@ -294,21 +294,27 @@ export class Terminal {
                 case "nothing":
                     break;
             }
-            // @ts-ignore
-            Cookies.set("files", this.fileSystem.serializedRoot, {
-                "expires": new Date().setFullYear(new Date().getFullYear() + 25),
-                "path": "/"
-            });
 
             if (!this.userSession.isLoggedIn) {
                 // If the user is no longer logged in
                 this.inputHistory.clear();
-                this.fileSystem.reset();
+                this.fileSystem.cwd = "/";
             }
         }
 
         this.prefixText = this.generatePrefix();
         this.scroll = 0;
+
+        // @ts-ignore
+        Cookies.set("files", this.fileSystem.serializedRoot, {
+            "expires": new Date().setFullYear(new Date().getFullYear() + 25),
+            "path": "/"
+        });
+        // @ts-ignore
+        Cookies.set("cwd", this.fileSystem.cwd, {
+            "expires": new Date().setFullYear(new Date().getFullYear() + 25),
+            "path": "/"
+        });
     }
 
 

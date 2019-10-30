@@ -170,6 +170,8 @@ export class Commands {
         if (input === "factory-reset") {
             // @ts-ignore
             Cookies.remove("files");
+            // @ts-ignore
+            Cookies.remove("cwd");
             location.reload();
             throw "Goodbye";
         }
@@ -299,7 +301,7 @@ export class Commands {
     }
 
     private pwd(): OutputAction {
-        return ["append", this.fileSystem.pwd];
+        return ["append", this.fileSystem.cwd];
     }
 
     private rm(args: InputArgs): OutputAction {
