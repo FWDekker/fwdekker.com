@@ -70,7 +70,8 @@ export class Terminal {
 
         this.userSession = new UserSession("felix");
         this.inputHistory = new InputHistory();
-        this.fileSystem = new FileSystem();
+        // @ts-ignore
+        this.fileSystem = new FileSystem(Cookies.get("files"));
         this.commands = new Commands(this.userSession, this.fileSystem);
 
         this.terminal.addEventListener("click", this.onclick.bind(this));
@@ -293,6 +294,11 @@ export class Terminal {
                 case "nothing":
                     break;
             }
+            // @ts-ignore
+            Cookies.set("files", this.fileSystem.serializedRoot, {
+                "expires": new Date().setFullYear(new Date().getFullYear() + 25),
+                "path": "/"
+            });
 
             if (!this.userSession.isLoggedIn) {
                 // If the user is no longer logged in

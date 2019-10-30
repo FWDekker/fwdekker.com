@@ -21,28 +21,38 @@ export class FileSystem {
 
     /**
      * Constructs a new file system.
+     *
+     * @param json a serialization of the root node that should be parsed and used as the file system's contents
+     * @throws if the given serialization string is invalid
      */
-    constructor() {
+    constructor(json: string | undefined = undefined) {
         this._pwd = "/";
-        this.root = new Directory({
-            personal: new Directory({
-                steam: new UrlFile("https://steamcommunity.com/id/Waflix"),
-                nukapedia: new UrlFile("http://fallout.wikia.com/wiki/User:FDekker"),
-                blog: new UrlFile("https://blog.fwdekker.com/"),
-            }),
-            projects: new Directory({
-                randomness: new UrlFile("https://github.com/FWDekker/intellij-randomness"),
-                schaapi: new UrlFile("http://cafejojo.org/schaapi"),
-                gitea: new UrlFile("https://git.fwdekker.com/explore/"),
-                github: new UrlFile("https://github.com/FWDekker/"),
-            }),
-            social: new Directory({
-                github: new UrlFile("https://github.com/FWDekker/"),
-                stackoverflow: new UrlFile("https://stackoverflow.com/u/3307872"),
-                linkedin: new UrlFile("https://www.linkedin.com/in/fwdekker/")
-            }),
-            "resume.pdf": new UrlFile("https://static.fwdekker.com/misc/resume.pdf")
-        });
+        if (json === undefined) {
+            this.root = new Directory({
+                personal: new Directory({
+                    steam: new UrlFile("https://steamcommunity.com/id/Waflix"),
+                    nukapedia: new UrlFile("http://fallout.wikia.com/wiki/User:FDekker"),
+                    blog: new UrlFile("https://blog.fwdekker.com/"),
+                }),
+                projects: new Directory({
+                    randomness: new UrlFile("https://github.com/FWDekker/intellij-randomness"),
+                    schaapi: new UrlFile("http://cafejojo.org/schaapi"),
+                    gitea: new UrlFile("https://git.fwdekker.com/explore/"),
+                    github: new UrlFile("https://github.com/FWDekker/"),
+                }),
+                social: new Directory({
+                    github: new UrlFile("https://github.com/FWDekker/"),
+                    stackoverflow: new UrlFile("https://stackoverflow.com/u/3307872"),
+                    linkedin: new UrlFile("https://www.linkedin.com/in/fwdekker/")
+                }),
+                "resume.pdf": new UrlFile("https://static.fwdekker.com/misc/resume.pdf")
+            });
+        } else {
+            const parsedJson = Node.deserialize(json);
+            if (!(parsedJson instanceof Directory))
+                throw "Cannot set non-directory as file system root.";
+            this.root = parsedJson;
+        }
         this.files = this.root;
     }
 
@@ -54,6 +64,15 @@ export class FileSystem {
      */
     get pwd(): string {
         return this._pwd;
+    }
+
+    /**
+     * Returns the JSON serialization of the root node.
+     *
+     * @return the JSON serialization of the root node
+     */
+    get serializedRoot(): string {
+        return this.root.serialize();
     }
 
 
@@ -108,7 +127,6 @@ export class FileSystem {
 
         return outputs.join("\n");
     }
-
 
     /**
      * Changes the current directory to {@code path}, if it exists.
@@ -590,7 +608,7 @@ export class Directory extends Node {
      *
      * The reflexive directory (`"."`) and parent directory (`".."`) are not stored in this field.
      */
-    private readonly _nodes: { [key: string]: Node };
+    private readonly _nodes: { [name: string]: Node };
 
 
     /**
@@ -598,7 +616,7 @@ export class Directory extends Node {
      *
      * @param nodes the nodes the directory should contain; the directory stores a shallow copy of this object
      */
-    constructor(nodes: { [key: string]: Node } = {}) {
+    constructor(nodes: { [name: string]: Node } = {}) {
         super();
 
         this._nodes = Object.assign({}, nodes);
@@ -610,7 +628,7 @@ export class Directory extends Node {
      *
      * @return a copy of all nodes contained in this directory
      */
-    get nodes(): { [key: string]: Node } {
+    get nodes(): { [name: string]: Node } {
         return Object.assign({}, this._nodes);
     }
 
@@ -652,7 +670,7 @@ export class Directory extends Node {
      */
     removeNode(nodeOrName: Node | string): void {
         if (nodeOrName instanceof Node) {
-            const name = Object.keys(this._nodes).find(key => this._nodes[key] === nodeOrName);
+            const name = Object.keys(this._nodes).find(name => this._nodes[name] === nodeOrName);
             if (name === undefined)
                 throw `Could not remove node '${nodeOrName}'.`;
 
@@ -702,11 +720,12 @@ export class Directory extends Node {
         if (obj["type"] !== "Directory")
             throw `Cannot deserialize node of type \`${obj["type"]}\`.`;
 
+        const nodes: { [name: string]: Node } = {};
         for (const name in obj["_nodes"])
             if (obj["_nodes"].hasOwnProperty(name))
-                obj["_nodes"][name] = Node.deserialize(obj["_nodes"][name]);
+                nodes[name] = Node.deserialize(obj["_nodes"][name]);
 
-        return new Directory(obj["nodes"]);
+        return new Directory(nodes);
     }
 }
 

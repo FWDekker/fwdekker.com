@@ -269,9 +269,11 @@ export class Commands {
     }
 
     private poweroff(): OutputAction {
-        const date = new Date();
-        date.setSeconds(date.getSeconds() + 30);
-        document.cookie = `poweroff=true; expires=${date.toUTCString()}; path=/`;
+        // @ts-ignore
+        Cookies.set("poweroff", "true", {
+            "expires": new Date().setSeconds(new Date().getSeconds() + 30),
+            "path": "/"
+        });
 
         setTimeout(() => location.reload(), 2000);
         return ["append",
