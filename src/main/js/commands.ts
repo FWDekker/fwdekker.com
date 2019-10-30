@@ -100,7 +100,7 @@ export class Commands {
                 `mkdir DIRECTORY...`,
                 `Creates the directories given by DIRECTORY.
                     
-                If more than one directory is given, the directories are created in the order they are given in`.trimLines(),
+                If more than one directory is given, the directories are created in the order they are given in.`.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
             mv: new Command(
@@ -251,25 +251,28 @@ export class Commands {
 
     // TODO Support multiple help pages
     private help(input: InputArgs): OutputAction {
-        const command = (input.args[0] || "").toLowerCase();
+        const commandName = (input.args[0] || "").toLowerCase();
         const commandNames = Object.keys(this.commands);
 
-        if (commandNames.indexOf(command) >= 0) {
-            const info = this.commands[command];
+        if (commandNames.indexOf(commandName) >= 0) {
+            const command = this.commands[commandName];
 
             return ["append",
-                `${command} - ${info.summary}
+                `${commandName} - ${command.summary}
 
                 <b>Usage</b>
-                ${info.usage}
+                ${command.usage}
 
                 <b>Description</b>
-                ${info.desc}`.trimLines()];
+                ${command.desc}`.trimLines()];
         } else {
             const commandWidth = Math.max.apply(null, commandNames.map(it => it.length)) + 4;
-            const commandEntries = commandNames.map(
-                it => `${it.padEnd(commandWidth, ' ')}${this.commands[it].summary}`
-            );
+            const commandPaddings = commandNames.map(it => commandWidth - it.length);
+            const commandLinks = commandNames
+                .map(it => `<a href="#" onclick="run('help ${it}')">${it}</a>`)
+                .map((it, i) => `${it.padEnd(it.length + commandPaddings[i], ' ')}`);
+            const commandEntries = commandNames
+                .map((it, i) => `${commandLinks[i]}${this.commands[it].summary}`);
 
             return ["append",
                 `The source code of this website is <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on git</a>.
@@ -277,7 +280,7 @@ export class Commands {
                 <b>List of commands</b>
                 ${commandEntries.join("\n")}
 
-                Write "help [COMMAND]" for more information on a command.`.trimLines()];
+                Write "help [COMMAND]" or click a command in the list above for more information on a command.`.trimLines()];
         }
     }
 
