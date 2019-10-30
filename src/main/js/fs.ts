@@ -513,6 +513,14 @@ export class Path {
  */
 export abstract class Node {
     /**
+     * A string describing what kind of node this is.
+     *
+     * This string is used to determine how to deserialize a JSON string. Yes, this violates the open/closed principle.
+     */
+    protected abstract type: string;
+
+
+    /**
      * Returns a deep copy of this node.
      */
     abstract copy(): Node;
@@ -533,12 +541,50 @@ export abstract class Node {
      * @param post the function to apply to the current node after applying the last `fun`
      */
     abstract visit(fun: (node: Node) => void, pre: (node: Node) => void, post: (node: Node) => void): void;
+
+
+    /**
+     * Returns the JSON serialization of this node.
+     *
+     * @return the JSON serialization of this node
+     */
+    serialize(): string {
+        return JSON.stringify(this);
+    }
+
+    /**
+     * Returns the JSON deserialization of the given string as a node.
+     *
+     * This method will automatically detect what kind of node is described by the string and will call the
+     * corresponding parse method for that type.
+     *
+     * @param json a JSON string or object describing a node
+     * @return the JSON deserialization of the given string as a node
+     */
+    static deserialize(json: string | any): Node {
+        if (typeof json === "string") {
+            return this.deserialize(JSON.parse(json));
+        } else {
+            switch (json["type"]) {
+                case "Directory":
+                    return Directory.parse(json);
+                case "File":
+                    return File.parse(json);
+                case "UrlFile":
+                    return UrlFile.parse(json);
+                default:
+                    throw `Unknown node type \`${json["type"]}\`.`;
+            }
+        }
+    }
 }
 
 /**
  * A directory that can contain other nodes.
  */
 export class Directory extends Node {
+    protected type: string = "Directory";
+
     /**
      * The nodes contained in this directory, indexed by name.
      *
@@ -642,12 +688,35 @@ export class Directory extends Node {
 
         post(this);
     }
+
+
+    /**
+     * Parses the given object into a directory.
+     *
+     * The nodes inside the directory of the given object are also recursively parsed by this method.
+     *
+     * @param obj the object that describes a directory
+     * @return the directory described by the given object
+     */
+    static parse(obj: any): Directory {
+        if (obj["type"] !== "Directory")
+            throw `Cannot deserialize node of type \`${obj["type"]}\`.`;
+
+        for (const name in obj["_nodes"])
+            if (obj["_nodes"].hasOwnProperty(name))
+                obj["_nodes"][name] = Node.deserialize(obj["_nodes"][name]);
+
+        return new Directory(obj["nodes"]);
+    }
 }
 
 /**
  * A simple file without contents.
  */
 export class File extends Node {
+    protected type: string = "File";
+
+
     /**
      * Constructs a new file.
      */
@@ -671,12 +740,28 @@ export class File extends Node {
         fun(this);
         post(this);
     }
+
+
+    /**
+     * Parses the given object into a file.
+     *
+     * @param obj the object that describes a file
+     * @return the file described by the given object
+     */
+    static parse(obj: any): File {
+        if (obj["type"] !== "File")
+            throw `Cannot deserialize node of type \`${obj["type"]}\`.`;
+
+        return new File();
+    }
 }
 
 /**
  * A file that contains a link to an external resource.
  */
 export class UrlFile extends File {
+    protected readonly type: string = "UrlFile";
+
     /**
      * The link to the external resource.
      */
@@ -701,5 +786,19 @@ export class UrlFile extends File {
 
     nameString(name: string): string {
         return `<a href="${this.url}" class="fileLink">${name}</a>`;
+    }
+
+
+    /**
+     * Parses the given object into a url file.
+     *
+     * @param obj the object that describes a url file
+     * @return the url file described by the given object
+     */
+    static parse(obj: any): UrlFile {
+        if (obj["type"] !== "UrlFile")
+            throw `Cannot deserialize node of type \`${obj["type"]}\`.`;
+
+        return new UrlFile(obj["url"]);
     }
 }
