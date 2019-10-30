@@ -535,7 +535,6 @@ export abstract class Node {
     abstract visit(fun: (node: Node) => void, pre: (node: Node) => void, post: (node: Node) => void): void;
 }
 
-// TODO Remove the parent directory because directories should be true "nodes" just like files are!
 /**
  * A directory that can contain other nodes.
  */
@@ -546,30 +545,17 @@ export class Directory extends Node {
      * The reflexive directory (`"."`) and parent directory (`".."`) are not stored in this field.
      */
     private readonly _nodes: { [key: string]: Node };
-    // noinspection TypeScriptFieldCanBeMadeReadonly
-    /**
-     * The parent directory of this node.
-     */
-    private _parent: Directory;
 
 
     /**
      * Constructs a new directory with the given nodes.
      *
-     * The parent of each given node is set to this directory. The parent of this directory is itself by default.
-     *
-     * @param nodes the nodes the directory should contain
+     * @param nodes the nodes the directory should contain; the directory stores a shallow copy of this object
      */
     constructor(nodes: { [key: string]: Node } = {}) {
         super();
 
-        this._parent = this;
-        this._nodes = nodes;
-
-        Object.values(this._nodes)
-            .forEach(node => {
-                if (node instanceof Directory) node._parent = this;
-            });
+        this._nodes = Object.assign({}, nodes);
     }
 
 
@@ -591,15 +577,6 @@ export class Directory extends Node {
         return Object.keys(this._nodes).length;
     }
 
-    /**
-     * Returns the parent directory of this node.
-     *
-     * @return the parent directory of this node
-     */
-    get parent(): Directory {
-        return this._parent;
-    }
-
 
     /**
      * Returns the node with the given name.
@@ -608,32 +585,19 @@ export class Directory extends Node {
      * @throws when there is no node with the given name in this directory
      */
     getNode(name: string): Node {
-        switch (name) {
-            case ".":
-                return this;
-            case "..":
-                return this._parent;
-            default:
-                return this._nodes[name];
-        }
+        return this._nodes[name];
     }
 
     /**
      * Adds the given node with the given name to this directory.
      *
-     * If the given node is a directory, its parent is set to this directory.
-     *
      * @param name the name of the node in this directory
      * @param node the node to add to this directory
      */
     addNode(name: string, node: Node): void {
-        if (node instanceof Directory)
-            node._parent = this;
-
         this._nodes[name] = node;
     }
 
-    // TODO Check if this one works
     /**
      * Removes the given node or the node with the given name.
      *
