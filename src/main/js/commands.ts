@@ -58,10 +58,11 @@ export class Commands {
             "cp": new Command(
                 this.cp,
                 `copy file`,
-                `cp SOURCE DESTINATION`,
+                `cp [-R] SOURCE DESTINATION`,
                 `Copies SOURCE to DESTINATION.
-                SOURCE must be a file.
-                If DESTINATION exists and is a directory, SOURCE is copied into the directory.`.trimLines(),
+                SOURCE is what should be copied, and DESTINATION is where it should be copied to.
+                If DESTINATION is an existing directory, SOURCE is copied into that directory.
+                Unless -R is given, SOURCE must be a file.`.trimLines(),
                 new InputValidator({minArgs: 2, maxArgs: 2})
             ),
             "echo": new Command(
@@ -257,7 +258,7 @@ export class Commands {
     }
 
     private cp(input: InputArgs): OutputAction {
-        return ["append", this.fileSystem.cp(input.args[0], input.args[1])];
+        return ["append", this.fileSystem.cp(input.args[0], input.args[1], input.hasAnyOption(["r", "R"]))];
     }
 
     private clear(): OutputAction {

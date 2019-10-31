@@ -206,11 +206,12 @@ export class FileSystem {
      * and is a directory, the source will be copied into the directory. If the destination exists but is not a
      * directory, the copy will fail.
      *
-     * @param sourceString {string} the absolute or relative path to the file or directory to copy
-     * @param destinationString {string} the absolute or relative path to the destination
+     * @param sourceString the absolute or relative path to the file or directory to copy
+     * @param destinationString the absolute or relative path to the destination
+     * @param isRecursive if copying should happen recursively if the source is a directory
      * @return an empty string if the copy was successful, or a message explaining what went wrong
      */
-    cp(sourceString: string, destinationString: string): string {
+    cp(sourceString: string, destinationString: string, isRecursive: boolean): string {
         const sourcePath = new Path(this._cwd, sourceString);
         const sourceTailNode = this.getNode(sourcePath.path);
 
@@ -220,7 +221,7 @@ export class FileSystem {
 
         if (sourceTailNode === undefined)
             return `The file '${sourcePath.path}' does not exist`;
-        if (!(sourceTailNode instanceof File))
+        if (!(sourceTailNode instanceof File) && !isRecursive)
             return `Cannot copy directory.`;
         if (destinationHeadNode === undefined)
             return `The directory '${destinationPath.head}' does not exist`;
@@ -695,7 +696,11 @@ export class Directory extends Node {
 
 
     copy(): Directory {
-        return new Directory(this.nodes);
+        const nodes: { [name: string]: Node } = {};
+        for (const name in this._nodes)
+            nodes[name] = this._nodes[name].copy();
+
+        return new Directory(nodes);
     }
 
     /**
