@@ -1,6 +1,8 @@
 /**
  * Manages a user session.
  */
+import {IllegalStateError} from "./shared";
+
 export class UserSession {
     /**
      * All users that exist in the system.
@@ -17,12 +19,14 @@ export class UserSession {
      *
      * @param name the name of the user to be logged in as by default, or `undefined` if no user should be logged in at
      * the start of the session
+     * @throws if a name is given and no user with that name exists
      */
     constructor(name: string | undefined = undefined) {
         if (name !== undefined) {
-            this._currentUser = this.getUser(name);
-            if (this._currentUser === undefined)
-                throw `Could not find user \`${name}\`.`;
+            const user = UserSession.getUser(name);
+            if (user === undefined)
+                throw new Error(`Could not find user \`${name}\`.`);
+            this._currentUser = user;
         }
     }
 
@@ -32,7 +36,7 @@ export class UserSession {
      *
      * @return a copy of the list of all users
      */
-    get users(): User[] {
+    static get users(): User[] {
         return UserSession._users.slice();
     }
 
@@ -56,14 +60,25 @@ export class UserSession {
 
 
     /**
+     * Returns `true` if and only if a user with the given name exists.
+     *
+     * @param name the name of the user to check
+     * @return `true` if and only if a user with the given name exists
+     */
+    static userExists(name: string): boolean {
+        return this.getUser(name) !== undefined;
+    }
+
+    /**
      * Returns the user with the given name, or `undefined` if there is no such user.
      *
      * @param name the name of the user to return
      * @return the user with the given name, or `undefined` if there is no such user
      */
-    getUser(name: string): User | undefined {
+    static getUser(name: string): User | undefined {
         return UserSession._users.find(it => it.name === name);
     }
+
 
     /**
      * Attempts to log in as the given user with the given password, and returns `true` if and only if the user was
@@ -78,9 +93,9 @@ export class UserSession {
      */
     tryLogIn(name: string, password: string): boolean {
         if (this.isLoggedIn)
-            throw "Cannot try to log in while already logged in.";
+            throw new IllegalStateError("Cannot try to log in while already logged in.");
 
-        const user = this.getUser(name);
+        const user = UserSession.getUser(name);
         if (user === undefined)
             return false;
 

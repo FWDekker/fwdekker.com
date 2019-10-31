@@ -80,7 +80,7 @@ export function parseCssPixels(string: string | null): number {
         return 0;
     } else {
         if (!string.endsWith("px"))
-            throw "CSS string is not expressed in pixels.";
+            throw new Error("CSS string is not expressed in pixels.");
 
         return parseFloat(string);
     }
@@ -111,4 +111,21 @@ export function stripHtmlTags(string: string): string {
     const div = document.createElement("div");
     div.innerHTML = string;
     return div.textContent || div.innerText || "";
+}
+
+
+/**
+ * Indicates that the program has ended up in a state that it should never end up in.
+ *
+ * Indicates an error that could not have been caused by the user.
+ */
+export class IllegalStateError extends Error {
+    /**
+     * Constructs a new illegal state error.
+     *
+     * @param message a message explaining why the error was thrown
+     */
+    constructor(message: string) {
+        super(message);
+    }
 }

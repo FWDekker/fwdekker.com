@@ -1,7 +1,7 @@
 import * as Cookies from "js-cookie";
 import "./extensions"
-import {File, FileSystem, Path} from "./fs"
-import {stripHtmlTags} from "./shared";
+import {File, FileSystem} from "./fs"
+import {IllegalStateError, stripHtmlTags} from "./shared";
 import {OutputAction} from "./terminal";
 import {UserSession} from "./user-session";
 
@@ -199,7 +199,7 @@ export class Commands {
             Cookies.remove("cwd");
             Cookies.remove("user");
             location.reload();
-            throw "Goodbye";
+            throw new Error("Goodbye");
         }
 
         const input = new InputArgs(stripHtmlTags(inputString));
@@ -364,7 +364,7 @@ export class Commands {
     private poweroff(): OutputAction {
         const user = this.userSession.currentUser;
         if (user === undefined)
-            throw "Cannot execute `poweroff` while not logged in.";
+            throw new IllegalStateError("Cannot execute `poweroff` while not logged in.");
 
         Cookies.set("poweroff", "true", {
             "expires": new Date(new Date().setSeconds(new Date().getSeconds() + 30)),
@@ -410,7 +410,7 @@ export class Commands {
     private whoami(): OutputAction {
         const user = this.userSession.currentUser;
         if (user === undefined)
-            throw "Cannot execute `whoami` while not logged in.";
+            throw new IllegalStateError("Cannot execute `whoami` while not logged in.");
 
         return ["append", user.description];
     }
@@ -515,7 +515,7 @@ class InputArgs {
                     argNames.forEach(argName => this._options[argName] = "");
                 } else {
                     // Invalid
-                    throw "Cannot assign value to multiple options!";
+                    throw new Error("Cannot assign value to multiple options!");
                 }
             } else {
                 // Not an option
@@ -606,7 +606,7 @@ class InputValidator {
      */
     constructor({minArgs = 0, maxArgs = Number.MAX_SAFE_INTEGER}: { minArgs?: number, maxArgs?: number } = {}) {
         if (minArgs > maxArgs)
-            throw "`minArgs` must be less than or equal to `maxArgs`.";
+            throw new IllegalStateError("`minArgs` must be less than or equal to `maxArgs`.");
 
         this.minArgs = minArgs;
         this.maxArgs = maxArgs;

@@ -1,7 +1,7 @@
 import * as Cookies from "js-cookie";
 import {Commands} from "./commands";
-import {FileSystem} from "./fs";
-import {asciiHeaderHtml} from "./shared";
+import {Directory, FileSystem, Node} from "./fs";
+import {asciiHeaderHtml, IllegalStateError} from "./shared";
 import {InputHistory, OutputAction} from "./terminal";
 import {UserSession} from "./user-session";
 
@@ -42,15 +42,40 @@ export class Shell {
     constructor(inputHistory: InputHistory) {
         this.inputHistory = inputHistory;
 
+        // Read user from cookie
         const user = Cookies.get("user");
-        if (user === undefined)
+        if (user === undefined || !UserSession.userExists(user))
             this.userSession = new UserSession("felix");
         else if (user === "")
             this.userSession = new UserSession();
         else
             this.userSession = new UserSession(user);
 
-        this.fileSystem = new FileSystem(Cookies.get("files"), Cookies.get("cwd"));
+        // Read files from cookie
+        let files: Directory | undefined = undefined;
+        const filesJson = Cookies.get("files");
+        if (filesJson !== undefined) {
+            try {
+                const parsedFiles = Node.deserialize(filesJson);
+                if (parsedFiles instanceof Directory)
+                    files = parsedFiles;
+                else
+                    console.warn("`files` cookie contains non-directory.");
+            } catch (error) {
+                console.warn("Failed to deserialize `files` cookie.", error);
+            }
+        }
+        this.fileSystem = new FileSystem(files);
+
+        // Read cwd from cookie
+        const cwd = Cookies.get("cwd");
+        if (cwd !== undefined) {
+            if (this.fileSystem.getNode(cwd) !== undefined)
+                this.fileSystem.cwd = cwd;
+            else
+                console.warn("Failed to set cwd from cookie.");
+        }
+
         this.commands = new Commands(this.userSession, this.fileSystem);
     }
 
@@ -89,7 +114,7 @@ export class Shell {
                 return `Password for ${this.attemptUser}@fwdekker.com: `;
         } else {
             if (this.userSession.currentUser === undefined)
-                throw "User is logged in as undefined.";
+                throw new IllegalStateError("User is logged in as undefined.");
 
             return `${this.userSession.currentUser.name}@fwdekker.com <span style="color: green;">${this.fileSystem.cwd}</span>&gt; `;
         }

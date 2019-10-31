@@ -1,4 +1,4 @@
-import {emptyFunction, getFileExtension} from "./shared";
+import {emptyFunction, getFileExtension, IllegalStateError} from "./shared";
 
 
 /**
@@ -22,13 +22,10 @@ export class FileSystem {
     /**
      * Constructs a new file system.
      *
-     * @param json a serialization of the root node that should be parsed and used as the file system's contents
-     * @param cwd the desired initial current working directory
-     * @throws if the given serialization string is invalid or the desired initial current working directory does not
-     * point to an existing directory
+     * @param root the directory to set as the root
      */
-    constructor(json: string | undefined = undefined, cwd: string | undefined = undefined) {
-        if (json === undefined) {
+    constructor(root: Directory | undefined = undefined) {
+        if (root === undefined) {
             this.root = new Directory({
                 "personal": new Directory({
                     "steam.lnk": new File("https://steamcommunity.com/id/Waflix"),
@@ -49,17 +46,11 @@ export class FileSystem {
                 "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf")
             });
         } else {
-            const parsedJson = Node.deserialize(json);
-            if (!(parsedJson instanceof Directory))
-                throw "Cannot set non-directory as file system root.";
-            this.root = parsedJson;
+            this.root = root;
         }
 
         this._cwd = new Path("/");
         this.files = this.root;
-
-        if (cwd !== undefined)
-            this.cwd = cwd; // Overwrites defaults above
     }
 
 
@@ -119,7 +110,7 @@ export class FileSystem {
             if (node instanceof Directory)
                 node = node.getNode(part);
             else
-                throw "Node must be file or directory.";
+                throw new IllegalStateError("Node must be file or directory.");
         });
 
         return node;
