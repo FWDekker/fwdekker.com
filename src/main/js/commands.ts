@@ -1,3 +1,4 @@
+import * as Cookies from "js-cookie";
 import "./extensions"
 import {File, FileSystem, Path} from "./fs"
 import {stripHtmlTags} from "./shared";
@@ -194,11 +195,8 @@ export class Commands {
      */
     execute(inputString: string): OutputAction {
         if (inputString === "factory-reset") {
-            // @ts-ignore
             Cookies.remove("files");
-            // @ts-ignore
             Cookies.remove("cwd");
-            // @ts-ignore
             Cookies.remove("user");
             location.reload();
             throw "Goodbye";
@@ -359,7 +357,6 @@ export class Commands {
         if (!(node instanceof File))
             return ["append", `'${fileName}' is not a file`];
 
-        // @ts-ignore: False positive
         window.open(node.contents, target);
         return ["nothing"];
     }
@@ -369,7 +366,6 @@ export class Commands {
         if (user === undefined)
             throw "Cannot execute `poweroff` while not logged in.";
 
-        // @ts-ignore
         Cookies.set("poweroff", "true", {
             "expires": new Date(new Date().setSeconds(new Date().getSeconds() + 30)),
             "path": "/"

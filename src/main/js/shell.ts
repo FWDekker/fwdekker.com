@@ -1,3 +1,4 @@
+import * as Cookies from "js-cookie";
 import {Commands} from "./commands";
 import {FileSystem} from "./fs";
 import {asciiHeaderHtml} from "./shared";
@@ -41,7 +42,6 @@ export class Shell {
     constructor(inputHistory: InputHistory) {
         this.inputHistory = inputHistory;
 
-        // @ts-ignore
         const user = Cookies.get("user");
         if (user === undefined)
             this.userSession = new UserSession("felix");
@@ -50,7 +50,6 @@ export class Shell {
         else
             this.userSession = new UserSession(user);
 
-        // @ts-ignore
         this.fileSystem = new FileSystem(Cookies.get("files"), Cookies.get("cwd"));
         this.commands = new Commands(this.userSession, this.fileSystem);
     }
@@ -137,16 +136,13 @@ export class Shell {
      * Saves the shell's state in cookies.
      */
     private saveState() {
-        // @ts-ignore
         Cookies.set("files", this.fileSystem.serializedRoot, {
             "expires": new Date(new Date().setFullYear(new Date().getFullYear() + 25)),
             "path": "/"
         });
-        // @ts-ignore
         Cookies.set("cwd", this.fileSystem.cwd, {"path": "/"});
 
         const user = this.userSession.currentUser;
-        // @ts-ignore
         Cookies.set("user", user === undefined ? "" : user.name, {"path": "/"});
     }
 }

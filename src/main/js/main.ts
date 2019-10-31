@@ -3,6 +3,7 @@ import {Terminal} from "./terminal";
 
 
 // TODO Ignore ts-ignore in whole block
+// TODO Add interface for Window to add types
 addOnLoad(() => {
     // @ts-ignore: Force definition
     window.terminal = new Terminal(
@@ -16,8 +17,8 @@ addOnLoad(() => {
     // @ts-ignore: Force definition
     window.run = (command: string) => window.terminal.processInput(command);
 
-    // @ts-ignore
+    // @ts-ignore: Force definition
     if (window.terminal.shell.userSession.isLoggedIn)
-    // @ts-ignore
+    // @ts-ignore: Force definition
         window.terminal.processInput("ls");
 });
