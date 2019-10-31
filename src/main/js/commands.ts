@@ -197,6 +197,8 @@ export class Commands {
             Cookies.remove("files");
             // @ts-ignore
             Cookies.remove("cwd");
+            // @ts-ignore
+            Cookies.remove("user");
             location.reload();
             throw "Goodbye";
         }

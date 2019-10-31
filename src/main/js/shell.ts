@@ -40,7 +40,16 @@ export class Shell {
      */
     constructor(inputHistory: InputHistory) {
         this.inputHistory = inputHistory;
-        this.userSession = new UserSession("felix");
+
+        // @ts-ignore
+        const user = Cookies.get("user");
+        if (user === undefined)
+            this.userSession = new UserSession("felix");
+        else if (user === "")
+            this.userSession = new UserSession();
+        else
+            this.userSession = new UserSession(user);
+
         // @ts-ignore
         this.fileSystem = new FileSystem(Cookies.get("files"), Cookies.get("cwd"));
         this.commands = new Commands(this.userSession, this.fileSystem);
@@ -53,6 +62,9 @@ export class Shell {
      * @return the header that is displayed when a user logs in
      */
     generateHeader(): string {
+        if (!this.userSession.isLoggedIn)
+            return "";
+
         return "" +
             `${asciiHeaderHtml}
 
@@ -132,5 +144,9 @@ export class Shell {
         });
         // @ts-ignore
         Cookies.set("cwd", this.fileSystem.cwd, {"path": "/"});
+
+        const user = this.userSession.currentUser;
+        // @ts-ignore
+        Cookies.set("user", user === undefined ? "" : user.name, {"path": "/"});
     }
 }

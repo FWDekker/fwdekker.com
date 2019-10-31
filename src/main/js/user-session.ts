@@ -18,7 +18,7 @@ export class UserSession {
      * @param name the name of the user to be logged in as by default, or `undefined` if no user should be logged in at
      * the start of the session
      */
-    constructor(name: string | undefined) {
+    constructor(name: string | undefined = undefined) {
         if (name !== undefined) {
             this._currentUser = this.getUser(name);
             if (this._currentUser === undefined)

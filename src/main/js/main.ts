@@ -17,5 +17,7 @@ addOnLoad(() => {
     window.run = (command: string) => window.terminal.processInput(command);
 
     // @ts-ignore
-    window.terminal.processInput("ls");
+    if (window.terminal.shell.userSession.isLoggedIn)
+    // @ts-ignore
+        window.terminal.processInput("ls");
 });
