@@ -307,14 +307,11 @@ export class Terminal {
 
         // @ts-ignore
         Cookies.set("files", this.fileSystem.serializedRoot, {
-            "expires": new Date().setFullYear(new Date().getFullYear() + 25),
+            "expires": new Date(new Date().setFullYear(new Date().getFullYear() + 25)),
             "path": "/"
         });
         // @ts-ignore
-        Cookies.set("cwd", this.fileSystem.cwd, {
-            "expires": new Date().setFullYear(new Date().getFullYear() + 25),
-            "path": "/"
-        });
+        Cookies.set("cwd", this.fileSystem.cwd, {"path": "/"});
     }
 
 

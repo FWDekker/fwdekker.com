@@ -368,7 +368,7 @@ export class Commands {
 
         // @ts-ignore
         Cookies.set("poweroff", "true", {
-            "expires": new Date().setSeconds(new Date().getSeconds() + 30),
+            "expires": new Date(new Date().setSeconds(new Date().getSeconds() + 30)),
             "path": "/"
         });
 
