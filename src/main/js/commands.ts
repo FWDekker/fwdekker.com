@@ -304,7 +304,7 @@ export class Commands {
             const commandWidth = Math.max.apply(null, commandNames.map(it => it.length)) + 4;
             const commandPaddings = commandNames.map(it => commandWidth - it.length);
             const commandLinks = commandNames
-                .map(it => `<a href="#" onclick="run('help ${it}')">${it}</a>`)
+                .map(it => `<a href="#" onclick="execute('help ${it}')">${it}</a>`)
                 .map((it, i) => `${it.padEnd(it.length + commandPaddings[i], ' ')}`);
             const commandEntries = commandNames
                 .map((it, i) => `${commandLinks[i]}${this.commands[it].summary}`);
@@ -623,11 +623,11 @@ class InputValidator {
      */
     validate(input: InputArgs): [true] | [false, string] {
         if (this.minArgs === this.maxArgs && input.args.length !== this.minArgs)
-            return [false, `Expected ${this.arguments(this.minArgs)} but got ${input.args.length}.`];
+            return [false, `Expected ${this.args(this.minArgs)} but got ${input.args.length}.`];
         if (input.args.length < this.minArgs)
-            return [false, `Expected at least ${this.arguments(this.minArgs)} but got ${input.args.length}.`];
+            return [false, `Expected at least ${this.args(this.minArgs)} but got ${input.args.length}.`];
         if (input.args.length > this.maxArgs)
-            return [false, `Expected at most ${this.arguments(this.maxArgs)} but got ${input.args.length}.`];
+            return [false, `Expected at most ${this.args(this.maxArgs)} but got ${input.args.length}.`];
 
         return [true];
     }
@@ -638,7 +638,7 @@ class InputValidator {
      * @param amount the amount to check
      * @return `"1 argument"` if the given amount is `1` and returns `"$n arguments"` otherwise.
      */
-    private arguments(amount: number): string {
+    private args(amount: number): string {
         return amount === 1 ? `1 argument` : `${amount} arguments`;
     }
 }

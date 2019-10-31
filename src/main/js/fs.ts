@@ -272,7 +272,7 @@ export class FileSystem {
         if (!(node instanceof Directory))
             return `'${path}' is not a directory`;
 
-        const dirList = [new Directory({}).nameString("."), new Directory({}).nameString("..")];
+        const dirList = [new Directory({}).nameString(".", path), new Directory({}).nameString("..", path.parent)];
         const fileList: string[] = [];
 
         const nodes = node.nodes;
@@ -282,11 +282,11 @@ export class FileSystem {
                 const node = nodes[name];
 
                 if (node instanceof Directory)
-                    dirList.push(node.nameString(name));
+                    dirList.push(node.nameString(name, path.getChild(name)));
                 else if (node instanceof File)
-                    fileList.push(node.nameString(name));
+                    fileList.push(node.nameString(name, path.getChild(name)));
                 else
-                    throw `${name} is neither a file nor a directory!`;
+                    throw new IllegalStateError(`'${path.getChild(name)}' is neither a file nor a directory.`);
             });
 
         return dirList.concat(fileList).join("\n");
@@ -538,12 +538,13 @@ export abstract class Node {
     abstract copy(): Node;
 
     /**
-     * Returns a string representation of this node given the name of this node.
+     * Returns a string representation of this node given the name of and path to this node.
      *
      * @param name the name of this node
-     * @return a string representation of this node given the name of this node
+     * @param path the path to this node
+     * @return a string representation of this node given the name of and path to this node
      */
-    abstract nameString(name: string): string;
+    abstract nameString(name: string, path: Path): string;
 
     /**
      * Recursively visits all nodes contained within this node.
@@ -700,11 +701,11 @@ export class Directory extends Node {
      * Returns a string that contains an HTML hyperlink that runs a command to `cd` to this directory.
      *
      * @param name the name of this node
+     * @param path the path to this node
      * @return a string that contains an HTML hyperlink that runs a command to `cd` to this directory
      */
-    nameString(name: string): string {
-        // @ts-ignore: Defined in `terminal.ts`
-        return `<a href="#" class="dirLink" onclick="run('cd ${relToAbs(name)}/');run('ls');">${name}/</a>`;
+    nameString(name: string, path: Path): string {
+        return `<a href="#" class="dirLink" onclick="execute('cd ${path}');execute('ls');">${name}/</a>`;
     }
 
     visit(fun: (node: Node) => void,
@@ -766,7 +767,7 @@ export class File extends Node {
         return new File(this.contents);
     }
 
-    nameString(name: string): string {
+    nameString(name: string, path: Path): string {
         const extension = getFileExtension(name);
         switch (extension) {
             case "lnk":

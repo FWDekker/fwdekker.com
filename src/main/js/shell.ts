@@ -96,7 +96,7 @@ export class Shell {
             </span>@ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
             <span class="wideScreenOnly">${(new Date()).toISOString()}
             </span>
-            Type "<a href="#" onclick="run('help');">help</a>" for help.
+            Type "<a href="#" onclick="execute('help');">help</a>" for help.
 
             `.trimLines();
     }
@@ -125,7 +125,7 @@ export class Shell {
      *
      * @param input the input to process
      */
-    run(input: string): OutputAction[] {
+    execute(input: string): OutputAction[] {
         if (!this.userSession.isLoggedIn) {
             if (this.attemptUser === undefined) {
                 this.attemptUser = input.trim();

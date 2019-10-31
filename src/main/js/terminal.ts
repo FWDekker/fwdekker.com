@@ -210,7 +210,7 @@ export class Terminal {
         this.inputText = "";
         this.outputText += `${this.prefixText}${this.isInputHidden ? "" : input.trim()}\n`;
 
-        const outputActions = this.shell.run(input);
+        const outputActions = this.shell.execute(input);
         for (const outputAction of outputActions) {
             switch (outputAction[0]) {
                 case "append":
