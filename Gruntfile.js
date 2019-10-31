@@ -1,9 +1,10 @@
+const path = require('path');
+
 module.exports = grunt => {
     grunt.initConfig({
         pkg: grunt.file.readJSON("package.json"),
         clean: {
-            before: ["build/"],
-            after: [".tscache/"]
+            default: ["build/"]
         },
         copy: {
             images: {
@@ -16,77 +17,60 @@ module.exports = grunt => {
                 files: [{expand: true, cwd: "src/main/", src: "**/*.css", dest: "build/"}]
             }
         },
-        cssmin: {
-            default: {
-                files: [{expand: true, cwd: "build/", src: "**/*.css", dest: "build/"}]
-            }
-        },
-        htmlmin: {
-            default: {
-                files: [{expand: true, cwd: "build/", src: "**/*.html", dest: "build/"}],
-                options: {
-                    removeComments: true,
-                    collapseWhitespace: true
+        webpack: {
+            options: {
+                entry: "./src/main/js/main.ts",
+                module: {
+                    rules: [
+                        {
+                            test: /\.ts$/,
+                            use: "ts-loader",
+                            exclude: /node_modules/,
+                        },
+                    ],
+                },
+                resolve: {
+                    extensions: [".ts"],
+                },
+                output: {
+                    filename: "bundle.js",
+                    path: path.resolve(__dirname, "build/"),
                 }
-            }
-        },
-        terser: {
-            default: {
-                files: [{expand: true, cwd: "build/js/", src: "*.js", dest: "build/js/"}],
-                options: {
-                    compress: true,
-                    mangle: false,
-                    module: true
-                }
-            }
-        },
-        ts: {
+            },
             dev: {
-                tsconfig: "./tsconfig.json"
+                mode: "development",
+                devtool: "inline-source-map"
             },
             deploy: {
-                tsconfig: "./tsconfig.json",
-                options: {
-                    sourceMap: false
-                }
+                mode: "production"
             }
         }
     });
 
     grunt.loadNpmTasks("grunt-contrib-clean");
     grunt.loadNpmTasks("grunt-contrib-copy");
-    grunt.loadNpmTasks("grunt-contrib-cssmin");
-    grunt.loadNpmTasks("grunt-contrib-htmlmin");
-    grunt.loadNpmTasks("grunt-terser");
-    grunt.loadNpmTasks("grunt-ts");
+    grunt.loadNpmTasks("grunt-webpack");
 
-    grunt.registerTask("default", [
+    grunt.registerTask("dev", [
         // Pre
-        "clean:before",
+        "clean",
         // Copy files
         "copy:images",
         "copy:html",
         "copy:css",
         // Compile
-        "ts:dev",
-        // Post
-        "clean:after"
+        "webpack:dev"
     ]);
-    grunt.registerTask("dev", ["default"]);
     grunt.registerTask("deploy", [
         // Pre
-        "clean:before",
+        "clean",
         // Copy files
         "copy:images",
         "copy:html",
         "copy:css",
         // Compile JS
-        "ts:deploy",
-        // Minify
-        "terser",
-        "cssmin",
-        "htmlmin",
-        // Post
-        "clean:after"
+        "webpack:deploy"
     ]);
+
+    grunt.registerTask("default", ["dev"]);
 };

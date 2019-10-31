@@ -1,8 +1,8 @@
-import "./extensions.js"
-import {File, FileSystem, Path} from "./fs.js"
-import {OutputAction} from "./terminal.js";
-import {stripHtmlTags} from "./shared.js";
-import {UserSession} from "./user-session.js";
+import "./extensions"
+import {File, FileSystem, Path} from "./fs"
+import {stripHtmlTags} from "./shared";
+import {OutputAction} from "./terminal";
+import {UserSession} from "./user-session";
 
 
 /**

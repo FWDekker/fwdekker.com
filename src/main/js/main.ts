@@ -1,5 +1,5 @@
-import {addOnLoad, q} from "./shared.js";
-import {Terminal} from "./terminal.js";
+import {addOnLoad, q} from "./shared";
+import {Terminal} from "./terminal";
 
 
 // TODO Ignore ts-ignore in whole block

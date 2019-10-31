@@ -1,4 +1,4 @@
-import {emptyFunction, getFileExtension} from "./shared.js";
+import {emptyFunction, getFileExtension} from "./shared";
 
 
 /**

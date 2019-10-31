@@ -1,8 +1,8 @@
-import {Commands} from "./commands.js";
-import {FileSystem} from "./fs.js";
-import {asciiHeaderHtml} from "./shared.js";
-import {InputHistory, OutputAction} from "./terminal.js";
-import {UserSession} from "./user-session.js";
+import {Commands} from "./commands";
+import {FileSystem} from "./fs";
+import {asciiHeaderHtml} from "./shared";
+import {InputHistory, OutputAction} from "./terminal";
+import {UserSession} from "./user-session";
 
 
 /**

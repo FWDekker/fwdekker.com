@@ -1,5 +1,5 @@
-import {moveCaretToEndOf, parseCssPixels} from "./shared.js";
-import {Shell} from "./shell.js";
+import {moveCaretToEndOf, parseCssPixels} from "./shared";
+import {Shell} from "./shell";
 
 
 /**

@@ -2,9 +2,8 @@
 The source code of [my personal website](https://fwdekker.com/).
 
 ## Development
-### Prerequisites
+### Requirements
 * [npm](https://www.npmjs.com/)
-* [grunt-cli](https://www.npmjs.com/package/grunt-cli)
 
 ### CLI
 ```shell script
@@ -14,9 +13,9 @@ $> npm install
 
 ```shell script
 # Build the application in `build/` for development
-$> grunt dev
+$> npm run dev
 # Build the application in `build/` for deployment
-$> grunt deploy
+$> npm run deploy
 ```
 
 ```shell script
