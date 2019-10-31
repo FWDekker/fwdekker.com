@@ -18,6 +18,10 @@ a:link.fileLink, a:visited.fileLink {
     color: #FFFF00;
 }
 
+.prefixPath, a:link.prefixPath, a:visited.prefixPath, a:hover.prefixPath {
+    color: #008000;
+}
+
 
 @media (max-width: 600px) {
     .wideScreenOnly {

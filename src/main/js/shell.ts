@@ -116,7 +116,15 @@ export class Shell {
             if (this.userSession.currentUser === undefined)
                 throw new IllegalStateError("User is logged in as undefined.");
 
-            return `${this.userSession.currentUser.name}@fwdekker.com <span style="color: green;">${this.fileSystem.cwd}</span>&gt; `;
+            let path = this.fileSystem.getPathTo("");
+            const parts = [];
+            while (path.toString() !== "/") {
+                parts.push(`<a href="#" class="prefixPath" onclick="execute('cd ${path}')">${path.fileName}</a>`);
+                path = path.parent;
+            }
+            const link = `<a href="#" class="prefixPath" onclick="execute('cd /')">/</a>` + parts.reverse().join("/");
+
+            return `${this.userSession.currentUser.name}@fwdekker.com <span class="prefixPath">${link}</span>&gt; `;
         }
     }
 
