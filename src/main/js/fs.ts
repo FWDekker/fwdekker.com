@@ -1,4 +1,4 @@
-import {emptyFunction} from "./shared.js";
+import {emptyFunction, getFileExtension} from "./shared.js";
 
 
 /**
@@ -30,23 +30,23 @@ export class FileSystem {
     constructor(json: string | undefined = undefined, cwd: string | undefined = undefined) {
         if (json === undefined) {
             this.root = new Directory({
-                personal: new Directory({
-                    steam: new UrlFile("https://steamcommunity.com/id/Waflix"),
-                    nukapedia: new UrlFile("http://fallout.wikia.com/wiki/User:FDekker"),
-                    blog: new UrlFile("https://blog.fwdekker.com/"),
+                "personal": new Directory({
+                    "steam.lnk": new File("https://steamcommunity.com/id/Waflix"),
+                    "nukapedia.lnk": new File("http://fallout.wikia.com/wiki/User:FDekker"),
+                    "blog.lnk": new File("https://blog.fwdekker.com/"),
                 }),
-                projects: new Directory({
-                    randomness: new UrlFile("https://github.com/FWDekker/intellij-randomness"),
-                    schaapi: new UrlFile("http://cafejojo.org/schaapi"),
-                    gitea: new UrlFile("https://git.fwdekker.com/explore/"),
-                    github: new UrlFile("https://github.com/FWDekker/"),
+                "projects": new Directory({
+                    "randomness.lnk": new File("https://github.com/FWDekker/intellij-randomness"),
+                    "schaapi.lnk": new File("http://cafejojo.org/schaapi"),
+                    "gitea.lnk": new File("https://git.fwdekker.com/explore/"),
+                    "github.lnk": new File("https://github.com/FWDekker/"),
                 }),
-                social: new Directory({
-                    github: new UrlFile("https://github.com/FWDekker/"),
-                    stackoverflow: new UrlFile("https://stackoverflow.com/u/3307872"),
-                    linkedin: new UrlFile("https://www.linkedin.com/in/fwdekker/")
+                "social": new Directory({
+                    "github.lnk": new File("https://github.com/FWDekker/"),
+                    "stackoverflow.lnk": new File("https://stackoverflow.com/u/3307872"),
+                    "linkedin.lnk": new File("https://www.linkedin.com/in/fwdekker/")
                 }),
-                "resume.pdf": new UrlFile("https://static.fwdekker.com/misc/resume.pdf")
+                "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf")
             });
         } else {
             const parsedJson = Node.deserialize(json);
@@ -603,8 +603,6 @@ export abstract class Node {
                     return Directory.parse(json);
                 case "File":
                     return File.parse(json);
-                case "UrlFile":
-                    return UrlFile.parse(json);
                 default:
                     throw `Unknown node type \`${json["type"]}\`.`;
             }
@@ -750,12 +748,19 @@ export class Directory extends Node {
 export class File extends Node {
     protected type: string = "File";
 
+    /**
+     * The link to the external resource.
+     */
+    readonly contents: string;
+
 
     /**
      * Constructs a new file.
      */
-    constructor() {
+    constructor(contents: string = "") {
         super();
+
+        this.contents = contents;
     }
 
 
@@ -764,7 +769,14 @@ export class File extends Node {
     }
 
     nameString(name: string): string {
-        return name;
+        const extension = getFileExtension(name);
+        switch (extension) {
+            case "lnk":
+            case "pdf":
+                return `<a href="${this.contents}" class="fileLink">${name}</a>`;
+            default:
+                return name;
+        }
     }
 
     visit(fun: (node: Node) => void,
@@ -786,53 +798,6 @@ export class File extends Node {
         if (obj["type"] !== "File")
             throw `Cannot deserialize node of type \`${obj["type"]}\`.`;
 
-        return new File();
-    }
-}
-
-/**
- * A file that contains a link to an external resource.
- */
-export class UrlFile extends File {
-    protected readonly type: string = "UrlFile";
-
-    /**
-     * The link to the external resource.
-     */
-    readonly url: string;
-
-
-    /**
-     * Constructs a new link.
-     *
-     * @param url the link to the external resource
-     */
-    constructor(url: string) {
-        super();
-
-        this.url = url;
-    }
-
-
-    copy(): UrlFile {
-        return new UrlFile(this.url);
-    }
-
-    nameString(name: string): string {
-        return `<a href="${this.url}" class="fileLink">${name}</a>`;
-    }
-
-
-    /**
-     * Parses the given object into a url file.
-     *
-     * @param obj the object that describes a url file
-     * @return the url file described by the given object
-     */
-    static parse(obj: any): UrlFile {
-        if (obj["type"] !== "UrlFile")
-            throw `Cannot deserialize node of type \`${obj["type"]}\`.`;
-
-        return new UrlFile(obj["url"]);
+        return new File(obj["contents"]);
     }
 }

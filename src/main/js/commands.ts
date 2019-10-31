@@ -1,7 +1,7 @@
 import "./extensions.js"
-import {File, FileSystem, Path, UrlFile} from "./fs.js"
+import {File, FileSystem, Path} from "./fs.js"
 import {OutputAction} from "./terminal.js";
-import {stripHtmlTags} from "./shared.js";
+import {getFileExtension, stripHtmlTags} from "./shared.js";
 import {UserSession} from "./user-session.js";
 
 
@@ -334,11 +334,9 @@ export class Commands {
             return ["append", `The file '${fileName}' does not exist`];
         if (!(node instanceof File))
             return ["append", `'${fileName}' is not a file`];
-        if (!(node instanceof UrlFile))
-            return ["append", `Could not open '${fileName}'`];
 
         // @ts-ignore: False positive
-        window.open(node.url, target);
+        window.open(node.contents, target);
         return ["nothing"];
     }
 

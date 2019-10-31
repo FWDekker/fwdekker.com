@@ -39,6 +39,17 @@ export function addOnLoad(fun: () => void): void {
 }
 
 /**
+ * Returns the extension of the given filename, or `""` if it doesn't have one.
+ *
+ * @param filename the filename to return the extension of
+ * @return the extension of the given filename, or `""` if it doesn't have one
+ */
+export function getFileExtension(filename: string): string {
+    const extension = /^.+\.([^.]+)$/.exec(filename);
+    return extension == null ? "" : extension[1];
+}
+
+/**
  * Moves the caret to the end of the given node.
  *
  * @param node the node in which to move the caret to the end
