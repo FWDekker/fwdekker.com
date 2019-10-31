@@ -325,7 +325,7 @@ export class Commands {
 
         return ["append", input.args
             .map(arg => "" +
-                `<b>${new Path(this.fileSystem.cwd, arg).path}</b>
+                `<b>${this.fileSystem.getPathTo(arg)}/</b>
                 ${this.fileSystem.ls(arg)}`.trimLines())
             .join("\n\n")];
     }

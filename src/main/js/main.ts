@@ -13,7 +13,7 @@ addOnLoad(() => {
         q("#terminalCurrentPrefix")
     );
     // @ts-ignore: Force definition
-    window.relToAbs = (filename: string) => window.terminal.shell.fileSystem.cwd + filename;
+    window.relToAbs = (filename: string) => window.terminal.shell.fileSystem.getPathTo(filename).toString();
     // @ts-ignore: Force definition
     window.run = (command: string) => window.terminal.processInput(command);
 
