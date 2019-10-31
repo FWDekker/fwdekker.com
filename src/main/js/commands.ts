@@ -1,5 +1,5 @@
 import "./extensions.js"
-import {File, FileSystem, UrlFile} from "./fs.js"
+import {File, FileSystem, Path, UrlFile} from "./fs.js"
 import {OutputAction} from "./terminal.js";
 import {stripHtmlTags} from "./shared.js";
 import {UserSession} from "./user-session.js";
@@ -62,7 +62,7 @@ export class Commands {
                 `display text`,
                 `echo [TEXT]`,
                 `Displays [TEXT].`.trimLines(),
-                new InputValidator({minArgs: 0, maxArgs: Number.MAX_SAFE_INTEGER})
+                new InputValidator()
             ),
             "exit": new Command(
                 this.exit,
@@ -74,27 +74,28 @@ export class Commands {
             "help": new Command(
                 this.help,
                 `display documentation`,
-                `help [COMMAND]`,
-                `Displays help documentation for [COMMAND].
-                If [COMMAND] is empty, a list of all commands is shown.`.trimLines(),
-                new InputValidator({maxArgs: 1})
+                `help [COMMAND...]`,
+                `Displays help documentation for each command in [COMMAND...].
+                If no commands are given, a list of all commands is shown.`.trimLines(),
+                new InputValidator()
             ),
             "ls": new Command(
                 this.ls,
                 `list directory contents`,
-                `ls [DIRECTORY]`,
-                `Displays the files and directories in [DIRECTORY].
-                If [DIRECTORY] is empty, the files and directories in the current working directory are shown.`.trimLines(),
-                new InputValidator({maxArgs: 1})
+                `ls [DIRECTORY...]`,
+                `Displays the files and directories in [DIRECTORY...].
+                If no directory is given, the files and directories in the current working directory are shown.
+                If more than one directory is given, the files and directories are shown for each given directory in order.`.trimLines(),
+                new InputValidator()
             ),
             "man": new Command(
                 this.man,
                 `display manual documentation pages`,
-                `man PAGE`,
-                `Displays the manual page with the name PAGE.`.trimLines(),
-                new InputValidator({maxArgs: 1})
+                `man PAGE...`,
+                `Displays the manual pages with names PAGE....`.trimLines(),
+                new InputValidator()
             ),
-            mkdir: new Command(
+            "mkdir": new Command(
                 this.mkdir,
                 `make directories`,
                 `mkdir DIRECTORY...`,
@@ -103,14 +104,14 @@ export class Commands {
                 If more than one directory is given, the directories are created in the order they are given in.`.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
-            mv: new Command(
+            "mv": new Command(
                 this.mv,
                 `move file`,
                 `mv SOURCE DESTINATION`,
                 `Renames SOURCE to DESTINATION.`.trimLines(),
                 new InputValidator({minArgs: 2, maxArgs: 2})
             ),
-            open: new Command(
+            "open": new Command(
                 this.open,
                 `open web page`,
                 `open [-b | --blank] FILE`,
@@ -119,21 +120,21 @@ export class Commands {
                 If -b or --blank is set, the web page is opened in a new tab.`.trimLines(),
                 new InputValidator({minArgs: 1, maxArgs: 1})
             ),
-            poweroff: new Command(
+            "poweroff": new Command(
                 this.poweroff,
                 `close down the system`,
                 `poweroff`,
                 `Automated shutdown procedure to nicely notify users when the system is shutting down.`.trimLines(),
                 new InputValidator({maxArgs: 0})
             ),
-            pwd: new Command(
+            "pwd": new Command(
                 this.pwd,
                 `print working directory`,
                 `pwd`,
                 `Displays the current working directory.`.trimLines(),
                 new InputValidator({maxArgs: 0})
             ),
-            rm: new Command(
+            "rm": new Command(
                 this.rm,
                 `remove file`,
                 `rm [-f | --force] [-r | -R | --recursive] [--no-preserve-root] FILE...`,
@@ -148,7 +149,7 @@ export class Commands {
                 Unless --no-preserve-root is set, the root directory cannot be removed.`.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
-            rmdir: new Command(
+            "rmdir": new Command(
                 this.rmdir,
                 `remove directories`,
                 `rmdir DIRECTORY...`,
@@ -157,7 +158,7 @@ export class Commands {
                 If more than one directory is given, the directories are removed in the order they are given in.`.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
-            touch: new Command(
+            "touch": new Command(
                 this.touch,
                 `change file timestamps`,
                 `touch FILE...`,
@@ -166,7 +167,7 @@ export class Commands {
                 If a file does not exist, it is created.`.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
-            whoami: new Command(
+            "whoami": new Command(
                 this.whoami,
                 `print short description of user`,
                 `whoami`,
@@ -249,22 +250,34 @@ export class Commands {
         return ["nothing"];
     }
 
-    // TODO Support multiple help pages
     private help(input: InputArgs): OutputAction {
-        const commandName = (input.args[0] || "").toLowerCase();
         const commandNames = Object.keys(this.commands);
 
-        if (commandNames.indexOf(commandName) >= 0) {
-            const command = this.commands[commandName];
-
+        if (input.args.length > 0) {
             return ["append",
-                `${commandName} - ${command.summary}
+                input.args
+                    .map(it => {
+                        if (!this.commands.hasOwnProperty(it))
+                            return `Unknown command ${it}.`;
 
-                <b>Usage</b>
-                ${command.usage}
+                        const commandName = it.toLowerCase();
+                        const command = this.commands[commandName];
 
-                <b>Description</b>
-                ${command.desc}`.trimLines()];
+                        return "" +
+                            `<b>Name</b>
+                            ${commandName}
+                            
+                            <b>Summary</b>
+                            ${command.summary}
+
+                            <b>Usage</b>
+                            ${command.usage}
+
+                            <b>Description</b>
+                            ${command.desc}`.trimLines();
+                    })
+                    .join("\n\n\n")
+            ];
         } else {
             const commandWidth = Math.max.apply(null, commandNames.map(it => it.length)) + 4;
             const commandPaddings = commandNames.map(it => commandWidth - it.length);
@@ -284,12 +297,17 @@ export class Commands {
         }
     }
 
-    // TODO Support multiple folders
     private ls(input: InputArgs): OutputAction {
-        return ["append", this.fileSystem.ls(input.args[0] || "")];
+        if (input.args.length <= 1)
+            return ["append", this.fileSystem.ls(input.args[0] || "")];
+
+        return ["append", input.args
+            .map(arg => "" +
+                `<b>${new Path(this.fileSystem.cwd, arg).path}</b>
+                ${this.fileSystem.ls(arg)}`.trimLines())
+            .join("\n\n")];
     }
 
-    // TODO Support multiple help pages
     private man(input: InputArgs): OutputAction {
         if (input.args.length === 0)
             return ["append", "What manual page do you want?"];
