@@ -44,10 +44,10 @@ export class Shell {
 
         // Read user from cookie
         const user = Cookies.get("user");
-        if (user === undefined || !UserSession.userExists(user))
-            this.userSession = new UserSession("felix");
-        else if (user === "")
+        if (user === "")
             this.userSession = new UserSession();
+        else if (user === undefined || !UserSession.userExists(user))
+            this.userSession = new UserSession("felix");
         else
             this.userSession = new UserSession(user);
 
