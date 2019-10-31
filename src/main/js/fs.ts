@@ -32,12 +32,12 @@ export class FileSystem {
             this.root = new Directory({
                 "personal": new Directory({
                     "steam.lnk": new File("https://steamcommunity.com/id/Waflix"),
-                    "nukapedia.lnk": new File("http://fallout.wikia.com/wiki/User:FDekker"),
+                    "nukapedia.lnk": new File("https://fallout.wikia.com/wiki/User:FDekker"),
                     "blog.lnk": new File("https://blog.fwdekker.com/"),
                 }),
                 "projects": new Directory({
                     "randomness.lnk": new File("https://github.com/FWDekker/intellij-randomness"),
-                    "schaapi.lnk": new File("http://cafejojo.org/schaapi"),
+                    "schaapi.lnk": new File("https://cafejojo.org/schaapi"),
                     "gitea.lnk": new File("https://git.fwdekker.com/explore/"),
                     "github.lnk": new File("https://github.com/FWDekker/"),
                 }),

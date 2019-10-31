@@ -1,7 +1,7 @@
 import "./extensions.js"
 import {File, FileSystem, Path} from "./fs.js"
 import {OutputAction} from "./terminal.js";
-import {getFileExtension, stripHtmlTags} from "./shared.js";
+import {stripHtmlTags} from "./shared.js";
 import {UserSession} from "./user-session.js";
 
 
@@ -33,6 +33,13 @@ export class Commands {
         this.userSession = userSession;
         this.fileSystem = fileSystem;
         this.commands = {
+            "cat": new Command(
+                this.cat,
+                `concatenate and print files`,
+                `cat FILE ...`,
+                `Reads files sequentially, writing them to the standard output.`,
+                new InputValidator({minArgs: 1})
+            ),
             "clear": new Command(
                 this.clear,
                 `clear terminal output`,
@@ -228,6 +235,20 @@ export class Commands {
         ];
     }
 
+
+    private cat(input: InputArgs): OutputAction {
+        return ["append",
+            input.args
+                .map(it => {
+                    const node = this.fileSystem.getNode(it);
+                    if (node === undefined || !(node instanceof File))
+                        return `cat: ${it}: No such file`;
+
+                    return node.contents;
+                })
+                .join("\n")
+        ]
+    }
 
     private cd(input: InputArgs): OutputAction {
         return ["append", this.fileSystem.cd(input.args[0])];
