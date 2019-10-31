@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "module": "esnext",
     "target": "es2019",
     "strict": true,
     "rootDir": "./src/main/js/",
