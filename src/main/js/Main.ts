@@ -1,5 +1,5 @@
-import {addOnLoad, q} from "./shared";
-import {Terminal} from "./terminal";
+import {addOnLoad, q} from "./Shared";
+import {Terminal} from "./Terminal";
 
 
 declare global {

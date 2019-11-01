@@ -1,7 +1,7 @@
 /**
  * Manages a user session.
  */
-import {IllegalStateError} from "./shared";
+import {IllegalStateError} from "./Shared";
 
 export class UserSession {
     /**

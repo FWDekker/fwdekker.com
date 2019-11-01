@@ -1,9 +1,9 @@
 import * as Cookies from "js-cookie";
 import "./extensions"
-import {File, FileSystem} from "./fs"
-import {IllegalStateError, stripHtmlTags} from "./shared";
-import {OutputAction} from "./terminal";
-import {UserSession} from "./user-session";
+import {File, FileSystem} from "./FileSystem"
+import {IllegalStateError, stripHtmlTags} from "./Shared";
+import {OutputAction} from "./Terminal";
+import {UserSession} from "./UserSession";
 
 
 /**

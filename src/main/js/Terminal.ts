@@ -1,5 +1,5 @@
-import {moveCaretToEndOf, parseCssPixels} from "./shared";
-import {Shell} from "./shell";
+import {moveCaretToEndOf, parseCssPixels} from "./Shared";
+import {Shell} from "./Shell";
 
 
 /**

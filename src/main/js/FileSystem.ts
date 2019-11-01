@@ -1,4 +1,4 @@
-import {emptyFunction, getFileExtension, IllegalStateError} from "./shared";
+import {emptyFunction, getFileExtension, IllegalStateError} from "./Shared";
 
 
 /**

@@ -1,8 +1,8 @@
 import "mocha";
 import {expect} from "chai";
 
-import "../main/js/extensions"
-import {Path} from "../main/js/fs";
+import "../main/js/Extensions"
+import {Path} from "../main/js/FileSystem";
 
 
 describe("paths", () => {

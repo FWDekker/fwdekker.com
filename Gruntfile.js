@@ -19,7 +19,7 @@ module.exports = grunt => {
         },
         webpack: {
             options: {
-                entry: "./src/main/js/main.ts",
+                entry: "./src/main/js/Main.ts",
                 module: {
                     rules: [
                         {

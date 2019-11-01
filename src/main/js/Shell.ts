@@ -1,9 +1,9 @@
 import * as Cookies from "js-cookie";
-import {Commands} from "./commands";
-import {Directory, FileSystem, Node} from "./fs";
-import {asciiHeaderHtml, IllegalStateError} from "./shared";
-import {InputHistory, OutputAction} from "./terminal";
-import {UserSession} from "./user-session";
+import {Commands} from "./Commands";
+import {Directory, FileSystem, Node} from "./FileSystem";
+import {asciiHeaderHtml, IllegalStateError} from "./Shared";
+import {InputHistory, OutputAction} from "./Terminal";
+import {UserSession} from "./UserSession";
 
 
 /**
