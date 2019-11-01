@@ -9,6 +9,7 @@
   },
   "private": true,
   "scripts": {
+    "clean": "grunt clean",
     "dev": "grunt dev",
     "deploy": "grunt deploy",
     "test": "mocha -r ts-node/register src/**/*.spec.ts"

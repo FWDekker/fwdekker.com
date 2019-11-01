@@ -5,20 +5,24 @@ The source code of [my personal website](https://fwdekker.com/).
 ### Requirements
 * [npm](https://www.npmjs.com/)
 
-### CLI
+### Setting up
 ```shell script
 # Install dependencies (only needed once)
-$> npm install
+$> npm ci
 ```
 
+### Building
 ```shell script
 # Build the application in `build/` for development
 $> npm run dev
 # Build the application in `build/` for deployment
 $> npm run deploy
+# Remove build files
+$> npm run clean
 ```
 
+### Testing
 ```shell script
-# Run tests on the application in `build/`
+# Run tests
 $> npm test
 ```
