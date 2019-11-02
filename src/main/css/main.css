@@ -50,6 +50,7 @@ a:link.fileLink, a:visited.fileLink {
 
 body {
     background-color: black;
+    overscroll-behavior-y: contain;
 }
 
 #terminal {

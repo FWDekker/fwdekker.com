@@ -31,11 +31,11 @@ export const emptyFunction = () => {
 export function addOnLoad(fun: () => void): void {
     const oldOnLoad = window.onload || emptyFunction;
 
-    window.onload = (() => {
+    window.onload = () => {
         // @ts-ignore: Call works without parameters as well
         oldOnLoad();
         fun();
-    });
+    };
 }
 
 /**
