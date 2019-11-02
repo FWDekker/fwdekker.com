@@ -478,51 +478,10 @@ export class InputArgs {
      * @param input the input string to parse
      */
     constructor(input: string) {
-        const inputParts = (input.trim().match(/("[^"]+"|[^"\s]+)+/g) || [])
-            .map(it => it.replaceAll(/(?<!\\)"/, ""));
+        const tokens = InputArgs.tokenize(input.trim());
 
-        this.command = (inputParts[0] || "").toLowerCase().trim();
-
-        this._options = {};
-        let i;
-        for (i = 1; i < inputParts.length; i++) {
-            const arg = inputParts[i];
-
-            if (!arg.startsWith("-") || arg === "--")
-                break;
-
-            const argsParts = arg.split(/=(.*)/, 2);
-            if (argsParts.length === 0 || argsParts.length > 2)
-                throw new Error("Unexpected number of parts.");
-            if (argsParts[0].indexOf(' ') >= 0)
-                break;
-
-            const value = argsParts.length === 1 ? null : argsParts[1];
-
-            if (argsParts[0].startsWith("--")) {
-                const option = argsParts[0].substr(2);
-                if (option === "")
-                    break;
-
-                this._options[option] = value;
-            } else {
-                const options = argsParts[0].substr(1);
-                if (options === "")
-                    break;
-
-                if (options.length === 1) {
-                    this._options[options] = value;
-                } else {
-                    if (value !== null)
-                        throw new Error("Cannot assign value to multiple short options.");
-
-                    for (const option of options)
-                        this._options[option] = value;
-                }
-            }
-        }
-
-        this._args = inputParts.slice(i);
+        this.command = tokens[0] || "";
+        [this._options, this._args] = InputArgs.parseOpts(tokens.slice(1));
     }
 
 
@@ -578,6 +537,135 @@ export class InputArgs {
      */
     hasArg(index: number): boolean {
         return this._args[index] !== undefined;
+    }
+
+
+    /**
+     * Tokenizes the input string.
+     *
+     * @param input the string to tokenize
+     * @return the array of tokens found in the input string
+     */
+    private static tokenize(input: string): string[] {
+        const tokens = [];
+
+        let token = "";
+        let isInSingleQuotes = false;
+        let isInDoubleQuotes = false;
+        for (let i = 0; i < input.length; i++) {
+            const char = input[i];
+            switch (char) {
+                case "\\":
+                    if (i === input.length - 1)
+                        throw new Error("Unexpected end of input. `\\` was used but there was nothing to escape.");
+
+                    const nextChar = input[i + 1];
+                    switch (nextChar) {
+                        case "\\":
+                            token += "\\";
+                            break;
+                        case "/":
+                            if (isInSingleQuotes || isInDoubleQuotes)
+                                token += "\\/";
+                            else
+                                token += "/";
+                            break;
+                        case "'":
+                            token += "'";
+                            break;
+                        case "\"":
+                            token += "\"";
+                            break;
+                        case " ":
+                            token += " ";
+                            break;
+                        default:
+                            token += "\\" + nextChar;
+                            break;
+                    }
+                    i++;
+                    break;
+                case "'":
+                    if (isInDoubleQuotes)
+                        token += "'";
+                    else
+                        isInSingleQuotes = !isInSingleQuotes;
+                    break;
+                case "\"":
+                    if (isInSingleQuotes)
+                        token += "\"";
+                    else
+                        isInDoubleQuotes = !isInDoubleQuotes;
+                    break;
+                case " ":
+                    if (isInSingleQuotes || isInDoubleQuotes) {
+                        token += " ";
+                    } else {
+                        tokens.push(token);
+                        token = "";
+                    }
+                    break;
+                default:
+                    token += char;
+                    break;
+            }
+        }
+        if (isInSingleQuotes || isInDoubleQuotes)
+            throw new Error("Unexpected end of input. Missing closing quotation mark.");
+        if (token !== "")
+            tokens.push(token);
+
+        return tokens;
+    }
+
+    /**
+     * Parses options and arguments.
+     *
+     * @param tokens the tokens that form the options and arguments
+     * @return the options and arguments as `[options, arguments]`
+     */
+    private static parseOpts(tokens: string[]): [{ [key: string]: string | null }, string[]] {
+        const options: { [key: string]: string | null } = {};
+
+        let i;
+        for (i = 0; i < tokens.length; i++) {
+            const arg = tokens[i];
+
+            if (!arg.startsWith("-") || arg === "--")
+                break;
+
+            const argsParts = arg.split(/=(.*)/, 2);
+            if (argsParts.length === 0 || argsParts.length > 2)
+                throw new Error("Unexpected number of parts.");
+            if (argsParts[0].indexOf(' ') >= 0)
+                break;
+
+            const value = argsParts.length === 1 ? null : argsParts[1];
+
+            if (argsParts[0].startsWith("--")) {
+                const key = argsParts[0].substr(2);
+                if (key === "")
+                    break;
+
+                options[key] = value;
+            } else {
+                const keys = argsParts[0].substr(1);
+                if (keys === "")
+                    break;
+
+                if (keys.length === 1) {
+                    options[keys] = value;
+                } else {
+                    if (value !== null)
+                        throw new Error("Cannot assign value to multiple short options.");
+
+                    for (const key of keys)
+                        options[key] = value;
+                }
+            }
+        }
+
+        return [options, tokens.slice(i)];
     }
 }
 

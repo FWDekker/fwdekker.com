@@ -6,21 +6,31 @@ import {InputArgs} from "../main/js/Commands";
 
 
 describe("input args", () => {
+    describe("tokenization", () => {
+        it("concatenates multiple strings into one token", () => {
+            expect(new InputArgs(`'co'm"m nd"`).command).to.equal("comm nd");
+        });
+
+        it("includes escaped spaces into the token", () => {
+            expect(new InputArgs("com\\ mand").command).to.equal("com mand");
+        });
+
+        it("includes escaped quotation marks into the token", () => {
+            expect(new InputArgs(`com\\'man\\"d`).command).to.equal(`com'man"d`);
+        });
+    });
+
     describe("command", () => {
-        it("returns the first word as the command", () => {
+        it("returns the first token as the command", () => {
             expect(new InputArgs("command arg1 arg2").command).to.equal("command");
         });
 
-        it("returns the first word as the command even if there are unnecessary spaces", () => {
+        it("returns the first token as the command even if there are unnecessary spaces", () => {
             expect(new InputArgs("   command  arg1   arg2").command).to.equal("command");
         });
 
-        it("returns the first word as the command even if it contains special symbols", () => {
+        it("returns the first token as the command even if it contains special symbols", () => {
             expect(new InputArgs("4com-mand3 arg1 arg2").command).to.equal("4com-mand3");
-        });
-
-        it("returns the first token as the command even if it is a concatenation of multiple strings", () => {
-            expect(new InputArgs(`"co"m"m -nd"`).command).to.equal("comm -nd");
         });
     });
 

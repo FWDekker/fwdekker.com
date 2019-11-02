@@ -511,8 +511,14 @@ export class Path {
      *
      * @return the string representation of this path
      */
-    toString(): string {
-        return this.path;
+    toString(escape: boolean = false): string {
+        if (!escape)
+            return this.path;
+
+        return this.path
+            .replaceAll(/'/, "&#92;&#92;&#92;&#39;")
+            .replaceAll(/"/, "&#92;&#92;&#92;&#34;")
+            .replaceAll(/\s/, "&#92;&#92;&#32;");
     }
 }
 
@@ -705,7 +711,7 @@ export class Directory extends Node {
      * @return a string that contains an HTML hyperlink that runs a command to `cd` to this directory
      */
     nameString(name: string, path: Path): string {
-        return `<a href="#" class="dirLink" onclick="execute('cd &quot;${path}&quot;');execute('ls')">${name}/</a>`;
+        return `<a href="#" class="dirLink" onclick="execute('cd ${path.toString(true)}');execute('ls')">${name}/</a>`;
     }
 
     visit(fun: (node: Node) => void,
