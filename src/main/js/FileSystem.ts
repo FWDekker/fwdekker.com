@@ -756,7 +756,7 @@ export class File extends Node {
     /**
      * The link to the external resource.
      */
-    readonly contents: string;
+    contents: string;
 
 
     /**

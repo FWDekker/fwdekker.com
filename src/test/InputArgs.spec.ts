@@ -2,7 +2,7 @@ import "mocha";
 import {expect} from "chai";
 
 import "../main/js/Extensions"
-import {InputArgs} from "../main/js/Commands";
+import {InputArgs} from "../main/js/Shell";
 
 
 describe("input args", () => {
@@ -139,6 +139,65 @@ describe("input args", () => {
 
         it("has arguments containing dashes", () => {
             expect(new InputArgs("command -o -- -p").args).to.include("-p");
+        });
+    });
+
+    describe("output redirection", () => {
+        it("should have the default redirect target by default", () => {
+            expect(new InputArgs("command").redirectTarget).to.have.members(["default"]);
+        });
+
+        it("should find the writing redirect target", () => {
+            expect(new InputArgs("command > file").redirectTarget).to.have.members(["write", "file"]);
+        });
+
+        it("should find the appending redirect target", () => {
+            expect(new InputArgs("command >> file").redirectTarget).to.have.members(["append", "file"]);
+        });
+
+        it("should find the redirect target without a space between the operator and filename", () => {
+            expect(new InputArgs("command >file").redirectTarget).to.have.members(["write", "file"]);
+        });
+
+        it("should find the redirect target without a space between the previous token and the target", () => {
+            const inputArgs = new InputArgs("command arg>file");
+            expect(inputArgs.redirectTarget).to.have.members(["write", "file"]);
+            expect(inputArgs.args).to.have.members(["arg"]);
+        });
+
+        it("should choose the last redirect target if multiple are present", () => {
+            expect(new InputArgs("command > file1 >> file2").redirectTarget).to.have.members(["append", "file2"]);
+            expect(new InputArgs("command >> file1 > file2").redirectTarget).to.have.members(["write", "file2"]);
+        });
+
+        it("should find the writing redirect target if placed at the end", () => {
+            const inputArgs = new InputArgs("command -o=p arg1 > file");
+            expect(inputArgs.options).to.deep.equal({o: "p"});
+            expect(inputArgs.args).to.have.members(["arg1"]);
+            expect(inputArgs.redirectTarget).to.have.members(["write", "file"]);
+        });
+
+        it("should find the redirect target if placed in between arguments", () => {
+            const inputArgs = new InputArgs("command arg1 > file arg2");
+            expect(inputArgs.redirectTarget).to.have.members(["write", "file"]);
+            expect(inputArgs.args).to.have.members(["arg1", "arg2"]);
+        });
+
+        it("should find the redirect target if placed in between options", () => {
+            const inputArgs = new InputArgs("command -o=p >> file --ba=ba arg2");
+            expect(inputArgs.redirectTarget).to.have.members(["append", "file"]);
+            expect(inputArgs.options).to.deep.equal({o: "p", ba: "ba"});
+        });
+
+        it("should ignore the redirect target if inside quotation marks", () => {
+            console.log(new InputArgs("command '> file'").args);
+            expect(new InputArgs("command '> file'").redirectTarget).to.have.members(["default"]);
+        });
+
+        it("should ignore the redirect target if the operator is escaped", () => {
+            const inputArgs = new InputArgs("command \\> file");
+            expect(inputArgs.redirectTarget).to.have.members(["default"]);
+            expect(inputArgs.args).to.have.members([">", "file"]);
         });
     });
 });

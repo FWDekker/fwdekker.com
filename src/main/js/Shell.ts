@@ -1,7 +1,7 @@
 import * as Cookies from "js-cookie";
 import {Commands} from "./Commands";
-import {Directory, FileSystem, Node} from "./FileSystem";
-import {asciiHeaderHtml, IllegalStateError} from "./Shared";
+import {Directory, File, FileSystem, Node} from "./FileSystem";
+import {asciiHeaderHtml, IllegalStateError, stripHtmlTags} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
 import {UserSession} from "./UserSession";
 
@@ -130,20 +130,21 @@ export class Shell {
         }
     }
 
+
     /**
      * Processes a user's input.
      *
-     * @param input the input to process
+     * @param inputString the input to process
      */
-    execute(input: string): string {
+    execute(inputString: string): string {
         if (!this.userSession.isLoggedIn) {
             if (this.attemptUser === undefined) {
-                this.attemptUser = input.trim();
+                this.attemptUser = inputString.trim();
 
                 this.saveState();
                 return EscapeCharacters.Escape + EscapeCharacters.HideInput;
             } else {
-                const isLoggedIn = this.userSession.tryLogIn(this.attemptUser, input);
+                const isLoggedIn = this.userSession.tryLogIn(this.attemptUser, inputString);
                 this.attemptUser = undefined;
 
                 this.saveState();
@@ -152,16 +153,51 @@ export class Shell {
             }
         }
 
-        const output = this.commands.execute(input.trim());
-        this.inputHistory.addEntry(input.trim());
+        this.inputHistory.addEntry(inputString.trim());
+
+        const input = new InputArgs(stripHtmlTags(inputString.trim()));
+        if (input.redirectTarget[0] === "write") {
+            const rms = this.fileSystem.rms([input.redirectTarget[1]], true);
+            if (rms !== "")
+                return rms;
+        }
+
+        let output = this.commands.execute(input);
+        if (input.redirectTarget[0] !== "default")
+            output = this.writeToFile(input.redirectTarget[1], output, input.redirectTarget[0] === "append");
 
         if (!this.userSession.isLoggedIn) {
             this.inputHistory.clear();
             this.fileSystem.cwd = "/";
         }
-
         this.saveState();
-        return output;
+
+        return input.redirectTarget[0] === "default" ? output : "";
+    }
+
+    /**
+     * Writes or appends `data` to `file`.
+     *
+     * @param file the file to write or append to
+     * @param data the data to write or append
+     * @param append `true` if and only if the data should be appended
+     * @return an empty string if the writing or appending was successful, or a message explaining what went wrong
+     */
+    private writeToFile(file: string, data: string, append: boolean): string {
+        const touch = this.fileSystem.createFiles([file]);
+        if (touch !== "")
+            return touch;
+
+        const target = this.fileSystem.getNode(file);
+        if (!(target instanceof File))
+            throw new Error("File unexpectedly disappeared since last check.");
+
+        if (append)
+            target.contents += data;
+        else
+            target.contents = data;
+
+        return "";
     }
 
 
@@ -177,5 +213,288 @@ export class Shell {
 
         const user = this.userSession.currentUser;
         Cookies.set("user", user === undefined ? "" : user.name, {"path": "/"});
+    }
+}
+
+
+/**
+ * A set of parsed command-line arguments.
+ */
+export class InputArgs {
+    /**
+     * The name of the command, i.e. the first word in the input string.
+     */
+    readonly command: string;
+    /**
+     * The set of options and the corresponding values that the user has given.
+     */
+    private readonly _options: { [key: string]: string | null };
+    /**
+     * The remaining non-option arguments that the user has given.
+     */
+    private readonly _args: string[];
+    /**
+     * The target of the output stream.
+     */
+    readonly redirectTarget: ["default"] | ["write" | "append", string];
+
+
+    /**
+     * Parses an input string into a set of command-line arguments.
+     *
+     * @param input the input string to parse
+     */
+    constructor(input: string) {
+        const tokens = InputArgs.tokenize(input.trim());
+
+        this.command = tokens[0] || "";
+        [this._options, this._args] =
+            InputArgs.parseOpts(
+                tokens.slice(1)
+                    .filter(it => !it.startsWith(">"))
+                    .map(it => it.replace(/\\>/, ">"))
+            );
+        this.redirectTarget = InputArgs.getRedirectTarget(tokens.slice(1));
+    }
+
+
+    /**
+     * Returns a copy of the options the user has given.
+     *
+     * @return a copy of the options the user has given
+     */
+    get options(): { [key: string]: string | null } {
+        return Object.assign({}, this._options);
+    }
+
+    /**
+     * Returns a copy of the arguments the user has given.
+     *
+     * @return a copy of the arguments the user has given
+     */
+    get args(): string[] {
+        return this._args.slice();
+    }
+
+
+    /**
+     * Returns `true` if and only if the option with the given key has been set.
+     *
+     * @param key the key to check
+     * @return `true` if and only if the option with the given key has been set
+     */
+    hasOption(key: string): boolean {
+        return this._options.hasOwnProperty(key);
+    }
+
+    /**
+     * Returns `true` if and only if at least one of the options with the given keys has been set.
+     *
+     * @param keys the keys to check
+     * @return `true` if and only if at least one of the options with the given keys has been set
+     */
+    hasAnyOption(keys: string[]): boolean {
+        for (let i = 0; i < keys.length; i++)
+            if (this.hasOption(keys[i]))
+                return true;
+
+        return false;
+    }
+
+
+    /**
+     * Returns `true` if and only if there is an argument at the given index.
+     *
+     * @param index the index to check
+     * @return `true` if and only if there is an argument at the given index
+     */
+    hasArg(index: number): boolean {
+        return this._args[index] !== undefined;
+    }
+
+
+    /**
+     * Returns the first token present in the given string.
+     *
+     * @param input the string of which to return the first token
+     * @return the first token present in the given string
+     */
+    private static getNextToken(input: string): [string, string] {
+        input = input.trim();
+
+        let token = "";
+        let isInSingleQuotes = false;
+        let isInDoubleQuotes = false;
+        for (let i = 0; i < input.length; i++) {
+            const char = input[i];
+            switch (char) {
+                case "\\":
+                    if (i === input.length - 1)
+                        throw new Error("Unexpected end of input. `\\` was used but there was nothing to escape.");
+
+                    const nextChar = input[i + 1];
+                    switch (nextChar) {
+                        case "\\":
+                            token += "\\";
+                            break;
+                        case "/":
+                            if (isInSingleQuotes || isInDoubleQuotes)
+                                token += "\\/";
+                            else
+                                token += "/";
+                            break;
+                        case "'":
+                            token += "'";
+                            break;
+                        case "\"":
+                            token += "\"";
+                            break;
+                        case " ":
+                            token += " ";
+                            break;
+                        case ">":
+                            token += "\\>";
+                            break;
+                        default:
+                            token += "\\" + nextChar;
+                            break;
+                    }
+                    i++;
+                    break;
+                case "'":
+                    if (isInDoubleQuotes)
+                        token += "'";
+                    else
+                        isInSingleQuotes = !isInSingleQuotes;
+                    break;
+                case "\"":
+                    if (isInSingleQuotes)
+                        token += "\"";
+                    else
+                        isInDoubleQuotes = !isInDoubleQuotes;
+                    break;
+                case " ":
+                    if (isInSingleQuotes || isInDoubleQuotes)
+                        token += char;
+                    else
+                        return [token, input.slice(i + 1)];
+                    break;
+                case ">":
+                    if (!isInSingleQuotes && !isInDoubleQuotes) {
+                        if (token !== "")
+                            return [token, input.slice(i)];
+
+                        if (i !== input.length - 1 && input[i + 1] === ">") {
+                            const token = this.getNextToken(input.slice(i + 2));
+                            token[0] = ">>" + token[0];
+                            return token;
+                        } else {
+                            const token = this.getNextToken(input.slice(i + 1));
+                            token[0] = ">" + token[0];
+                            return token;
+                        }
+                    } else {
+                        token += "\\" + char;
+                    }
+                    break;
+                default:
+                    token += char;
+                    break;
+            }
+        }
+
+        if (isInSingleQuotes || isInDoubleQuotes)
+            throw new Error("Unexpected end of input. Missing closing quotation mark.");
+
+        return [token, ""];
+    }
+
+    /**
+     * Tokenizes the input string.
+     *
+     * @param input the string to tokenize
+     * @return the array of tokens found in the input string
+     */
+    private static tokenize(input: string): string[] {
+        const tokens = [];
+
+        while (input !== "") {
+            let token;
+            [token, input] = this.getNextToken(input);
+            tokens.push(token);
+        }
+
+        return tokens;
+    }
+
+    /**
+     * Returns the redirect target described by the last token that describes a redirect target, or the default redirect
+     * target if no token describes a redirect target.
+     *
+     * @param tokens an array of tokens of which some tokens may describe a redirect target
+     * @return the redirect target described by the last token that describes a redirect target, or the default redirect
+     * target if no token describes a redirect target
+     */
+    private static getRedirectTarget(tokens: string[]): ["default"] | ["write" | "append", string] {
+        let redirectTarget: ["default"] | ["write" | "append", string] = ["default"];
+
+        tokens.forEach(token => {
+            if (token.startsWith(">>"))
+                redirectTarget = ["append", token.slice(2)];
+            else if (token.startsWith(">"))
+                redirectTarget = ["write", token.slice(1)];
+        });
+
+        return redirectTarget;
+    }
+
+    /**
+     * Parses options and arguments.
+     *
+     * @param tokens the tokens that form the options and arguments
+     * @return the options and arguments as `[options, arguments]`
+     */
+    private static parseOpts(tokens: string[]): [{ [key: string]: string | null }, string[]] {
+        const options: { [key: string]: string | null } = {};
+
+        let i;
+        for (i = 0; i < tokens.length; i++) {
+            const arg = tokens[i];
+
+            if (!arg.startsWith("-") || arg === "--")
+                break;
+
+            const argsParts = arg.split(/=(.*)/, 2);
+            if (argsParts.length === 0 || argsParts.length > 2)
+                throw new Error("Unexpected number of parts.");
+            if (argsParts[0].indexOf(' ') >= 0)
+                break;
+
+            const value = argsParts.length === 1 ? null : argsParts[1];
+
+            if (argsParts[0].startsWith("--")) {
+                const key = argsParts[0].substr(2);
+                if (key === "")
+                    break;
+
+                options[key] = value;
+            } else {
+                const keys = argsParts[0].substr(1);
+                if (keys === "")
+                    break;
+
+                if (keys.length === 1) {
+                    options[keys] = value;
+                } else {
+                    if (value !== null)
+                        throw new Error("Cannot assign value to multiple short options.");
+
+                    for (const key of keys)
+                        options[key] = value;
+                }
+            }
+        }
+
+        return [options, tokens.slice(i)];
     }
 }
