@@ -91,6 +91,20 @@ export class FileSystem {
 
 
     /**
+     * Converts a string to a path.
+     *
+     * @param path the string to convert; strings starting with `/` are interpreted as absolute paths and other strings
+     * s strings relative to the current working directory
+     * @return the path corresponding to the given string
+     */
+    getPathTo(path: string): Path {
+        if (path.startsWith("/"))
+            return new Path(path);
+
+        return this._cwd.getChild(path);
+    }
+
+    /**
      * Returns the node at the given path.
      *
      * @param target the path of the node to return; strings starting with `/` are interpreted as absolute paths and
@@ -114,20 +128,6 @@ export class FileSystem {
         });
 
         return node;
-    }
-
-    /**
-     * Converts a string to a path.
-     *
-     * @param path the string to convert; strings starting with `/` are interpreted as absolute paths and other strings
-     * s strings relative to the current working directory
-     * @return the path corresponding to the given string
-     */
-    getPathTo(path: string): Path {
-        if (path.startsWith("/"))
-            return new Path(path);
-
-        return this._cwd.getChild(path);
     }
 
     /**

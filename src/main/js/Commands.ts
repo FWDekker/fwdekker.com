@@ -457,7 +457,7 @@ class Command {
 /**
  * A set of parsed command-line arguments.
  */
-class InputArgs {
+export class InputArgs {
     /**
      * The name of the command, i.e. the first word in the input string.
      */
@@ -465,7 +465,7 @@ class InputArgs {
     /**
      * The set of options and the corresponding values that the user has given.
      */
-    private readonly _options: { [key: string]: string };
+    private readonly _options: { [key: string]: string | null };
     /**
      * The remaining non-option arguments that the user has given.
      */
@@ -478,8 +478,8 @@ class InputArgs {
      * @param input the input string to parse
      */
     constructor(input: string) {
-        const inputParts = (input.match(/("[^"]+"|[^"\s]+)/g) || [])
-            .map(it => it.replace(/^"/, "").replace(/"$/, ""));
+        const inputParts = (input.trim().match(/("[^"]+"|[^"\s]+)+/g) || [])
+            .map(it => it.replaceAll(/(?<!\\)"/, ""));
 
         this.command = (inputParts[0] || "").toLowerCase().trim();
 
@@ -487,34 +487,39 @@ class InputArgs {
         let i;
         for (i = 1; i < inputParts.length; i++) {
             const arg = inputParts[i];
-            const argParts = arg.split("=");
 
-            if (arg.startsWith("--")) {
-                // --option, --option=value
-                const argName = argParts[0].substr(2);
-                this._options[argName] = (argParts[1] || "");
-            } else if (arg.startsWith("-")) {
-                // -o, -o=value, -opq
-                if (argParts[0].length === 2) {
-                    // -o, -o=value
-                    const argName = argParts[0].substr(1);
-
-                    this._options[argName] = (argParts[1] || "");
-                } else if (argParts.length === 1) {
-                    // -opq
-                    const argNames = argParts[0].substr(1).split("");
-
-                    argNames.forEach(argName => this._options[argName] = "");
-                } else {
-                    // Invalid
-                    throw new Error("Cannot assign value to multiple options!");
-                }
-            } else {
-                // Not an option
+            if (!arg.startsWith("-") || arg === "--")
                 break;
-            }
 
-            this._options[argParts[0]] = (argParts[1] || "");
+            const argsParts = arg.split(/=(.*)/, 2);
+            if (argsParts.length === 0 || argsParts.length > 2)
+                throw new Error("Unexpected number of parts.");
+            if (argsParts[0].indexOf(' ') >= 0)
+                break;
+
+            const value = argsParts.length === 1 ? null : argsParts[1];
+
+            if (argsParts[0].startsWith("--")) {
+                const option = argsParts[0].substr(2);
+                if (option === "")
+                    break;
+
+                this._options[option] = value;
+            } else {
+                const options = argsParts[0].substr(1);
+                if (options === "")
+                    break;
+
+                if (options.length === 1) {
+                    this._options[options] = value;
+                } else {
+                    if (value !== null)
+                        throw new Error("Cannot assign value to multiple short options.");
+
+                    for (const option of options)
+                        this._options[option] = value;
+                }
+            }
         }
 
         this._args = inputParts.slice(i);
@@ -526,7 +531,7 @@ class InputArgs {
      *
      * @return a copy of the options the user has given
      */
-    get options(): { [key: string]: string } {
+    get options(): { [key: string]: string | null } {
         return Object.assign({}, this._options);
     }
 
