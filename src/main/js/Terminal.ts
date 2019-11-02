@@ -62,10 +62,10 @@ export class Terminal {
         let scrollStartPosition: number = 0;
         this.terminal.addEventListener("wheel", (event: WheelEvent) => {
             this.scroll += -event.deltaY / 100;
-        });
+        }, {passive: true});
         this.terminal.addEventListener("touchstart", (event: TouchEvent) => {
             scrollStartPosition = event.changedTouches[0].clientY;
-        });
+        }, {passive: true});
         this.terminal.addEventListener("touchmove", (event: TouchEvent) => {
             event.preventDefault();
 
@@ -76,7 +76,7 @@ export class Terminal {
 
             this.scroll -= Math.floor(diff / this.lineHeight); // -= because swipe down => increase scroll
             scrollStartPosition = newPosition - (newPosition % this.lineHeight);
-        });
+        }, {passive: true});
 
         this.outputText = this.shell.generateHeader();
         this.prefixText = this.shell.generatePrefix();

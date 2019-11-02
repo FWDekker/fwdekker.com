@@ -1,5 +1,5 @@
 import * as Cookies from "js-cookie";
-import "./extensions"
+import "./Extensions"
 import {File, FileSystem} from "./FileSystem"
 import {IllegalStateError, stripHtmlTags} from "./Shared";
 import {OutputAction} from "./Terminal";
