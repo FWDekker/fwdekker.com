@@ -2,7 +2,7 @@ import * as Cookies from "js-cookie";
 import {Commands} from "./Commands";
 import {Directory, FileSystem, Node} from "./FileSystem";
 import {asciiHeaderHtml, IllegalStateError} from "./Shared";
-import {InputHistory, OutputAction} from "./Terminal";
+import {EscapeCharacters, InputHistory} from "./Terminal";
 import {UserSession} from "./UserSession";
 
 
@@ -133,22 +133,20 @@ export class Shell {
      *
      * @param input the input to process
      */
-    execute(input: string): OutputAction[] {
+    execute(input: string): string {
         if (!this.userSession.isLoggedIn) {
             if (this.attemptUser === undefined) {
                 this.attemptUser = input.trim();
 
                 this.saveState();
-                return [["hide-input", true]];
+                return EscapeCharacters.Escape + EscapeCharacters.HideInput;
             } else {
                 const isLoggedIn = this.userSession.tryLogIn(this.attemptUser, input);
                 this.attemptUser = undefined;
 
                 this.saveState();
-                return [
-                    ["hide-input", false],
-                    ["append", isLoggedIn ? this.generateHeader() : "Access denied\n"]
-                ];
+                return EscapeCharacters.Escape + EscapeCharacters.ShowInput
+                    + (isLoggedIn ? this.generateHeader() : "Access denied\n");
             }
         }
 
@@ -161,7 +159,7 @@ export class Shell {
         }
 
         this.saveState();
-        return [output];
+        return output;
     }
 
 

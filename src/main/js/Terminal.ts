@@ -208,23 +208,33 @@ export class Terminal {
         this.inputText = "";
         this.outputText += `${this.prefixText}${this.isInputHidden ? "" : input.trim()}\n`;
 
-        const outputActions = this.shell.execute(input);
-        for (const outputAction of outputActions) {
-            switch (outputAction[0]) {
-                case "append":
-                    if (outputAction[1] !== "")
-                        this.outputText += outputAction[1] + ((<string>outputAction[1]).endsWith("\n") ? "" : "\n");
-                    break;
-                case "clear":
+        const output = this.shell.execute(input);
+        let buffer = "";
+        for (let i = 0; i < output.length; i++) {
+            if (output.charAt(i) != EscapeCharacters.Escape) {
+                buffer += output.charAt(i);
+                continue;
+            }
+
+            switch (output.charAt(i + 1)) {
+                case EscapeCharacters.Clear:
+                    buffer = "";
                     this.outputText = "";
                     break;
-                case "nothing":
+                case EscapeCharacters.HideInput:
+                    this.isInputHidden = true;
                     break;
-                case "hide-input":
-                    this.isInputHidden = <boolean>outputAction[1];
+                case EscapeCharacters.ShowInput:
+                    this.isInputHidden = false;
+                    break;
+                default:
+                    buffer += output.charAt(i) + output.charAt(i + 1);
                     break;
             }
+            i++;
         }
+        if (buffer !== "")
+            this.outputText += buffer + (buffer.endsWith("\n") ? "" : "\n");
 
         this.prefixText = this.shell.generatePrefix();
         this.scroll = 0;
@@ -283,17 +293,28 @@ export class Terminal {
 }
 
 /**
- * Communicates to the terminal what kind of output should be displayed after executing a command.
+ * Valid escape characters accepted by the terminal.
  *
- * <ul>
- *     <li>`["nothing"]` means that no output is to be displayed. Equivalent to `["append", ""]`.</li>
- *     <li>`["clear"]` means that the terminal's history should be cleared.</li>
- *     <li>`["append", string]` means that the given string should be displayed as output.</li>
- *     <li>`["hide-input", boolean]` means that the input field should not display input if and only if the boolean is
- *     set to true.</li>
- * </ul>
+ * These escape characters are interpreted by the terminal when they are written to its output stream.
  */
-export type OutputAction = ["nothing"] | ["clear"] | ["append", string] | ["hide-input", boolean]
+export enum EscapeCharacters {
+    /**
+     * The prefix used in all escape characters.
+     */
+    Escape = "\u001b",
+    /**
+     * Clears the terminal's output.
+     */
+    Clear = "\u0001",
+    /**
+     * Hides the input the user is currently typing.
+     */
+    HideInput = "\u0002",
+    /**
+     * Shows the input the user is currently typing.
+     */
+    ShowInput = "\u0003"
+}
 
 
 /**
