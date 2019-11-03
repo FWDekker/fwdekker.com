@@ -119,12 +119,10 @@ export class Shell {
             let path = this.fileSystem.getPathTo("");
             const parts = [];
             while (path.toString() !== "/") {
-                parts.push(`<a href="#" class="prefixPath" onclick="execute('cd ${path.toString(true)}')">`
-                    + `${path.fileName}</a>`);
+                parts.push(this.fileSystem.getNode(path).nameString(path.fileName, path));
                 path = path.parent;
             }
-            const link = `<a href="#" class="prefixPath" onclick="execute('cd /')">/</a>`
-                + parts.reverse().join("/");
+            const link = this.fileSystem.getNode(path).nameString("/", path) + parts.reverse().join("/");
 
             return `${this.userSession.currentUser.name}@fwdekker.com <span class="prefixPath">${link}</span>&gt; `;
         }

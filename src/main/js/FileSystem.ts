@@ -272,7 +272,7 @@ export class FileSystem {
         if (!(node instanceof Directory))
             return `'${path}' is not a directory`;
 
-        const dirList = [new Directory({}).nameString(".", path), new Directory({}).nameString("..", path.parent)];
+        const dirList = [new Directory({}).nameString("./", path), new Directory({}).nameString("../", path.parent)];
         const fileList: string[] = [];
 
         const nodes = node.nodes;
@@ -282,7 +282,7 @@ export class FileSystem {
                 const node = nodes[name];
 
                 if (node instanceof Directory)
-                    dirList.push(node.nameString(name, path.getChild(name)));
+                    dirList.push(node.nameString(name + "/", path.getChild(name)));
                 else if (node instanceof File)
                     fileList.push(node.nameString(name, path.getChild(name)));
                 else
@@ -509,6 +509,7 @@ export class Path {
     /**
      * Returns the string representation of this path.
      *
+     * @param escape `true` if and only if special characters should be escaped for use inside strings
      * @return the string representation of this path
      */
     toString(escape: boolean = false): string {
@@ -711,7 +712,7 @@ export class Directory extends Node {
      * @return a string that contains an HTML hyperlink that runs a command to `cd` to this directory
      */
     nameString(name: string, path: Path): string {
-        return `<a href="#" class="dirLink" onclick="execute('cd ${path.toString(true)}');execute('ls')">${name}/</a>`;
+        return `<a href="#" class="dirLink" onclick="execute('cd ${path.toString(true)}');execute('ls')">${name}</a>`;
     }
 
     visit(fun: (node: Node) => void,
