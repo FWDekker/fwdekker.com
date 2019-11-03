@@ -55,9 +55,9 @@ export class Terminal {
         this.inputHistory = new InputHistory();
         this.shell = new Shell(this.inputHistory);
 
-        this.terminal.addEventListener("click", this.onclick.bind(this));
-        this.terminal.addEventListener("keypress", this.onkeypress.bind(this));
-        this.terminal.addEventListener("keydown", this.onkeydown.bind(this));
+        document.addEventListener("click", this.onclick.bind(this));
+        document.addEventListener("keypress", this.onkeypress.bind(this));
+        document.addEventListener("keydown", this.onkeydown.bind(this));
 
         let scrollStartPosition: number = 0;
         this.terminal.addEventListener("wheel", (event: WheelEvent) => {
@@ -245,7 +245,9 @@ export class Terminal {
      * Handles click events.
      */
     private onclick(): void {
-        this.input.focus();
+        // Focus on input unless user has text selected. This allows user to copy text
+        if ((document.getSelection() || "").toString() === "")
+            this.input.focus();
     }
 
     /**
@@ -255,6 +257,10 @@ export class Terminal {
      */
     private onkeypress(event: KeyboardEvent): void {
         this.scroll = 0;
+        // If user types anywhere, move caret to end of input, unless user was already focused on input
+        if (this.input !== document.activeElement)
+            setTimeout(() => moveCaretToEndOf(this.input), 0);
+
         switch (event.key.toLowerCase()) {
             case "enter":
                 this.processInput(this.inputText.replaceAll(/&nbsp;/, " "));
@@ -270,6 +276,7 @@ export class Terminal {
      */
     private onkeydown(event: KeyboardEvent): void {
         this.scroll = 0;
+
         switch (event.key.toLowerCase()) {
             case "arrowup":
                 this.inputText = this.inputHistory.previousEntry();
@@ -283,7 +290,8 @@ export class Terminal {
                 event.preventDefault();
                 break;
             case "c":
-                if (event.ctrlKey) {
+                // Only if focused on the input as to not prevent copying of selected text
+                if (event.ctrlKey && this.input === document.activeElement) {
                     this.ignoreInput();
                     event.preventDefault();
                 }
