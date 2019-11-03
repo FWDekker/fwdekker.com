@@ -153,7 +153,7 @@ export class Shell {
 
         this.inputHistory.addEntry(inputString.trim());
 
-        const input = new InputArgs(stripHtmlTags(inputString.trim()));
+        const input = new InputArgs(stripHtmlTags(inputString));
         if (input.redirectTarget[0] === "write") {
             const rms = this.fileSystem.rms([input.redirectTarget[1]], true);
             if (rms !== "")
@@ -243,7 +243,7 @@ export class InputArgs {
      * @param input the input string to parse
      */
     constructor(input: string) {
-        const tokens = InputArgs.tokenize(input.trim());
+        const tokens = InputArgs.tokenize(input);
 
         this.command = tokens[0] || "";
         [this._options, this._args] =
@@ -318,8 +318,6 @@ export class InputArgs {
      * @return the first token present in the given string
      */
     private static getNextToken(input: string): [string, string] {
-        input = input.trim();
-
         let token = "";
         let isInSingleQuotes = false;
         let isInDoubleQuotes = false;
@@ -374,7 +372,7 @@ export class InputArgs {
                 case " ":
                     if (isInSingleQuotes || isInDoubleQuotes)
                         token += char;
-                    else
+                    else if (token !== "")
                         return [token, input.slice(i + 1)];
                     break;
                 case ">":
