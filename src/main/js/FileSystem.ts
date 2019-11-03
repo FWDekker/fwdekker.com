@@ -784,7 +784,7 @@ export class File extends Node {
         switch (extension) {
             case "lnk":
             case "pdf":
-                return `<a href="${this.contents}" class="fileLink">${name}</a>`;
+                return `<a href="#" class="fileLink" onclick="execute('open ${path.toString(true)}')">${name}</a>`;
             default:
                 return name;
         }
