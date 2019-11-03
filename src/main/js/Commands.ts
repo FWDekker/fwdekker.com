@@ -70,8 +70,9 @@ export class Commands {
             "echo": new Command(
                 this.echo,
                 `display text`,
-                `echo [TEXT]`,
-                `Displays [TEXT].`.trimLines(),
+                `echo [-n] [TEXT]`,
+                `Displays [TEXT].
+                Unless the -n parameter is given, a newline is appended to the end.`.trimLines(),
                 new InputValidator()
             ),
             "exit": new Command(
@@ -109,10 +110,11 @@ export class Commands {
             "mkdir": new Command(
                 this.mkdir,
                 `make directories`,
-                `mkdir DIRECTORY...`,
+                `mkdir [-p] DIRECTORY ...`,
                 `Creates the directories given by DIRECTORY.
                     
-                If more than one directory is given, the directories are created in the order they are given in.`.trimLines(),
+                If more than one directory is given, the directories are created in the order they are given in.
+                If the -p option is given, parent directories that do not exist are created as well.`.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
             "mv": new Command(
@@ -262,7 +264,8 @@ export class Commands {
     }
 
     private echo(input: InputArgs): string {
-        return input.args.join(" ").replace("hunter2", "*******") + "\n";
+        return input.args.join(" ").replace("hunter2", "*******")
+            + input.hasOption("n") ? "\n" : "";
     }
 
     private exit(): string {
@@ -336,7 +339,7 @@ export class Commands {
     }
 
     private mkdir(input: InputArgs): string {
-        return this.fileSystem.mkdirs(input.args);
+        return this.fileSystem.mkdirs(input.args, input.hasOption("p"));
     }
 
     private mv(input: InputArgs): string {

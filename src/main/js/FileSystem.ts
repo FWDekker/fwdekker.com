@@ -298,11 +298,14 @@ export class FileSystem {
     /**
      * Creates an empty directory in the file system.
      *
-     * @param pathString {string} the absolute or relative path to the directory to create
+     * @param pathString the absolute or relative path to the directory to create
+     * @param createParents `true` if and only intermediate directories that do not exist should be created
      * @return an empty string if the removal was successful, or a message explaining what went wrong
      */
-    private mkdir(pathString: string): string {
+    private mkdir(pathString: string, createParents: boolean): string {
         const path = this.getPathTo(pathString);
+        if (createParents && path.toString() !== "/")
+            this.mkdir(path.parent.toString(), true);
 
         const parentNode = this.getNode(path.parent);
         if (parentNode === undefined)
@@ -317,13 +320,14 @@ export class FileSystem {
     }
 
     /**
-     * Calls {@link mkdir} on all elements in {@code paths}.
+     * Calls `mkdir` on all elements in `paths`.
      *
-     * @param paths {string[]} the absolute or relative paths to the directories to create
+     * @param paths the absolute or relative paths to the directories to create
+     * @param createParents `true` if and only intermediate directories that do not exist should be created
      * @return the warnings generated during creation of the directories
      */
-    mkdirs(paths: string[]): string {
-        return this.executeForEach(paths, this.mkdir.bind(this));
+    mkdirs(paths: string[], createParents: boolean): string {
+        return this.executeForEach(paths, path => this.mkdir(path, createParents));
     }
 
     /**
@@ -401,9 +405,7 @@ export class FileSystem {
      * @return the warnings generated during removal of the directories
      */
     rms(paths: string[], force: boolean = false, recursive: boolean = false, noPreserveRoot: boolean = false): string {
-        return this.executeForEach(paths, path => {
-            return this.rm(path, force, recursive, noPreserveRoot);
-        });
+        return this.executeForEach(paths, path => this.rm(path, force, recursive, noPreserveRoot));
     }
 
     /**
