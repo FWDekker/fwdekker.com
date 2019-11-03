@@ -259,8 +259,10 @@ export class Terminal {
     private onkeypress(event: KeyboardEvent): void {
         this.scroll = 0;
         // If user types anywhere, move caret to end of input, unless user was already focused on input
-        if (this.input !== document.activeElement)
+        if (this.input !== document.activeElement) {
+            this.inputText += event.key; // Append to input because event was not executed on input
             setTimeout(() => moveCaretToEndOf(this.input), 0);
+        }
 
         switch (event.key.toLowerCase()) {
             case "enter":
