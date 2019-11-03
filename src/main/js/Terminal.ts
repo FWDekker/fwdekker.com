@@ -197,6 +197,7 @@ export class Terminal {
         this.outputText += `${this.prefixText}${this.inputText}\n`;
         this.prefixText = this.shell.generatePrefix();
         this.inputText = "";
+        this.inputHistory.resetIndex();
     }
 
     /**
@@ -413,5 +414,12 @@ export class InputHistory {
             this.index = this.history.length - 1;
 
         return this.getEntry(this.index);
+    }
+
+    /**
+     * Resets the read index without changing any entries.
+     */
+    resetIndex(): void {
+        this.index = -1;
     }
 }
