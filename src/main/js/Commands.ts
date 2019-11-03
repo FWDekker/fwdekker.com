@@ -265,7 +265,7 @@ export class Commands {
 
     private echo(input: InputArgs): string {
         return input.args.join(" ").replace("hunter2", "*******")
-            + input.hasOption("n") ? "\n" : "";
+            + (input.hasOption("n") ? "\n" : "");
     }
 
     private exit(): string {
