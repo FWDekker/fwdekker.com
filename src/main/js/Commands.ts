@@ -92,10 +92,11 @@ export class Commands {
             "ls": new Command(
                 this.ls,
                 `list directory contents`,
-                `ls [DIRECTORY...]`,
+                `ls [-a] [DIRECTORY...]`,
                 `Displays the files and directories in [DIRECTORY...].
                 If no directory is given, the files and directories in the current working directory are shown.
-                If more than one directory is given, the files and directories are shown for each given directory in order.`.trimLines(),
+                If more than one directory is given, the files and directories are shown for each given directory in order.
+                Files starting with a . are only shown if the -a option is given, with the exception of . and .., which are always shown.`.trimLines(),
                 new InputValidator()
             ),
             "man": new Command(
@@ -316,12 +317,12 @@ export class Commands {
 
     private ls(input: InputArgs): string {
         if (input.args.length <= 1)
-            return this.fileSystem.ls(input.args[0] || "");
+            return this.fileSystem.ls(input.args[0] || "", input.hasAnyOption(["a", "A"]));
 
         return input.args
             .map(arg => "" +
                 `<b>${this.fileSystem.getPathTo(arg)}/</b>
-                ${this.fileSystem.ls(arg)}`.trimLines())
+                ${this.fileSystem.ls(arg, input.hasAnyOption(["a", "A"]))}`.trimLines())
             .join("\n\n");
     }
 

@@ -258,12 +258,13 @@ export class FileSystem {
     }
 
     /**
-     * Returns the directory at {@code path}, or the current directory if no path is given.
+     * Returns the contents of the directory at the given path, or the current directory if no path is given.
      *
-     * @param pathString {string} the absolute or relative path to the directory to return
-     * @return the directory at {@code path}, or the current directory if no path is given
+     * @param pathString the absolute or relative path to the directory to return
+     * @param showHiddenFiles `true` if and only files starting with a `.` should be shown
+     * @return the contents of the directory at the given path, or the current directory if no path is given
      */
-    ls(pathString: string): string {
+    ls(pathString: string, showHiddenFiles: boolean): string {
         const path = this.getPathTo(pathString);
 
         const node = this.getNode(path);
@@ -280,6 +281,8 @@ export class FileSystem {
             .sortAlphabetically((x) => x, false)
             .forEach(name => {
                 const node = nodes[name];
+                if (!showHiddenFiles && name.startsWith("."))
+                    return;
 
                 if (node instanceof Directory)
                     dirList.push(node.nameString(name + "/", path.getChild(name)));
