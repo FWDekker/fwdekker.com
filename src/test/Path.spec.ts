@@ -7,32 +7,48 @@ import {Path} from "../main/js/FileSystem";
 
 describe("paths", () => {
     describe("path", () => {
-        it("removes consecutive slashes", () => {
-            expect(new Path("/dir1//dir2///file").toString()).to.equal("/dir1/dir2/file");
+        describe("simplification", () => {
+            it("removes consecutive slashes", () => {
+                expect(new Path("/dir1//dir2///file").toString()).to.equal("/dir1/dir2/file");
+            });
+
+            it("removes consecutive slashes at the root", () => {
+                expect(new Path("//").toString()).to.equal("/");
+            });
+
+            it("removes all parent references", () => {
+                expect(new Path("/dir1/dir2/../file").toString()).to.equal("/dir1/file");
+            });
+
+            it("removes all reflexive references", () => {
+                expect(new Path("/dir1/./file").toString()).to.equal("/dir1/file");
+            });
+
+            it("returns root if the parent of root is given", () => {
+                expect(new Path("/../").toString()).to.equal("/");
+            });
+
+            it("ignores parent references at the root", () => {
+                expect(new Path("/../../../dir1/../file").toString()).to.equal("/file");
+            });
+
+            it("interprets the given path as an absolute path", () => {
+                expect(new Path("dir1/file").toString()).to.equal("/dir1/file");
+            });
         });
 
-        it("removes consecutive slashes at the root", () => {
-            expect(new Path("//").toString()).to.equal("/");
-        });
+        describe("parts", () => {
+            it("concatenates multiple parts", () => {
+                expect(new Path("/dir1", "/dir2", "/file").toString()).to.equal("/dir1/dir2/file");
+            });
 
-        it("removes all parent references", () => {
-            expect(new Path("/dir1/dir2/../file").toString()).to.equal("/dir1/file");
-        });
+            it("removes empty parts", () => {
+                expect(new Path("/dir1", "", "/file").toString()).to.equal("/dir1/file");
+            });
 
-        it("removes all reflexive references", () => {
-            expect(new Path("/dir1/./file").toString()).to.equal("/dir1/file");
-        });
-
-        it("returns root if the parent of root is given", () => {
-            expect(new Path("/../").toString()).to.equal("/");
-        });
-
-        it("ignores parent references at the root", () => {
-            expect(new Path("/../../../dir1/../file").toString()).to.equal("/file");
-        });
-
-        it("interprets the given path as an absolute path", () => {
-            expect(new Path("dir1/file").toString()).to.equal("/dir1/file");
+            it("ignores parts containing only slashes", () => {
+                expect(new Path("/", "///", "/file").toString()).to.equal("/file");
+            });
         });
     });
 
@@ -65,6 +81,20 @@ describe("paths", () => {
 
         it("returns a file's parent directory", () => {
             expect(new Path("/dir1/file").parent.toString()).to.equal(new Path("/dir1/").toString());
+        });
+    });
+
+    describe("ancestors", () => {
+        it("returns an empty list for the root path", () => {
+            expect(new Path("/").ancestors.map(it => it.toString())).to.have.members([]);
+        });
+
+        it("returns the root path for a path to a subdirectory of root", () => {
+            expect(new Path("/dir").ancestors.map(it => it.toString())).to.have.members(["/"]);
+        });
+
+        it("returns both ancestors of a second-level path", () => {
+            expect(new Path("/dir1/dir2").ancestors.map(it => it.toString())).to.have.members(["/dir1", "/"]);
         });
     });
 

@@ -1,6 +1,6 @@
 import * as Cookies from "js-cookie";
 import {Commands} from "./Commands";
-import {Directory, File, FileSystem, Node} from "./FileSystem";
+import {Directory, File, FileSystem, Node, Path} from "./FileSystem";
 import {asciiHeaderHtml, IllegalStateError, stripHtmlTags} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
 import {UserSession} from "./UserSession";
@@ -71,23 +71,18 @@ export class Shell {
         }
         this.fileSystem = new FileSystem(files);
 
-        // Read cwd from cookie
-        const cwd = Cookies.get("cwd");
-        if (cwd !== undefined) {
-            if (this.fileSystem.getNode(cwd) !== undefined)
-                this.fileSystem.cwd = cwd;
-            else
-                console.warn("Failed to set cwd from cookie.");
-        }
-
         // Read environment from cookie
-        const env = Cookies.get("env") || "{}";
+        const environment = Cookies.get("env") || "{}";
         try {
-            this.environment = JSON.parse(env);
+            this.environment = JSON.parse(environment);
         } catch (error) {
             console.warn("Failed to set environment from cookie.");
             this.environment = {};
         }
+
+        // Check cwd in environment
+        if (this.environment["cwd"] === undefined || !this.fileSystem.has(new Path(this.environment["cwd"])))
+            this.environment["cwd"] = "/";
 
         this.commands = new Commands(this.environment, this.userSession, this.fileSystem);
     }
@@ -129,13 +124,18 @@ export class Shell {
             if (this.userSession.currentUser === undefined)
                 throw new IllegalStateError("User is logged in as undefined.");
 
-            let path = this.fileSystem.getPathTo("");
-            const parts = [];
-            while (path.toString() !== "/") {
-                parts.push(this.fileSystem.getNode(path).nameString(path.fileName, path));
-                path = path.parent;
-            }
-            const link = this.fileSystem.getNode(path).nameString("/", path) + parts.reverse().join("/");
+            const cwd = new Path(this.environment["cwd"]);
+            const parts = cwd.ancestors.reverse();
+            parts.push(cwd);
+            const link = parts
+                .map(part => {
+                    const node = this.fileSystem.get(part);
+                    if (node === undefined)
+                        throw new IllegalStateError(`Ancestor '${part}' of cwd does not exist.`);
+
+                    return node.nameString(part.fileName + "/", part);
+                })
+                .join("");
 
             return `${this.userSession.currentUser.name}@fwdekker.com <span class="prefixPath">${link}</span>&gt; `;
         }
@@ -166,20 +166,26 @@ export class Shell {
 
         this.inputHistory.addEntry(inputString.trim());
 
-        const input = new InputParser(this.environment).parse(stripHtmlTags(inputString));
+        const parser = new InputParser(this.environment);
+        const input = parser.parse(stripHtmlTags(inputString));
         if (input.redirectTarget[0] === "write") {
-            const rms = this.fileSystem.rms([input.redirectTarget[1]], true);
-            if (rms !== "")
-                return rms;
+            try {
+                const path = Path.interpret(this.environment["cwd"], input.redirectTarget[1]);
+                this.fileSystem.remove(path, true, false, false);
+            } catch (error) {
+                return error.message;
+            }
         }
 
         let output = this.commands.execute(input);
-        if (input.redirectTarget[0] !== "default")
-            output = this.writeToFile(input.redirectTarget[1], output, input.redirectTarget[0] === "append");
+        if (input.redirectTarget[0] !== "default") {
+            const path = Path.interpret(this.environment["cwd"], input.redirectTarget[1]);
+            output = this.writeToFile(path, output, input.redirectTarget[0] === "append");
+        }
 
         if (!this.userSession.isLoggedIn) {
             this.inputHistory.clear();
-            this.fileSystem.cwd = "/";
+            this.environment["cwd"] = "/";
         }
         this.saveState();
 
@@ -189,17 +195,19 @@ export class Shell {
     /**
      * Writes or appends `data` to `file`.
      *
-     * @param file the file to write or append to
+     * @param path the path of the file to write or append to
      * @param data the data to write or append
      * @param append `true` if and only if the data should be appended
      * @return an empty string if the writing or appending was successful, or a message explaining what went wrong
      */
-    private writeToFile(file: string, data: string, append: boolean): string {
-        const touch = this.fileSystem.createFiles([file]);
-        if (touch !== "")
-            return touch;
+    private writeToFile(path: Path, data: string, append: boolean): string {
+        try {
+            this.fileSystem.add(path, new File(), true);
+        } catch (error) {
+            return error.message;
+        }
 
-        const target = this.fileSystem.getNode(file);
+        const target = this.fileSystem.get(path);
         if (!(target instanceof File))
             throw new Error("File unexpectedly disappeared since last check.");
 
@@ -216,11 +224,10 @@ export class Shell {
      * Saves the shell's state in cookies.
      */
     private saveState() {
-        Cookies.set("files", this.fileSystem.serializedRoot, {
+        Cookies.set("files", this.fileSystem.root.serialize(), {
             "expires": new Date(new Date().setFullYear(new Date().getFullYear() + 25)),
             "path": "/"
         });
-        Cookies.set("cwd", this.fileSystem.cwd, {"path": "/"});
         Cookies.set("env", this.environment, {"path": "/"});
 
         const user = this.userSession.currentUser;

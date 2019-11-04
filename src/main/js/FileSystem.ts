@@ -8,15 +8,7 @@ export class FileSystem {
     /**
      * The root directory.
      */
-    private root: Directory;
-    /**
-     * The current directory.
-     */
-    private files: Directory;
-    /**
-     * The current working directory.
-     */
-    private _cwd: Path;
+    readonly root: Directory;
 
 
     /**
@@ -48,405 +40,153 @@ export class FileSystem {
         } else {
             this.root = root;
         }
-
-        this._cwd = new Path("/");
-        this.files = this.root;
     }
 
 
     /**
-     * Returns the current working directory.
+     * Adds the given node at the given path.
      *
-     * @return the current working directory
+     * @param target the path to add the node at
+     * @param node the node to add
+     * @param createParents `true` if and only if intermediate directories should be created if they do not exist yet
+     * @throws if the parent directory does not exist and `createParents` is `false`, if the parent is not a directory,
+     * or if there already exists a node at the given location
      */
-    get cwd(): string {
-        return this._cwd.toString();
-    }
-
-    /**
-     * Sets the current working directory.
-     *
-     * @param cwd the desired current working directory
-     * @throws if the desired current working directory does not point to an existing directory
-     */
-    set cwd(cwd: string) {
-        const path = new Path(cwd);
-
-        const target = this.getNode(path);
-        if (!(target instanceof Directory))
-            throw `The directory \`${path}\` does not exist.`;
-
-        this._cwd = path;
-        this.files = target;
-    }
-
-    /**
-     * Returns the JSON serialization of the root node.
-     *
-     * @return the JSON serialization of the root node
-     */
-    get serializedRoot(): string {
-        return this.root.serialize();
-    }
-
-
-    /**
-     * Converts a string to a path.
-     *
-     * @param path the string to convert; strings starting with `/` are interpreted as absolute paths and other strings
-     * s strings relative to the current working directory
-     * @return the path corresponding to the given string
-     */
-    getPathTo(path: string): Path {
-        if (path.startsWith("/"))
-            return new Path(path);
-
-        return this._cwd.getChild(path);
-    }
-
-    /**
-     * Returns the node at the given path.
-     *
-     * @param target the path of the node to return; strings starting with `/` are interpreted as absolute paths and
-     * other strings as strings relative to the current working directory
-     * @return the node at the given path
-     */
-    getNode(target: string | Path): Node {
-        if (typeof target === "string")
-            target = this.getPathTo(target);
-
-        const parts = target.toString().split("/");
-        let node: Node = this.root;
-        parts.forEach(part => {
-            if (part === "" || node === undefined || node instanceof File)
-                return;
-
-            if (node instanceof Directory)
-                node = node.getNode(part);
+    add(target: Path, node: Node, createParents: boolean): void {
+        if (!this.has(target.parent)) {
+            if (createParents)
+                this.add(target.parent, new Directory(), true);
             else
-                throw new IllegalStateError("Node must be file or directory.");
-        });
+                throw new Error(`The directory '${target.parent}' does not exist.`);
+        }
 
-        return node;
-    }
-
-    /**
-     * Executes the given function for each string in the given array.
-     *
-     * @param inputs the inputs to process using the given function
-     * @param fun the function to execute on each string in the given array
-     * @return the concatenation of outputs of the given function, separated by newlines
-     */
-    private executeForEach(inputs: string[], fun: (_: string) => string): string {
-        const outputs: string[] = [];
-
-        inputs.forEach(input => {
-            const output = fun(input);
-
-            if (output !== "")
-                outputs.push(output);
-        });
-
-        return outputs.join("\n");
-    }
-
-
-    /**
-     * Changes the current directory to `path`, if it exists.
-     *
-     * @param pathString the absolute or relative path to change the current directory to
-     * @return an empty string if the change was successful, or an error message explaining what went wrong
-     */
-    cd(pathString: string | undefined): string {
-        const path = this.getPathTo(pathString || "/");
-
-        const node = this.getNode(path);
-        if (node === undefined)
-            return `The directory '${path}' does not exist`;
-        if (!(node instanceof Directory))
-            return `'${path}' is not a directory.`;
-
-        this.cwd = path.toString();
-        return "";
-    }
-
-    /**
-     * Creates an empty file at `path` if it does not exist.
-     *
-     * @param pathString the path to create a file at if it does not exist
-     * @return an empty string if the removal was successful, or a message explaining what went wrong
-     */
-    private createFile(pathString: string): string {
-        const path = this.getPathTo(pathString);
-
-        const parent = this.getNode(path.parent);
-        if (parent === undefined)
-            return `The directory '${path.parent}' does not exist`;
+        const parent = this.get(target.parent);
         if (!(parent instanceof Directory))
-            return `${path.parent} is not a directory`;
-        if (parent.hasNode(path.fileName))
-            return ""; // File already exists
+            throw new Error(`'${target.parent}' is not a directory.`);
+        if (parent.hasNode(target.fileName))
+            throw new Error(`A file or directory already exists at '${target}'.`);
 
-        parent.addNode(path.fileName, new File());
-        return "";
+        parent.addNode(target.fileName, node);
     }
 
     /**
-     * Calls {@link createFile} on all elements in {@code paths}.
-     *
-     * @param paths {string[]} the absolute or relative paths to the files to be created
-     * @return the warnings generated during creation of the files
-     */
-    createFiles(paths: string[]): string {
-        return this.executeForEach(paths, path => this.createFile(path));
-    }
-
-    /**
-     * Copies {@code source} to {@code destination}.
+     * Copies `source` to `destination`.
      *
      * If the destination does not exist, the source will be copied to that exact location. If the destination exists
      * and is a directory, the source will be copied into the directory. If the destination exists but is not a
      * directory, the copy will fail.
      *
-     * @param sourceString the absolute or relative path to the file or directory to copy
-     * @param destinationString the absolute or relative path to the destination
+     * @param sourcePath the path to the file or directory to copy
+     * @param destinationPath the path to the destination
      * @param isRecursive if copying should happen recursively if the source is a directory
-     * @return an empty string if the copy was successful, or a message explaining what went wrong
+     * @throws if the source is a directory and `isRecursive` is `false`, if the source does not exist, if the target's
+     * parent does not exist, if the target's parent is not a directory, or if the target already exists
      */
-    cp(sourceString: string, destinationString: string, isRecursive: boolean): string {
-        const sourcePath = this.getPathTo(sourceString);
-        const sourceNode = this.getNode(sourcePath);
-
-        const destinationPath = this.getPathTo(destinationString);
-        const destinationNode = this.getNode(destinationPath);
-        const destinationParentNode = this.getNode(destinationPath.parent);
-
-        if (sourceNode === undefined)
-            return `The file '${sourcePath}' does not exist`;
-        if (!(sourceNode instanceof File) && !isRecursive)
-            return `Cannot copy directory.`;
-        if (destinationParentNode === undefined)
-            return `The directory '${destinationPath.parent}' does not exist`;
+    copy(sourcePath: Path, destinationPath: Path, isRecursive: boolean): void {
+        const source = this.get(sourcePath);
+        if (source === undefined)
+            throw new Error(`The file or directory '${sourcePath}' does not exist.`);
+        if (!(source instanceof File) && !isRecursive)
+            throw new Error("Cannot copy directory.");
 
         let targetPath: Path;
-        let targetParentNode: Directory;
-        if (destinationNode === undefined) {
-            // Target does not exist, so user wants to copy into target, not retaining the source's name
-            if (!(destinationParentNode instanceof Directory))
-                return `The path '${destinationPath.parent}' does not point to a directory`;
-
-            targetParentNode = destinationParentNode;
-            targetPath = destinationPath;
-        } else {
-            // Target exists, so user wants to copy into child of target, retaining the source's name
-            if (!(destinationNode instanceof Directory))
-                return `The path '${destinationPath}' does not point to a directory`;
-
-            targetParentNode = destinationNode;
+        if (this.has(destinationPath))
             targetPath = destinationPath.getChild(sourcePath.fileName);
-        }
+        else
+            targetPath = destinationPath.parent.getChild(destinationPath.fileName);
 
-        if (targetParentNode.hasNode(targetPath.fileName))
-            return `The file '${targetPath}' already exists`;
+        if (!this.has(targetPath.parent))
+            throw new Error(`The directory '${targetPath.parent}' does not exist.`);
+        if (!(this.get(targetPath.parent) instanceof Directory))
+            throw new Error(`'${targetPath.parent}' is not a directory.`);
+        if (this.has(targetPath))
+            throw new Error(`The directory or file '${targetPath}' already exists.`);
 
-        targetParentNode.addNode(targetPath.fileName, sourceNode.copy());
-
-        return "";
+        this.add(targetPath, source, false);
     }
 
     /**
-     * Returns the contents of the directory at the given path, or the current directory if no path is given.
+     * Returns the node at the given path, or `undefined` if the node does not exist.
      *
-     * @param pathString the absolute or relative path to the directory to return
-     * @param showHiddenFiles `true` if and only files starting with a `.` should be shown
-     * @return the contents of the directory at the given path, or the current directory if no path is given
+     * @param target the path of the node to return
+     * @return the node at the given path, or `undefined` if the node does not exist
      */
-    ls(pathString: string, showHiddenFiles: boolean): string {
-        const path = this.getPathTo(pathString);
+    get(target: Path): Node | undefined {
+        if (target.toString() === "/")
+            return this.root;
 
-        const node = this.getNode(path);
-        if (node === undefined)
-            return `The directory '${path}' does not exist`;
-        if (!(node instanceof Directory))
-            return `'${path}' is not a directory`;
+        const parent = this.get(target.parent);
+        if (!(parent instanceof Directory))
+            return undefined;
+        if (!parent.hasNode(target.fileName))
+            return undefined;
 
-        const dirList = [new Directory({}).nameString("./", path), new Directory({}).nameString("../", path.parent)];
-        const fileList: string[] = [];
-
-        const nodes = node.nodes;
-        Object.keys(nodes)
-            .sortAlphabetically((x) => x, false)
-            .forEach(name => {
-                const node = nodes[name];
-                if (!showHiddenFiles && name.startsWith("."))
-                    return;
-
-                if (node instanceof Directory)
-                    dirList.push(node.nameString(name + "/", path.getChild(name)));
-                else if (node instanceof File)
-                    fileList.push(node.nameString(name, path.getChild(name)));
-                else
-                    throw new IllegalStateError(`'${path.getChild(name)}' is neither a file nor a directory.`);
-            });
-
-        return dirList.concat(fileList).join("\n");
+        return parent.getNode(target.fileName);
     }
 
     /**
-     * Creates an empty directory in the file system.
+     * Returns `true` if and only if there exists a node at the given path.
      *
-     * @param pathString the absolute or relative path to the directory to create
-     * @param createParents `true` if and only intermediate directories that do not exist should be created
-     * @return an empty string if the removal was successful, or a message explaining what went wrong
+     * @param target the path to check for node presence
+     * @return `true` if and only if there exists a node at the given path
      */
-    private mkdir(pathString: string, createParents: boolean): string {
-        const path = this.getPathTo(pathString);
-        if (createParents && path.toString() !== "/")
-            this.mkdir(path.parent.toString(), true);
-
-        const parentNode = this.getNode(path.parent);
-        if (parentNode === undefined)
-            return `The directory '${path.parent}' does not exist`;
-        if (!(parentNode instanceof Directory))
-            return `'${path.parent}' is not a directory`;
-        if (parentNode.hasNode(path.fileName))
-            return `The directory '${path}' already exists`;
-
-        parentNode.addNode(path.fileName, new Directory());
-        return "";
+    has(target: Path): boolean {
+        return target.toString() === "/" || this.has(target.parent);
     }
 
     /**
-     * Calls `mkdir` on all elements in `paths`.
+     * Moves `source` to `destination`.
      *
-     * @param paths the absolute or relative paths to the directories to create
-     * @param createParents `true` if and only intermediate directories that do not exist should be created
-     * @return the warnings generated during creation of the directories
+     * Works by first copying `source` to `destination` and then removing `source`.
+     *
+     * @param source the path to the file or directory to move
+     * @param destination the path to the destination
+     * @throws if `source` is an ancestor if `destination`
+     * @see FileSystem#copy
+     * @see FileSystem#remove
      */
-    mkdirs(paths: string[], createParents: boolean): string {
-        return this.executeForEach(paths, path => this.mkdir(path, createParents));
+    move(source: Path, destination: Path): void {
+        if (destination.ancestors.indexOf(source) >= 0)
+            throw new Error("Cannot move directory into itself.");
+
+        this.copy(source, destination, true);
+        this.remove(source, true, true, false);
     }
 
     /**
-     * Moves {@code source} to {@code destination}.
+     * Removes a node from the file system.
      *
-     * If the destination does not exist, the source will be moved to that exact location. If the destination exists and
-     * is a directory, the source will be moved into the directory. If the destination exists but is not a directory,
-     * the move will fail.
-     *
-     * @param sourceString {string} the absolute or relative path to the file or directory to move
-     * @param destinationString {string} the absolute or relative path to the destination
-     * @return an empty string if the move was successful, or a message explaining what went wrong
+     * @param targetPath the path to the node to be removed
+     * @param force if inability to remove a file should be ignored
+     * @param recursive if directories should be removed recursively
+     * @param noPreserveRoot `true` if and only if the root directory should be deletable
+     * @throws if the node to remove does not exist and `force` is `false`
      */
-    mv(sourceString: string, destinationString: string): string {
-        const result = this.cp(sourceString, destinationString, true);
-        if (result === "")
-            this.rm(sourceString, true, true, true);
-        return result;
-    }
-
-    /**
-     * Removes a file from the file system.
-     *
-     * @param pathString {string} the absolute or relative path to the file to be removed
-     * @param force {boolean} true if no warnings should be given if removal is unsuccessful
-     * @param recursive {boolean} true if files and directories should be removed recursively
-     * @param noPreserveRoot {boolean} false if the root directory should not be removed
-     * @return an empty string if the removal was successful, or a message explaining what went wrong
-     */
-    private rm(pathString: string, force: boolean = false, recursive: boolean = false, noPreserveRoot: boolean = false): string {
-        const path = this.getPathTo(pathString);
-
-        const parentNode = this.getNode(path.parent);
-        if (parentNode === undefined)
-            return force
-                ? ""
-                : `The directory '${path.parent}' does not exist`;
-        if (!(parentNode instanceof Directory))
-            return force
-                ? ""
-                : `'${path.parent}' is not a directory`;
-
-        const childNode = this.getNode(path);
-        if (childNode === undefined)
-            return force
-                ? ""
-                : `The file '${path}' does not exist`;
-
-        if (recursive) {
-            if (path.toString() === "/")
-                if (noPreserveRoot)
-                    this.root = new Directory();
-                else
-                    return "'/' cannot be removed";
+    remove(targetPath: Path, force: boolean, recursive: boolean, noPreserveRoot: boolean): void {
+        const target = this.get(targetPath);
+        if (target === undefined) {
+            if (force)
+                return;
             else
-                parentNode.removeNode(childNode);
-        } else {
-            if (!(childNode instanceof File))
-                return force
-                    ? ""
-                    : `'${path.fileName}' is not a file`;
-
-            parentNode.removeNode(childNode);
+                throw new Error(`The file or directory '${targetPath}' does not exist.`);
         }
-        return "";
-    }
 
-    /**
-     * Calls {@link rm} on all elements in {@code paths}.
-     *
-     * @param paths {string} the absolute or relative paths to the files to be removed
-     * @param force {boolean} true if no warnings should be given if removal is unsuccessful
-     * @param recursive {boolean} true if files and directories should be removed recursively
-     * @param noPreserveRoot {boolean} false if the root directory should not be removed
-     * @return the warnings generated during removal of the directories
-     */
-    rms(paths: string[], force: boolean = false, recursive: boolean = false, noPreserveRoot: boolean = false): string {
-        return this.executeForEach(paths, path => this.rm(path, force, recursive, noPreserveRoot));
-    }
-
-    /**
-     * Removes a directory from the file system.
-     *
-     * @param pathString the absolute or relative path to the directory to be removed
-     * @return an empty string if the removal was successful, or a message explaining what went wrong
-     */
-    private rmdir(pathString: string): string {
-        const path = this.getPathTo(pathString);
-
-        if (path.toString() === "/") {
-            if (this.root.nodeCount > 0)
-                return `The directory is not empty.`;
+        const parent = this.get(targetPath.parent);
+        if (!(parent instanceof Directory)) {
+            if (force)
+                return;
             else
-                return "";
+                throw new IllegalStateError(`'${targetPath.parent}' is not a directory, but its child exists.`);
         }
 
-        const parentDir = this.getNode(path.parent);
-        if (parentDir === undefined)
-            return `The directory '${path.parent}' does not exist`;
-        if (!(parentDir instanceof Directory))
-            return `'${path.parent}' is not a directory`;
+        if (target instanceof Directory) {
+            if (targetPath.toString() === "/" && !noPreserveRoot)
+                throw new Error(`Cannot remove root directory.`);
+            if (!recursive)
+                throw new Error(`'${targetPath}' is a directory.`);
+        }
 
-        const childDir = parentDir.getNode(path.fileName);
-        if (childDir === undefined)
-            return `The directory '${path.fileName}' does not exist`;
-        if (!(childDir instanceof Directory))
-            return `'${path.fileName}' is not a directory`;
-        if (childDir.nodeCount > 0)
-            return `The directory is not empty`;
-
-        parentDir.removeNode(childDir);
-        return "";
-    }
-
-    /**
-     * Calls {@link rmdir} on all elements in {@code paths}.
-     *
-     * @param paths {string[]} the absolute or relative paths to the directories to be removed
-     * @return the warnings generated during removal of the directories
-     */
-    rmdirs(paths: string[]): string {
-        return this.executeForEach(paths, path => this.rmdir(path));
+        parent.removeNode(targetPath.fileName);
     }
 }
 
@@ -472,10 +212,10 @@ export class Path {
     /**
      * Constructs a new path.
      *
-     * @param path a string that describes the path
+     * @param paths a string that describes the path
      */
-    constructor(path: string) {
-        this.path = `/${path}/`
+    constructor(...paths: string[]) {
+        this.path = `/${paths.join("/")}/`
             .replaceAll(/\/\.\//, "/") // Replace `/./` with `/`
             .replaceAll(/(\/+)([^./]+)(\/+)(\.\.)(\/+)/, "/") // Replace `/x/../` with `/`
             .replaceAll(/\/{2,}/, "/") // Replace `//` with `/`
@@ -487,6 +227,27 @@ export class Path {
         this.fileName = parts.slice(-1).join("");
     }
 
+    /**
+     * Interprets a (set of) paths that may or may not be absolute.
+     *
+     * If only `cwd` is given, a path to the `cwd` is returned.
+     * If the first path in `paths` starts with a `/`, a new path is returned using only `paths` and not `cwd` is
+     * returned.
+     * Otherwise, a path using first `cwd` and then `paths` is returned.
+     *
+     * @param cwd the current working directory, used as a baseline
+     * @param paths the paths that may or may not be absolute
+     * @return an absolute path
+     */
+    static interpret(cwd: string, ...paths: string[]): Path {
+        if (paths.length === 0)
+            return new Path(cwd);
+        if (paths[0].startsWith("/"))
+            return new Path(...paths);
+
+        return new Path(cwd, ...paths);
+    }
+
 
     /**
      * Returns the path describing the parent directory.
@@ -495,6 +256,25 @@ export class Path {
      */
     get parent(): Path {
         return new Path(this._parent);
+    }
+
+    /**
+     * Returns all ancestors of this path, starting at the parent and ending at the root.
+     *
+     * @return all ancestors of this path, starting at the parent and ending at the root
+     */
+    get ancestors(): Path[] {
+        const parents: Path[] = [];
+
+        let path: Path = this.parent;
+        while (path.path !== "/") {
+            parents.push(path);
+            path = path.parent;
+        }
+        if (this.path !== "/")
+            parents.push(path);
+
+        return parents;
     }
 
 
@@ -593,7 +373,7 @@ export abstract class Node {
                 case "File":
                     return File.parse(json);
                 default:
-                    throw `Unknown node type \`${json["type"]}\`.`;
+                    throw `Unknown node type '${json["type"]}'.`;
             }
         }
     }
@@ -651,6 +431,9 @@ export class Directory extends Node {
      * @throws when there is no node with the given name in this directory
      */
     getNode(name: string): Node {
+        if (!this.hasNode(name))
+            throw new Error(`Directory does not have a node with name '${name}'.`);
+
         return this._nodes[name];
     }
 
@@ -680,21 +463,18 @@ export class Directory extends Node {
     }
 
     /**
-     * Removes the given node or the node with the given name.
+     * Removes the node with the given name.
      *
-     * @param nodeOrName the node to remove or the name of the node to remove
+     * @param name the name of the node to remove
      * @throws if the given node is not contained in this directory
      */
-    removeNode(nodeOrName: Node | string): void {
-        if (nodeOrName instanceof Node) {
-            const name = Object.keys(this._nodes).find(name => this._nodes[name] === nodeOrName);
-            if (name === undefined)
-                throw `Could not remove node '${nodeOrName}'.`;
-
-            delete this._nodes[name];
-        } else {
-            delete this._nodes[name];
+    removeNode(name: string): void {
+        if (name === "" || name === ".") {
+            Object.keys(this._nodes).forEach(node => this.removeNode(node));
+            return;
         }
+
+        delete this._nodes[name];
     }
 
 
@@ -739,7 +519,7 @@ export class Directory extends Node {
      */
     static parse(obj: any): Directory {
         if (obj["type"] !== "Directory")
-            throw `Cannot deserialize node of type \`${obj["type"]}\`.`;
+            throw `Cannot deserialize node of type '${obj["type"]}'.`;
 
         const nodes: { [name: string]: Node } = {};
         for (const name in obj["_nodes"])
@@ -805,7 +585,7 @@ export class File extends Node {
      */
     static parse(obj: any): File {
         if (obj["type"] !== "File")
-            throw `Cannot deserialize node of type \`${obj["type"]}\`.`;
+            throw `Cannot deserialize node of type '${obj["type"]}'.`;
 
         return new File(obj["contents"]);
     }

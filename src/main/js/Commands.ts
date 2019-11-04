@@ -1,7 +1,7 @@
 import * as Cookies from "js-cookie";
 import "./Extensions"
-import {File, FileSystem} from "./FileSystem"
-import {IllegalStateError, stripHtmlTags} from "./Shared";
+import {Directory, File, FileSystem, Path} from "./FileSystem"
+import {IllegalStateError} from "./Shared";
 import {Environment, InputArgs} from "./Shell";
 import {EscapeCharacters} from "./Terminal";
 import {UserSession} from "./UserSession";
@@ -256,9 +256,13 @@ export class Commands {
 
     private cat(input: InputArgs): string {
         return input.args
-            .map(it => {
-                const node = this.fileSystem.getNode(it);
-                if (node === undefined || !(node instanceof File))
+            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(path => {
+                if (!this.fileSystem.has(path))
+                    return `cat: ${it}: No such file`;
+
+                const node = this.fileSystem.get(path);
+                if (!(node instanceof File))
                     return `cat: ${it}: No such file`;
 
                 return node.contents;
@@ -267,11 +271,30 @@ export class Commands {
     }
 
     private cd(input: InputArgs): string {
-        return this.fileSystem.cd(input.args[0]);
+        if (input.args[0] === "") {
+            this.environment["cwd"] = "/";
+            return "";
+        }
+
+        const path = Path.interpret(this.environment["cwd"], input.args[0]);
+        if (!this.fileSystem.has(path))
+            return `The directory '${path}' does not exist.`;
+
+        this.environment["cwd"] = input.args[0];
+        return "";
     }
 
     private cp(input: InputArgs): string {
-        return this.fileSystem.cp(input.args[0], input.args[1], input.hasAnyOption(["r", "R"]));
+        try {
+            this.fileSystem.copy(
+                Path.interpret(this.environment["cwd"], input.args[0]),
+                Path.interpret(this.environment["cwd"], input.args[1]),
+                input.hasAnyOption(["r", "R"])
+            );
+            return "";
+        } catch (error) {
+            return error.message;
+        }
     }
 
     private clear(): string {
@@ -334,14 +357,44 @@ export class Commands {
     }
 
     private ls(input: InputArgs): string {
-        if (input.args.length <= 1)
-            return this.fileSystem.ls(input.args[0] || "", input.hasAnyOption(["a", "A"]));
+        const lists = (input.args.length === 0 ? [""] : input.args)
+            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(path => {
+                const node = this.fileSystem.get(path);
+                if (node === undefined)
+                    return [path, `The directory '${path}' does not exist.`];
+                if (!(node instanceof Directory))
+                    return [path, `'${path}' is not a directory.`];
 
-        return input.args
-            .map(arg => "" +
-                `<b>${this.fileSystem.getPathTo(arg)}/</b>
-                ${this.fileSystem.ls(arg, input.hasAnyOption(["a", "A"]))}`.trimLines())
-            .join("\n\n");
+                const dirList = [
+                    new Directory({}).nameString("./", path),
+                    new Directory({}).nameString("../", path.parent)
+                ];
+                const fileList: string[] = [];
+
+                const nodes = node.nodes;
+                Object.keys(nodes)
+                    .sortAlphabetically((x) => x, false)
+                    .forEach(name => {
+                        const node = nodes[name];
+                        if (!input.hasAnyOption(["a", "A"]) && name.startsWith("."))
+                            return;
+
+                        if (node instanceof Directory)
+                            dirList.push(node.nameString(`${name}/`, path.getChild(name)));
+                        else if (node instanceof File)
+                            fileList.push(node.nameString(name, path.getChild(name)));
+                        else
+                            throw new IllegalStateError(`'${path.getChild(name)}' is neither a file nor a directory.`);
+                    });
+
+                return [path, dirList.concat(fileList).join("\n")];
+            });
+
+        if (lists.length === 1)
+            return lists.map(([_, list]) => list).join("");
+        else
+            return lists.map(([path, list]) => `<b>${path}</b>\n${list}`).join("\n\n");
     }
 
     private man(input: InputArgs): string {
@@ -354,22 +407,37 @@ export class Commands {
     }
 
     private mkdir(input: InputArgs): string {
-        return this.fileSystem.mkdirs(input.args, input.hasOption("p"));
+        return input.args
+            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(path => {
+                try {
+                    this.fileSystem.add(path, new Directory(), input.hasOption("p"));
+                    return "";
+                } catch (error) {
+                    return error.message;
+                }
+            })
+            .join("\n");
     }
 
     private mv(input: InputArgs): string {
-        return this.fileSystem.mv(input.args[0], input.args[1]);
+        try {
+            this.fileSystem.move(Path.interpret(this.environment["cwd"], input.args[0]), Path.interpret(this.environment["cwd"], input.args[1]));
+            return "";
+        } catch (error) {
+            return error.message;
+        }
     }
 
     private open(input: InputArgs): string {
-        const fileName = input.args[0];
+        const path = Path.interpret(this.environment["cwd"], input.args[0]);
         const target = input.hasAnyOption(["b", "blank"]) ? "_blank" : "_self";
 
-        const node = this.fileSystem.getNode(fileName);
+        const node = this.fileSystem.get(path);
         if (node === undefined)
-            return `The file '${fileName}' does not exist`;
+            return `The file '${path}' does not exist`;
         if (!(node instanceof File))
-            return `'${fileName}' is not a file`;
+            return `'${path}' is not a file`;
 
         window.open(node.contents, target);
         return "";
@@ -398,20 +466,39 @@ export class Commands {
     }
 
     private pwd(): string {
-        return this.fileSystem.cwd;
+        return this.environment["cwd"];
     }
 
     private rm(input: InputArgs): string {
-        return this.fileSystem.rms(
-            input.args,
-            input.hasAnyOption(["f", "force"]),
-            input.hasAnyOption(["r", "R", "recursive"]),
-            input.hasOption("no-preserve-root")
-        );
+        return input.args
+            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(path => {
+                try {
+                    this.fileSystem.remove(
+                        path,
+                        input.hasAnyOption(["f", "force"]),
+                        input.hasAnyOption(["r", "R", "recursive"]),
+                        input.hasOption("no-preserve-root")
+                    )
+                } catch (error) {
+                    return error.message;
+                }
+            })
+            .join("\n");
     }
 
     private rmdir(input: InputArgs): string {
-        return this.fileSystem.rmdirs(input.args);
+        return input.args
+            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(path => {
+                try {
+                    this.fileSystem.remove(path, false, false, false);
+                    return "";
+                } catch (error) {
+                    return error.message;
+                }
+            })
+            .join("\n");
     }
 
     private set(input: InputArgs): string {
@@ -427,7 +514,17 @@ export class Commands {
     }
 
     private touch(input: InputArgs): string {
-        return this.fileSystem.createFiles(input.args);
+        return input.args
+            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(path => {
+                try {
+                    this.fileSystem.add(path, new File(), false);
+                    return "";
+                } catch (error) {
+                    return error.message;
+                }
+            })
+            .join("\n");
     }
 
     private whoami(): string {
