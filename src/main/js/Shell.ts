@@ -11,11 +11,15 @@ import {UserSession} from "./UserSession";
  */
 export class Shell {
     /**
+     * The environment in which commands are executed.
+     */
+    private readonly environment: Environment;
+    /**
      * The history of the user's inputs.
      */
     private readonly inputHistory: InputHistory;
     /**
-     * The user session describing the user that interacts with the terminal.
+     * The user session describing the user that interacts with the shell.
      */
     private readonly userSession: UserSession;
     /**
@@ -76,7 +80,16 @@ export class Shell {
                 console.warn("Failed to set cwd from cookie.");
         }
 
-        this.commands = new Commands(this.userSession, this.fileSystem);
+        // Read environment from cookie
+        const env = Cookies.get("env") || "{}";
+        try {
+            this.environment = JSON.parse(env);
+        } catch (error) {
+            console.warn("Failed to set environment from cookie.");
+            this.environment = {};
+        }
+
+        this.commands = new Commands(this.environment, this.userSession, this.fileSystem);
     }
 
 
@@ -134,7 +147,7 @@ export class Shell {
      *
      * @param inputString the input to process
      */
-    execute(inputString: string): string    {
+    execute(inputString: string): string {
         if (!this.userSession.isLoggedIn) {
             if (this.attemptUser === undefined) {
                 this.attemptUser = inputString.trim();
@@ -153,7 +166,7 @@ export class Shell {
 
         this.inputHistory.addEntry(inputString.trim());
 
-        const input = new InputParser().parse(stripHtmlTags(inputString));
+        const input = new InputParser(this.environment).parse(stripHtmlTags(inputString));
         if (input.redirectTarget[0] === "write") {
             const rms = this.fileSystem.rms([input.redirectTarget[1]], true);
             if (rms !== "")
@@ -208,12 +221,18 @@ export class Shell {
             "path": "/"
         });
         Cookies.set("cwd", this.fileSystem.cwd, {"path": "/"});
+        Cookies.set("env", this.environment, {"path": "/"});
 
         const user = this.userSession.currentUser;
         Cookies.set("user", user === undefined ? "" : user.name, {"path": "/"});
     }
 }
 
+
+/**
+ * A set of environment variables.
+ */
+export type Environment = { [key: string]: string }
 
 /**
  * The options given to a command.
@@ -328,6 +347,22 @@ export class InputArgs {
  */
 export class InputParser {
     /**
+     * The environment containing the variables to substitute.
+     */
+    private readonly environment: Environment;
+
+
+    /**
+     * Constructs a new input parser.
+     *
+     * @param environment the environment containing the variables to substitute
+     */
+    constructor(environment: Environment) {
+        this.environment = environment;
+    }
+
+
+    /**
      * Parses the given input string to a set of command-line arguments.
      *
      * @param input the string to parse
@@ -337,11 +372,7 @@ export class InputParser {
         const tokens = this.tokenize(input);
         const command = tokens[0] || "";
         const [options, args] =
-            this.parseOpts(
-                tokens.slice(1)
-                    .filter(it => !it.startsWith(">"))
-                    .map(it => it.replace(/\\>/, ">"))
-            );
+            this.parseOpts(tokens.slice(1).filter(it => !it.startsWith(`${EscapeCharacters.Escape}`)));
         const redirectTarget = this.getRedirectTarget(tokens.slice(1));
 
         return new InputArgs(command, options, args, redirectTarget);
@@ -349,10 +380,28 @@ export class InputParser {
 
 
     /**
-     * Returns the first token present in the given string.
+     * Tokenizes the input string.
+     *
+     * @param input the string to tokenize
+     * @return the array of tokens found in the input string
+     */
+    private tokenize(input: string): string[] {
+        const tokens = [];
+
+        while (input !== "") {
+            let token;
+            [token, input] = this.getNextToken(input);
+            tokens.push(token);
+        }
+
+        return tokens;
+    }
+
+    /**
+     * Returns the first token in the given string and the remaining string.
      *
      * @param input the string of which to return the first token
-     * @return the first token present in the given string
+     * @return the first token in the given string and the remaining string
      */
     private getNextToken(input: string): [string, string] {
         let token = "";
@@ -366,32 +415,10 @@ export class InputParser {
                         throw new Error("Unexpected end of input. `\\` was used but there was nothing to escape.");
 
                     const nextChar = input[i + 1];
-                    switch (nextChar) {
-                        case "\\":
-                            token += "\\";
-                            break;
-                        case "/":
-                            if (isInSingleQuotes || isInDoubleQuotes)
-                                token += "\\/";
-                            else
-                                token += "/";
-                            break;
-                        case "'":
-                            token += "'";
-                            break;
-                        case "\"":
-                            token += "\"";
-                            break;
-                        case " ":
-                            token += " ";
-                            break;
-                        case ">":
-                            token += "\\>";
-                            break;
-                        default:
-                            token += "\\" + nextChar;
-                            break;
-                    }
+                    if (isInSingleQuotes || isInDoubleQuotes)
+                        token += "\\" + nextChar;
+                    else
+                        token += nextChar;
                     i++;
                     break;
                 case "'":
@@ -413,22 +440,28 @@ export class InputParser {
                         return [token, input.slice(i + 1)];
                     break;
                 case ">":
-                    if (!isInSingleQuotes && !isInDoubleQuotes) {
-                        if (token !== "")
-                            return [token, input.slice(i)];
-
-                        if (i !== input.length - 1 && input[i + 1] === ">") {
-                            const token = this.getNextToken(input.slice(i + 2));
-                            token[0] = ">>" + token[0];
-                            return token;
-                        } else {
-                            const token = this.getNextToken(input.slice(i + 1));
-                            token[0] = ">" + token[0];
-                            return token;
-                        }
-                    } else {
-                        token += "\\" + char;
+                    if (isInSingleQuotes || isInDoubleQuotes) {
+                        token += char;
+                        break;
                     }
+
+                    // Flush current token if not empty
+                    if (token !== "")
+                        return [token, input.slice(i)];
+
+                    if (i !== input.length - 1 && input[i + 1] === ">") {
+                        const token = this.getNextToken(input.slice(i + 2));
+                        token[0] = `${EscapeCharacters.Escape}>>${token[0]}`;
+                        return token;
+                    } else {
+                        const token = this.getNextToken(input.slice(i + 1));
+                        token[0] = `${EscapeCharacters.Escape}>${token[0]}`;
+                        return token;
+                    }
+                case "$":
+                    const nextVariable = this.getNextVariable(input.slice(i + 1));
+                    token += nextVariable[0];
+                    i += nextVariable[1];
                     break;
                 default:
                     token += char;
@@ -443,21 +476,22 @@ export class InputParser {
     }
 
     /**
-     * Tokenizes the input string.
+     * Returns the value of the first environment variable in the given string and the length of the variable name.
      *
-     * @param input the string to tokenize
-     * @return the array of tokens found in the input string
+     * @param input the string to find the first environment variable in
+     * @return the value of the first environment variable in the given string and the length of the variable name
      */
-    private tokenize(input: string): string[] {
-        const tokens = [];
+    private getNextVariable(input: string): [string, number] {
+        let variable = "";
+        let i: number;
+        for (i = 0; i < input.length; i++) {
+            const char = input[i];
+            if (!char.match(/[0-9a-z_]/i))
+                break;
 
-        while (input !== "") {
-            let token;
-            [token, input] = this.getNextToken(input);
-            tokens.push(token);
+            variable += char;
         }
-
-        return tokens;
+        return [this.environment[variable] || "", i];
     }
 
     /**
@@ -472,10 +506,10 @@ export class InputParser {
         let redirectTarget: ["default"] | ["write" | "append", string] = ["default"];
 
         tokens.forEach(token => {
-            if (token.startsWith(">>"))
-                redirectTarget = ["append", token.slice(2)];
-            else if (token.startsWith(">"))
-                redirectTarget = ["write", token.slice(1)];
+            if (token.startsWith(`${EscapeCharacters.Escape}>>`))
+                redirectTarget = ["append", token.slice(3)];
+            else if (token.startsWith(`${EscapeCharacters.Escape}>`))
+                redirectTarget = ["write", token.slice(2)];
         });
 
         return redirectTarget;

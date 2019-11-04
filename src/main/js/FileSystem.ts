@@ -412,7 +412,7 @@ export class FileSystem {
      * @return an empty string if the removal was successful, or a message explaining what went wrong
      */
     private rmdir(pathString: string): string {
-        const path = this._cwd.getChild(pathString);
+        const path = this.getPathTo(pathString);
 
         if (path.toString() === "/") {
             if (this.root.nodeCount > 0)

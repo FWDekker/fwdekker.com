@@ -2,7 +2,7 @@ import * as Cookies from "js-cookie";
 import "./Extensions"
 import {File, FileSystem} from "./FileSystem"
 import {IllegalStateError, stripHtmlTags} from "./Shared";
-import {InputArgs} from "./Shell";
+import {Environment, InputArgs} from "./Shell";
 import {EscapeCharacters} from "./Terminal";
 import {UserSession} from "./UserSession";
 
@@ -11,6 +11,10 @@ import {UserSession} from "./UserSession";
  * A collection of commands executed within a particular user session.
  */
 export class Commands {
+    /**
+     * The environment in which commands are executed.
+     */
+    private readonly environment: Environment;
     /**
      * The user session describing the user that executes commands.
      */
@@ -28,10 +32,12 @@ export class Commands {
     /**
      * Constructs a new collection of commands executed within the given user session.
      *
+     * @param environment the environment in which commands are executed
      * @param userSession the user session describing the user that executes commands
      * @param fileSystem the file system to interact with
      */
-    constructor(userSession: UserSession, fileSystem: FileSystem) {
+    constructor(environment: Environment, userSession: UserSession, fileSystem: FileSystem) {
+        this.environment = environment;
         this.userSession = userSession;
         this.fileSystem = fileSystem;
         this.commands = {
@@ -171,6 +177,14 @@ export class Commands {
                 If more than one directory is given, the directories are removed in the order they are given in.`.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
+            "set": new Command(
+                this.set,
+                `set environment variable`,
+                `set key [value]`,
+                `Sets the environment variable with the given key to the given value.
+                If no value is given, the environment variable is cleared.`.trimLines(),
+                new InputValidator({minArgs: 1, maxArgs: 2})
+            ),
             "touch": new Command(
                 this.touch,
                 `change file timestamps`,
@@ -202,6 +216,7 @@ export class Commands {
             Cookies.remove("files");
             Cookies.remove("cwd");
             Cookies.remove("user");
+            Cookies.remove("env");
             location.reload();
             throw new Error("Goodbye");
         }
@@ -265,7 +280,7 @@ export class Commands {
 
     private echo(input: InputArgs): string {
         return input.args.join(" ").replace("hunter2", "*******")
-            + (input.hasOption("n") ? "\n" : "");
+            + (input.hasOption("n") ? "" : "\n");
     }
 
     private exit(): string {
@@ -397,6 +412,18 @@ export class Commands {
 
     private rmdir(input: InputArgs): string {
         return this.fileSystem.rmdirs(input.args);
+    }
+
+    private set(input: InputArgs): string {
+        if (!input.args[0].match(/^[0-9a-z_]+$/i))
+            return "Environment variable keys can only contain alphanumerical characters and underscores.";
+
+        if (input.args.length === 1)
+            delete this.environment[input.args[0]];
+        else
+            this.environment[input.args[0]] = input.args[1];
+
+        return "";
     }
 
     private touch(input: InputArgs): string {

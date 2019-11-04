@@ -8,9 +8,11 @@ import {InputParser} from "../main/js/Shell";
 describe("input args", () => {
     let parser: InputParser;
 
+
     beforeEach(() => {
-        parser = new InputParser();
+        parser = new InputParser({});
     });
+
 
     describe("tokenization", () => {
         it("concatenates multiple strings into one token", () => {
@@ -23,6 +25,11 @@ describe("input args", () => {
 
         it("includes escaped quotation marks into the token", () => {
             expect(parser.parse(`com\\'man\\"d`).command).to.equal(`com'man"d`);
+        });
+
+        it("does not escape inside strings", () => {
+            expect(parser.parse(`\\n`).command).to.equal("n");
+            expect(parser.parse(`"\\n"`).command).to.equal("\\n");
         });
     });
 
@@ -204,6 +211,39 @@ describe("input args", () => {
             const inputArgs = parser.parse("command \\> file");
             expect(inputArgs.redirectTarget).to.have.members(["default"]);
             expect(inputArgs.args).to.have.members([">", "file"]);
+        });
+    });
+
+    describe("environment", () => {
+        beforeEach(() => {
+            parser = new InputParser({a: "b", aa: "c", r: ">"});
+        });
+
+
+        it("substitutes a known environment variable with its value", () => {
+            expect(parser.parse("$a").command).to.equal("b");
+        });
+
+        it("substitutes an unknown environment variable with nothing", () => {
+            expect(parser.parse("$b").command).to.equal("");
+        });
+
+        it("substitutes consecutive known environment variables with their value", () => {
+            expect(parser.parse("$a$aa$a").command).to.equal("bcb");
+        });
+
+        it("substitutes nameless environment variables with nothing", () => {
+            expect(parser.parse("$$$").command).to.equal("");
+        });
+
+        it("substitutes known environment variables that are in the middle of a string", () => {
+            expect(parser.parse("a'$a'c").command).to.equal("abc");
+        });
+
+        it("substitutes special characters without interpreting them", () => {
+            const inputArgs = parser.parse("command $r file");
+            expect(inputArgs.args).to.have.members([">", "file"]);
+            expect(inputArgs.redirectTarget).to.have.members(["default"]);
         });
     });
 });
