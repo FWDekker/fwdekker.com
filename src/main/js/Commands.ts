@@ -54,7 +54,7 @@ export class Commands {
                 `change directory`,
                 `cd [DIRECTORY]`,
                 `Changes the current working directory to [DIRECTORY].
-                If [DIRECTORY] is empty, nothing happens.`.trimLines(),
+                If [DIRECTORY] is empty, the current working directory is changed to the root.`.trimLines(),
                 new InputValidator({maxArgs: 1})
             ),
             "cp": new Command(

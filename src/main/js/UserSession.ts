@@ -1,8 +1,9 @@
+import {IllegalStateError} from "./Shared";
+
+
 /**
  * Manages a user session.
  */
-import {IllegalStateError} from "./Shared";
-
 export class UserSession {
     /**
      * All users that exist in the system.

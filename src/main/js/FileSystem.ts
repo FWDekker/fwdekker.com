@@ -152,16 +152,13 @@ export class FileSystem {
 
 
     /**
-     * Changes the current directory to {@code path}, if it exists.
+     * Changes the current directory to `path`, if it exists.
      *
      * @param pathString the absolute or relative path to change the current directory to
      * @return an empty string if the change was successful, or an error message explaining what went wrong
      */
     cd(pathString: string | undefined): string {
-        if (pathString === undefined)
-            return "";
-
-        const path = this.getPathTo(pathString);
+        const path = this.getPathTo(pathString || "/");
 
         const node = this.getNode(path);
         if (node === undefined)
