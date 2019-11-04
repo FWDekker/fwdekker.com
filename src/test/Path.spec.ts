@@ -50,6 +50,20 @@ describe("paths", () => {
                 expect(new Path("/", "///", "/file").toString()).to.equal("/file");
             });
         });
+
+        describe("interpret", () => {
+            it("uses only the cwd if no paths are given", () => {
+                expect(Path.interpret("/cwd").toString()).to.equal("/cwd");
+            });
+
+            it("ignores the cwd if the first path is absolute", () => {
+                expect(Path.interpret("/cwd", "/dir1", "dir2").toString()).to.equal("/dir1/dir2");
+            });
+
+            it("uses all parts if the first path is relative", () => {
+                expect(Path.interpret("/cwd", "dir1", "/dir2").toString()).to.equal("/cwd/dir1/dir2");
+            });
+        });
     });
 
     describe("fileName", () => {

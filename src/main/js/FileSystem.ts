@@ -1,4 +1,4 @@
-import {emptyFunction, getFileExtension, IllegalStateError} from "./Shared";
+import {getFileExtension, IllegalArgumentError, IllegalStateError} from "./Shared";
 
 
 /**
@@ -93,7 +93,7 @@ export class FileSystem {
         if (this.has(destinationPath))
             targetPath = destinationPath.getChild(sourcePath.fileName);
         else
-            targetPath = destinationPath.parent.getChild(destinationPath.fileName);
+            targetPath = destinationPath;
 
         if (!this.has(targetPath.parent))
             throw new Error(`The directory '${targetPath.parent}' does not exist.`);
@@ -102,7 +102,7 @@ export class FileSystem {
         if (this.has(targetPath))
             throw new Error(`The directory or file '${targetPath}' already exists.`);
 
-        this.add(targetPath, source, false);
+        this.add(targetPath, source.copy(), false);
     }
 
     /**
@@ -116,9 +116,7 @@ export class FileSystem {
             return this.root;
 
         const parent = this.get(target.parent);
-        if (!(parent instanceof Directory))
-            return undefined;
-        if (!parent.hasNode(target.fileName))
+        if (!(parent instanceof Directory) || !parent.hasNode(target.fileName))
             return undefined;
 
         return parent.getNode(target.fileName);
@@ -131,7 +129,14 @@ export class FileSystem {
      * @return `true` if and only if there exists a node at the given path
      */
     has(target: Path): boolean {
-        return target.toString() === "/" || this.has(target.parent);
+        if (target.toString() === "/")
+            return true;
+
+        const parent = this.get(target.parent);
+        if (parent === undefined || !(parent instanceof Directory))
+            return false;
+
+        return parent.hasNode(target.fileName);
     }
 
     /**
@@ -172,12 +177,8 @@ export class FileSystem {
         }
 
         const parent = this.get(targetPath.parent);
-        if (!(parent instanceof Directory)) {
-            if (force)
-                return;
-            else
-                throw new IllegalStateError(`'${targetPath.parent}' is not a directory, but its child exists.`);
-        }
+        if (!(parent instanceof Directory))
+            throw new IllegalStateError(`'${targetPath.parent}' is not a directory, but its child exists.`);
 
         if (target instanceof Directory) {
             if (targetPath.toString() === "/" && !noPreserveRoot)
@@ -335,15 +336,6 @@ export abstract class Node {
      */
     abstract nameString(name: string, path: Path): string;
 
-    /**
-     * Recursively visits all nodes contained within this node.
-     *
-     * @param fun the function to apply to each node, including this node
-     * @param pre the function to apply to the current node before applying the first `fun`
-     * @param post the function to apply to the current node after applying the last `fun`
-     */
-    abstract visit(fun: (node: Node) => void, pre: (node: Node) => void, post: (node: Node) => void): void;
-
 
     /**
      * Returns the JSON serialization of this node.
@@ -401,7 +393,7 @@ export class Directory extends Node {
     constructor(nodes: { [name: string]: Node } = {}) {
         super();
 
-        this._nodes = Object.assign({}, nodes);
+        this._nodes = nodes;
     }
 
 
@@ -459,6 +451,9 @@ export class Directory extends Node {
      * @param node the node to add to this directory
      */
     addNode(name: string, node: Node): void {
+        if (new Path(`/${name}`).toString() === "/" || name.indexOf("/") >= 0)
+            throw new IllegalArgumentError(`Cannot add node with name '${name}'.`);
+
         this._nodes[name] = node;
     }
 
@@ -495,17 +490,6 @@ export class Directory extends Node {
      */
     nameString(name: string, path: Path): string {
         return `<a href="#" class="dirLink" onclick="execute('cd ${path.toString(true)}');execute('ls')">${name}</a>`;
-    }
-
-    visit(fun: (node: Node) => void,
-          pre: (node: Node) => void = emptyFunction,
-          post: (node: Node) => void = emptyFunction) {
-        pre(this);
-
-        fun(this);
-        Object.keys(this._nodes).forEach(name => this._nodes[name].visit(fun, pre, post));
-
-        post(this);
     }
 
 
@@ -566,14 +550,6 @@ export class File extends Node {
             default:
                 return name;
         }
-    }
-
-    visit(fun: (node: Node) => void,
-          pre: (node: Node) => void = emptyFunction,
-          post: (node: Node) => void = emptyFunction) {
-        pre(this);
-        fun(this);
-        post(this);
     }
 
 

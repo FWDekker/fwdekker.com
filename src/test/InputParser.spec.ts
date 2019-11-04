@@ -203,7 +203,6 @@ describe("input args", () => {
         });
 
         it("should ignore the redirect target if inside quotation marks", () => {
-            console.log(parser.parse("command '> file'").args);
             expect(parser.parse("command '> file'").redirectTarget).to.have.members(["default"]);
         });
 

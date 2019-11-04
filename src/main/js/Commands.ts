@@ -267,6 +267,7 @@ export class Commands {
 
                 return node.contents;
             })
+            .filter(it => it !== "")
             .join("\n");
     }
 
@@ -367,8 +368,8 @@ export class Commands {
                     return [path, `'${path}' is not a directory.`];
 
                 const dirList = [
-                    new Directory({}).nameString("./", path),
-                    new Directory({}).nameString("../", path.parent)
+                    new Directory().nameString("./", path),
+                    new Directory().nameString("../", path.parent)
                 ];
                 const fileList: string[] = [];
 
@@ -417,6 +418,7 @@ export class Commands {
                     return error.message;
                 }
             })
+            .filter(it => it !== "")
             .join("\n");
     }
 
@@ -479,11 +481,13 @@ export class Commands {
                         input.hasAnyOption(["f", "force"]),
                         input.hasAnyOption(["r", "R", "recursive"]),
                         input.hasOption("no-preserve-root")
-                    )
+                    );
+                    return "";
                 } catch (error) {
                     return error.message;
                 }
             })
+            .filter(it => it !== "")
             .join("\n");
     }
 
@@ -498,6 +502,7 @@ export class Commands {
                     return error.message;
                 }
             })
+            .filter(it => it !== "")
             .join("\n");
     }
 
@@ -524,6 +529,7 @@ export class Commands {
                     return error.message;
                 }
             })
+            .filter(it => it !== "")
             .join("\n");
     }
 

@@ -115,6 +115,22 @@ export function stripHtmlTags(string: string): string {
 
 
 /**
+ * Indicates that an argument is given to a function that should not have been given.
+ *
+ * The user should not be able to reach this state because user input should have been sanitized.
+ */
+export class IllegalArgumentError extends Error {
+    /**
+     * Constructs a new illegal argument error.
+     *
+     * @param message a message explaining why the error was thrown
+     */
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+/**
  * Indicates that the program has ended up in a state that it should never end up in.
  *
  * Indicates an error that could not have been caused by the user.
