@@ -215,7 +215,11 @@ describe("input args", () => {
 
     describe("environment", () => {
         beforeEach(() => {
-            parser = new InputParser({a: "b", aa: "c", r: ">"});
+            parser = new InputParser({
+                a: {value: "b", readonly: false},
+                aa: {value: "c", readonly: false},
+                r: {value: ">", readonly: false}
+            });
         });
 
 

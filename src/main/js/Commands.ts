@@ -256,7 +256,7 @@ export class Commands {
 
     private cat(input: InputArgs): string {
         return input.args
-            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(arg => Path.interpret(this.environment["cwd"].value, arg))
             .map(path => {
                 if (!this.fileSystem.has(path))
                     return `cat: ${it}: No such file`;
@@ -273,23 +273,23 @@ export class Commands {
 
     private cd(input: InputArgs): string {
         if (input.args[0] === "") {
-            this.environment["cwd"] = "/";
+            this.environment["cwd"] = {value: "/", readonly: true};
             return "";
         }
 
-        const path = Path.interpret(this.environment["cwd"], input.args[0]);
+        const path = Path.interpret(this.environment["cwd"].value, input.args[0]);
         if (!this.fileSystem.has(path))
             return `The directory '${path}' does not exist.`;
 
-        this.environment["cwd"] = input.args[0];
+        this.environment["cwd"] = {value: path.toString(), readonly: true};
         return "";
     }
 
     private cp(input: InputArgs): string {
         try {
             this.fileSystem.copy(
-                Path.interpret(this.environment["cwd"], input.args[0]),
-                Path.interpret(this.environment["cwd"], input.args[1]),
+                Path.interpret(this.environment["cwd"].value, input.args[0]),
+                Path.interpret(this.environment["cwd"].value, input.args[1]),
                 input.hasAnyOption(["r", "R"])
             );
             return "";
@@ -359,7 +359,7 @@ export class Commands {
 
     private ls(input: InputArgs): string {
         const lists = (input.args.length === 0 ? [""] : input.args)
-            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(arg => Path.interpret(this.environment["cwd"].value, arg))
             .map(path => {
                 const node = this.fileSystem.get(path);
                 if (node === undefined)
@@ -409,7 +409,7 @@ export class Commands {
 
     private mkdir(input: InputArgs): string {
         return input.args
-            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(arg => Path.interpret(this.environment["cwd"].value, arg))
             .map(path => {
                 try {
                     this.fileSystem.add(path, new Directory(), input.hasOption("p"));
@@ -424,7 +424,10 @@ export class Commands {
 
     private mv(input: InputArgs): string {
         try {
-            this.fileSystem.move(Path.interpret(this.environment["cwd"], input.args[0]), Path.interpret(this.environment["cwd"], input.args[1]));
+            this.fileSystem.move(
+                Path.interpret(this.environment["cwd"].value, input.args[0]),
+                Path.interpret(this.environment["cwd"].value, input.args[1])
+            );
             return "";
         } catch (error) {
             return error.message;
@@ -432,7 +435,7 @@ export class Commands {
     }
 
     private open(input: InputArgs): string {
-        const path = Path.interpret(this.environment["cwd"], input.args[0]);
+        const path = Path.interpret(this.environment["cwd"].value, input.args[0]);
         const target = input.hasAnyOption(["b", "blank"]) ? "_blank" : "_self";
 
         const node = this.fileSystem.get(path);
@@ -468,12 +471,12 @@ export class Commands {
     }
 
     private pwd(): string {
-        return this.environment["cwd"];
+        return this.environment["cwd"].value;
     }
 
     private rm(input: InputArgs): string {
         return input.args
-            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(arg => Path.interpret(this.environment["cwd"].value, arg))
             .map(path => {
                 try {
                     this.fileSystem.remove(
@@ -493,7 +496,7 @@ export class Commands {
 
     private rmdir(input: InputArgs): string {
         return input.args
-            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(arg => Path.interpret(this.environment["cwd"].value, arg))
             .map(path => {
                 try {
                     this.fileSystem.remove(path, false, false, false);
@@ -507,20 +510,24 @@ export class Commands {
     }
 
     private set(input: InputArgs): string {
-        if (!input.args[0].match(/^[0-9a-z_]+$/i))
+        const key = input.args[0];
+        if (!key.match(/^[0-9a-z_]+$/i))
             return "Environment variable keys can only contain alphanumerical characters and underscores.";
+
+        if (this.environment[key] !== undefined && this.environment[key].readonly)
+            return "Cannot set read-only environment variable.";
 
         if (input.args.length === 1)
             delete this.environment[input.args[0]];
         else
-            this.environment[input.args[0]] = input.args[1];
+            this.environment[input.args[0]] = {value: input.args[1], readonly: false};
 
         return "";
     }
 
     private touch(input: InputArgs): string {
         return input.args
-            .map(arg => Path.interpret(this.environment["cwd"], arg))
+            .map(arg => Path.interpret(this.environment["cwd"].value, arg))
             .map(path => {
                 try {
                     this.fileSystem.add(path, new File(), false);

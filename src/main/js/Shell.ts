@@ -81,8 +81,8 @@ export class Shell {
         }
 
         // Check cwd in environment
-        if (this.environment["cwd"] === undefined || !this.fileSystem.has(new Path(this.environment["cwd"])))
-            this.environment["cwd"] = "/";
+        if (this.environment["cwd"] === undefined || !this.fileSystem.has(new Path(this.environment["cwd"].value)))
+            this.environment["cwd"] = {value: "/", readonly: true};
 
         this.commands = new Commands(this.environment, this.userSession, this.fileSystem);
     }
@@ -124,7 +124,7 @@ export class Shell {
             if (this.userSession.currentUser === undefined)
                 throw new IllegalStateError("User is logged in as undefined.");
 
-            const cwd = new Path(this.environment["cwd"]);
+            const cwd = new Path(this.environment["cwd"].value);
             const parts = cwd.ancestors.reverse();
             parts.push(cwd);
             const link = parts
@@ -170,7 +170,7 @@ export class Shell {
         const input = parser.parse(stripHtmlTags(inputString));
         if (input.redirectTarget[0] === "write") {
             try {
-                const path = Path.interpret(this.environment["cwd"], input.redirectTarget[1]);
+                const path = Path.interpret(this.environment["cwd"].value, input.redirectTarget[1]);
                 this.fileSystem.remove(path, true, false, false);
             } catch (error) {
                 return error.message;
@@ -179,13 +179,13 @@ export class Shell {
 
         let output = this.commands.execute(input);
         if (input.redirectTarget[0] !== "default") {
-            const path = Path.interpret(this.environment["cwd"], input.redirectTarget[1]);
+            const path = Path.interpret(this.environment["cwd"].value, input.redirectTarget[1]);
             output = this.writeToFile(path, output, input.redirectTarget[0] === "append");
         }
 
         if (!this.userSession.isLoggedIn) {
             this.inputHistory.clear();
-            this.environment["cwd"] = "/";
+            this.environment["cwd"] = {value: "/", readonly: true};
         }
         this.saveState();
 
@@ -239,7 +239,7 @@ export class Shell {
 /**
  * A set of environment variables.
  */
-export type Environment = { [key: string]: string }
+export type Environment = { [key: string]: { value: string, readonly: boolean } }
 
 /**
  * The options given to a command.
@@ -498,7 +498,7 @@ export class InputParser {
 
             variable += char;
         }
-        return [this.environment[variable] || "", i];
+        return [(this.environment[variable] || {}).value || "", i];
     }
 
     /**
