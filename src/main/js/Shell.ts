@@ -134,7 +134,7 @@ export class Shell {
      *
      * @param inputString the input to process
      */
-    execute(inputString: string): string {
+    execute(inputString: string): string    {
         if (!this.userSession.isLoggedIn) {
             if (this.attemptUser === undefined) {
                 this.attemptUser = inputString.trim();
@@ -153,7 +153,7 @@ export class Shell {
 
         this.inputHistory.addEntry(inputString.trim());
 
-        const input = new InputArgs(stripHtmlTags(inputString));
+        const input = new InputParser().parse(stripHtmlTags(inputString));
         if (input.redirectTarget[0] === "write") {
             const rms = this.fileSystem.rms([input.redirectTarget[1]], true);
             if (rms !== "")
@@ -216,17 +216,33 @@ export class Shell {
 
 
 /**
+ * The options given to a command.
+ */
+export type InputOptions = { [key: string]: string | null };
+
+/**
+ * The intended target of the output of a command.
+ *
+ * <ul>
+ *     <li>`default` means that the output should be written to the standard output</li>
+ *     <li>`write` means that the output should be written to the file in the given string</li>
+ *     <li>`append` means that the output should be appended to the file in the given string</li>
+ * </ul>
+ */
+export type RedirectTarget = ["default"] | ["write" | "append", string];
+
+/**
  * A set of parsed command-line arguments.
  */
 export class InputArgs {
     /**
-     * The name of the command, i.e. the first word in the input string.
+     * The name of the command, i.e. the first token in the input string.
      */
     readonly command: string;
     /**
      * The set of options and the corresponding values that the user has given.
      */
-    private readonly _options: { [key: string]: string | null };
+    private readonly _options: InputOptions;
     /**
      * The remaining non-option arguments that the user has given.
      */
@@ -234,25 +250,22 @@ export class InputArgs {
     /**
      * The target of the output stream.
      */
-    readonly redirectTarget: ["default"] | ["write" | "append", string];
+    readonly redirectTarget: RedirectTarget;
 
 
     /**
-     * Parses an input string into a set of command-line arguments.
+     * Constructs a new set of parsed command-line arguments.
      *
-     * @param input the input string to parse
+     * @param command the name of the command, i.e. the first token in the input string
+     * @param options the set of options and the corresponding values that the user has given
+     * @param args the remaining non-option arguments that the user has given
+     * @param redirectTarget the target of the output stream
      */
-    constructor(input: string) {
-        const tokens = InputArgs.tokenize(input);
-
-        this.command = tokens[0] || "";
-        [this._options, this._args] =
-            InputArgs.parseOpts(
-                tokens.slice(1)
-                    .filter(it => !it.startsWith(">"))
-                    .map(it => it.replace(/\\>/, ">"))
-            );
-        this.redirectTarget = InputArgs.getRedirectTarget(tokens.slice(1));
+    constructor(command: string, options: InputOptions, args: string[], redirectTarget: RedirectTarget) {
+        this.command = command;
+        this._options = options;
+        this._args = args;
+        this.redirectTarget = redirectTarget;
     }
 
 
@@ -261,19 +274,9 @@ export class InputArgs {
      *
      * @return a copy of the options the user has given
      */
-    get options(): { [key: string]: string | null } {
+    get options(): InputOptions {
         return Object.assign({}, this._options);
     }
-
-    /**
-     * Returns a copy of the arguments the user has given.
-     *
-     * @return a copy of the arguments the user has given
-     */
-    get args(): string[] {
-        return this._args.slice();
-    }
-
 
     /**
      * Returns `true` if and only if the option with the given key has been set.
@@ -301,6 +304,15 @@ export class InputArgs {
 
 
     /**
+     * Returns a copy of the arguments the user has given.
+     *
+     * @return a copy of the arguments the user has given
+     */
+    get args(): string[] {
+        return this._args.slice();
+    }
+
+    /**
      * Returns `true` if and only if there is an argument at the given index.
      *
      * @param index the index to check
@@ -308,6 +320,31 @@ export class InputArgs {
      */
     hasArg(index: number): boolean {
         return this._args[index] !== undefined;
+    }
+}
+
+/**
+ * A parser for input strings.
+ */
+export class InputParser {
+    /**
+     * Parses the given input string to a set of command-line arguments.
+     *
+     * @param input the string to parse
+     * @return the set of parsed command-line arguments
+     */
+    parse(input: string): InputArgs {
+        const tokens = this.tokenize(input);
+        const command = tokens[0] || "";
+        const [options, args] =
+            this.parseOpts(
+                tokens.slice(1)
+                    .filter(it => !it.startsWith(">"))
+                    .map(it => it.replace(/\\>/, ">"))
+            );
+        const redirectTarget = this.getRedirectTarget(tokens.slice(1));
+
+        return new InputArgs(command, options, args, redirectTarget);
     }
 
 
@@ -317,7 +354,7 @@ export class InputArgs {
      * @param input the string of which to return the first token
      * @return the first token present in the given string
      */
-    private static getNextToken(input: string): [string, string] {
+    private getNextToken(input: string): [string, string] {
         let token = "";
         let isInSingleQuotes = false;
         let isInDoubleQuotes = false;
@@ -411,7 +448,7 @@ export class InputArgs {
      * @param input the string to tokenize
      * @return the array of tokens found in the input string
      */
-    private static tokenize(input: string): string[] {
+    private tokenize(input: string): string[] {
         const tokens = [];
 
         while (input !== "") {
@@ -431,7 +468,7 @@ export class InputArgs {
      * @return the redirect target described by the last token that describes a redirect target, or the default redirect
      * target if no token describes a redirect target
      */
-    private static getRedirectTarget(tokens: string[]): ["default"] | ["write" | "append", string] {
+    private getRedirectTarget(tokens: string[]): ["default"] | ["write" | "append", string] {
         let redirectTarget: ["default"] | ["write" | "append", string] = ["default"];
 
         tokens.forEach(token => {
@@ -450,7 +487,7 @@ export class InputArgs {
      * @param tokens the tokens that form the options and arguments
      * @return the options and arguments as `[options, arguments]`
      */
-    private static parseOpts(tokens: string[]): [{ [key: string]: string | null }, string[]] {
+    private parseOpts(tokens: string[]): [{ [key: string]: string | null }, string[]] {
         const options: { [key: string]: string | null } = {};
 
         let i;
