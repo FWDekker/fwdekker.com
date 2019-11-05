@@ -17,7 +17,7 @@ export class FileSystem {
      * @param root the directory to set as the root
      */
     constructor(root: Directory | undefined = undefined) {
-        if (root === undefined) {
+        if (root === undefined)
             this.root = new Directory({
                 "personal": new Directory({
                     "steam.lnk": new File("https://steamcommunity.com/id/Waflix"),
@@ -37,9 +37,8 @@ export class FileSystem {
                 }),
                 "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf")
             });
-        } else {
+        else
             this.root = root;
-        }
     }
 
 
@@ -72,37 +71,23 @@ export class FileSystem {
     /**
      * Copies `source` to `destination`.
      *
-     * If the destination does not exist, the source will be copied to that exact location. If the destination exists
-     * and is a directory, the source will be copied into the directory. If the destination exists but is not a
-     * directory, the copy will fail.
-     *
-     * @param sourcePath the path to the file or directory to copy
-     * @param destinationPath the path to the destination
+     * @param source the path to the file or directory to copy
+     * @param destination the path to the destination
      * @param isRecursive if copying should happen recursively if the source is a directory
      * @throws if the source is a directory and `isRecursive` is `false`, if the source does not exist, if the target's
      * parent does not exist, if the target's parent is not a directory, or if the target already exists
      */
-    copy(sourcePath: Path, destinationPath: Path, isRecursive: boolean): void {
-        const source = this.get(sourcePath);
-        if (source === undefined)
-            throw new Error(`The file or directory '${sourcePath}' does not exist.`);
-        if (!(source instanceof File) && !isRecursive)
-            throw new Error("Cannot copy directory.");
+    copy(source: Path, destination: Path, isRecursive: boolean): void {
+        if (destination.ancestors.indexOf(source) >= 0)
+            throw new Error("Cannot move directory into itself.");
 
-        let targetPath: Path;
-        if (this.has(destinationPath))
-            targetPath = destinationPath.getChild(sourcePath.fileName);
-        else
-            targetPath = destinationPath;
+        const sourceNode = this.get(source);
+        if (sourceNode === undefined)
+            throw new Error(`File or directory '${source}' does not exist.`);
+        if (sourceNode instanceof Directory && !isRecursive)
+            throw new Error(`'${source}' is a directory.`);
 
-        if (!this.has(targetPath.parent))
-            throw new Error(`The directory '${targetPath.parent}' does not exist.`);
-        if (!(this.get(targetPath.parent) instanceof Directory))
-            throw new Error(`'${targetPath.parent}' is not a directory.`);
-        if (this.has(targetPath))
-            throw new Error(`The directory or file '${targetPath}' already exists.`);
-
-        this.add(targetPath, source.copy(), false);
+        this.add(destination, sourceNode.copy(), false);
     }
 
     /**
@@ -142,19 +127,20 @@ export class FileSystem {
     /**
      * Moves `source` to `destination`.
      *
-     * Works by first copying `source` to `destination` and then removing `source`.
-     *
      * @param source the path to the file or directory to move
      * @param destination the path to the destination
-     * @throws if `source` is an ancestor if `destination`
-     * @see FileSystem#copy
-     * @see FileSystem#remove
+     * @throws if there is no node at `source`, if `destination` already exist, or if `destination`'s parent does not
+     * exist
      */
     move(source: Path, destination: Path): void {
         if (destination.ancestors.indexOf(source) >= 0)
             throw new Error("Cannot move directory into itself.");
 
-        this.copy(source, destination, true);
+        const sourceNode = this.get(source);
+        if (sourceNode === undefined)
+            throw new Error(`File or directory '${source}' does not exist.`);
+
+        this.add(destination, sourceNode, false);
         this.remove(source, true, true, false);
     }
 

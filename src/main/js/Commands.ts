@@ -65,13 +65,18 @@ export class Commands {
             ),
             "cp": new Command(
                 this.cp,
-                `copy file`,
-                `cp [-R] SOURCE DESTINATION`,
-                `Copies SOURCE to DESTINATION.
-                SOURCE is what should be copied, and DESTINATION is where it should be copied to.
-                If DESTINATION is an existing directory, SOURCE is copied into that directory.
-                Unless -R is given, SOURCE must be a file.`.trimLines(),
-                new InputValidator({minArgs: 2, maxArgs: 2})
+                `copy files`,
+                `cp [-R] SOURCE DESTINATION
+                cp [-R] SOURCES... DESTINATION`,
+                `In its first form, the file or directory at SOURCE is copied to DESTINATION.
+                If DESTINATION is an existing directory, SOURCE is copied into that directory, retaining the file name from SOURCE.
+                If DESTINATION does not exist, SOURCE is copied to the exact location of DESTINATION.
+                
+                In its second form, all files and directories at SOURCES are copied to DESTINATION.
+                DESTINATION must be a pre-existing directory, and all SOURCES are copied into DESTINATION retaining the file names from SOURCES.
+                
+                In both forms, sources are not copied if they are directories unless the -R options is given.`.trimLines(),
+                new InputValidator({minArgs: 2})
             ),
             "echo": new Command(
                 this.echo,
@@ -125,10 +130,16 @@ export class Commands {
             ),
             "mv": new Command(
                 this.mv,
-                `move file`,
-                `mv SOURCE DESTINATION`,
-                `Renames SOURCE to DESTINATION.`.trimLines(),
-                new InputValidator({minArgs: 2, maxArgs: 2})
+                `move files`,
+                `mv SOURCE DESTINATION
+                mv SOURCES... DESTINATION`,
+                `In its first form, the file or directory at SOURCE is moved to DESTINATION.
+                If DESTINATION is an existing directory, SOURCE is moved into that directory, retaining the file name from SOURCE.
+                If DESTINATION does not exist, SOURCE is moved to the exact location of DESTINATION.
+                
+                In its second form, all files and directories at SOURCES are moved to DESTINATION.
+                DESTINATION must be a pre-existing directory, and all SOURCES are moved into DESTINATION retaining the file names from SOURCES.`.trimLines(),
+                new InputValidator({minArgs: 2})
             ),
             "open": new Command(
                 this.open,
@@ -287,12 +298,17 @@ export class Commands {
 
     private cp(input: InputArgs): string {
         try {
-            this.fileSystem.copy(
-                Path.interpret(this.environment["cwd"].value, input.args[0]),
-                Path.interpret(this.environment["cwd"].value, input.args[1]),
-                input.hasAnyOption(["r", "R"])
-            );
-            return "";
+            return this.moveCopyMappings(input)
+                .map(([source, destination]) => {
+                    try {
+                        this.fileSystem.copy(source, destination, input.hasAnyOption(["r", "R"]));
+                        return "";
+                    } catch (error) {
+                        return error.message;
+                    }
+                })
+                .filter(it => it !== "")
+                .join("\n");
         } catch (error) {
             return error.message;
         }
@@ -424,11 +440,17 @@ export class Commands {
 
     private mv(input: InputArgs): string {
         try {
-            this.fileSystem.move(
-                Path.interpret(this.environment["cwd"].value, input.args[0]),
-                Path.interpret(this.environment["cwd"].value, input.args[1])
-            );
-            return "";
+            return this.moveCopyMappings(input)
+                .map(([source, destination]) => {
+                    try {
+                        this.fileSystem.move(source, destination);
+                        return "";
+                    } catch (error) {
+                        return error.message;
+                    }
+                })
+                .filter(it => it !== "")
+                .join("\n");
         } catch (error) {
             return error.message;
         }
@@ -546,6 +568,42 @@ export class Commands {
             throw new IllegalStateError("Cannot execute `whoami` while not logged in.");
 
         return user.description;
+    }
+
+
+    /**
+     * Maps sources to inputs for the `move` and `copy` commands.
+     *
+     * @param input the input to extract mappings from
+     * @return the mappings from source to destination
+     */
+    private moveCopyMappings(input: InputArgs): [Path, Path][] {
+        const sources = input.args.slice(0, -1).map(arg => Path.interpret(this.environment["cwd"].value, arg));
+        const destination = Path.interpret(this.environment["cwd"].value, input.args.slice(-1)[0]);
+
+        let mappings: [Path, Path][];
+        if (this.fileSystem.has(destination)) {
+            // Move into directory
+            if (!(this.fileSystem.get(destination) instanceof Directory)) {
+                if (sources.length === 1)
+                    throw new Error(`'${destination}' already exists.`);
+                else
+                    throw new Error(`'${destination}' is not a directory.`);
+            }
+
+            mappings = sources.map(source => [source, destination.getChild(source.fileName)]);
+        } else {
+            // Move to exact location
+            if (sources.length !== 1)
+                throw new Error(`'${destination}' is not a directory.`);
+
+            if (!(this.fileSystem.get(destination.parent) instanceof Directory))
+                throw new Error(`'${destination.parent}' is not a directory.`);
+
+            mappings = sources.map(path => [path, destination]);
+        }
+
+        return mappings;
     }
 }
 
