@@ -1,5 +1,6 @@
 import * as Cookies from "js-cookie";
 import {Commands} from "./Commands";
+import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Node, Path} from "./FileSystem";
 import {asciiHeaderHtml, IllegalStateError, stripHtmlTags} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
@@ -60,7 +61,7 @@ export class Shell {
      * @return the header that is displayed when a user logs in
      */
     generateHeader(): string {
-        if (this.environment["user"].value === "")
+        if (this.environment.get("user") === "")
             return "";
 
         return "" +
@@ -81,7 +82,7 @@ export class Shell {
      * @return  the prefix based on the current state of the terminal
      */
     generatePrefix(): string {
-        const userName = this.environment["user"].value;
+        const userName = this.environment.get("user");
         if (userName === "") {
             if (this.attemptUser === undefined)
                 return "login as: ";
@@ -89,7 +90,7 @@ export class Shell {
                 return `Password for ${this.attemptUser}@fwdekker.com: `;
         }
 
-        const cwd = new Path(this.environment["cwd"].value);
+        const cwd = new Path(this.environment.get("cwd"));
         const parts = cwd.ancestors.reverse();
         parts.push(cwd);
         const link = parts
@@ -112,7 +113,7 @@ export class Shell {
      * @param inputString the input to process
      */
     execute(inputString: string): string {
-        if (this.environment["user"].value === "") {
+        if (this.environment.get("user") === "") {
             if (this.attemptUser === undefined) {
                 this.attemptUser = inputString.trim() || undefined; // Set to undefined if empty string
 
@@ -123,7 +124,7 @@ export class Shell {
 
                 let resultString: string;
                 if (attemptUser !== undefined && attemptUser.password === inputString) {
-                    this.environment["user"].value = this.attemptUser;
+                    this.environment.set("user", this.attemptUser);
                     resultString = this.generateHeader();
                 } else {
                     resultString = "Access denied\n";
@@ -141,7 +142,7 @@ export class Shell {
         const input = parser.parse(stripHtmlTags(inputString));
         if (input.redirectTarget[0] === "write") {
             try {
-                const path = Path.interpret(this.environment["cwd"].value, input.redirectTarget[1]);
+                const path = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
                 this.fileSystem.remove(path, true, false, false);
             } catch (error) {
                 return error.message;
@@ -150,16 +151,15 @@ export class Shell {
 
         let output = this.commands.execute(input);
         if (input.redirectTarget[0] !== "default") {
-            const path = Path.interpret(this.environment["cwd"].value, input.redirectTarget[1]);
+            const path = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
             output = this.writeToFile(path, output, input.redirectTarget[0] === "append");
         }
 
-        if (this.environment["user"].value === "") {
+        if (this.environment.get("user") === "") {
             this.inputHistory.clear();
-            for (const key of Object.getOwnPropertyNames(this.environment))
-                delete this.environment[key];
-            this.environment["cwd"] = {value: "/", readonly: true};
-            this.environment["user"] = {value: "", readonly: true};
+            this.environment.clear();
+            this.environment.set("cwd", "/");
+            this.environment.set("user", "");
         }
         this.saveState();
 
@@ -202,7 +202,7 @@ export class Shell {
             "expires": new Date(new Date().setFullYear(new Date().getFullYear() + 25)),
             "path": "/"
         });
-        Cookies.set("env", this.environment, {"path": "/"});
+        Cookies.set("env", this.environment.variables, {"path": "/"});
     }
 
     /**
@@ -242,39 +242,32 @@ export class Shell {
         const environmentString = Cookies.get("env") || "{}";
         let environment: Environment;
         try {
-            environment = JSON.parse(environmentString);
+            environment = new Environment(["cwd", "user"], JSON.parse(environmentString));
         } catch (error) {
             console.warn("Failed to set environment from cookie.");
-            environment = {};
+            environment = new Environment(["cwd", "user"]);
         }
 
         // Check cwd in environment
-        if (environment["cwd"] === undefined) {
-            environment["cwd"] = {value: "/", readonly: true};
-        } else if (!fileSystem.has(new Path(environment["cwd"].value))) {
-            console.warn(`Invalid cwd '${environment["cwd"].value}' in environment.`);
-            environment["cwd"] = {value: "/", readonly: true};
+        if (!environment.has("cwd")) {
+            environment.set("cwd", "/");
+        } else if (!fileSystem.has(new Path(environment.get("cwd")))) {
+            console.warn(`Invalid cwd '${environment.get("cwd")}' in environment.`);
+            environment.set("cwd", "/");
         }
-        environment["cwd"].readonly = true;
 
         // Check user in environment
-        if (environment["user"] === undefined) {
-            environment["user"] = {value: "felix", readonly: true};
-        } else if (environment["user"].value !== "" && !userList.has(environment["user"].value)) {
-            console.warn(`Invalid user '${environment["cwd"].value}' in environment.`);
-            environment["user"] = {value: "felix", readonly: true};
+        if (!environment.has("user")) {
+            environment.set("user", "felix");
+        } else if (environment.get("user") !== "" && !userList.has(environment.get("user"))) {
+            console.warn(`Invalid user '${environment.get("user")}' in environment.`);
+            environment.set("user", "felix");
         }
-        environment["user"].readonly = true;
 
         return environment;
     }
 }
 
-
-/**
- * A set of environment variables.
- */
-export type Environment = { [key: string]: { value: string, readonly: boolean } }
 
 /**
  * The options given to a command.
@@ -533,7 +526,7 @@ export class InputParser {
 
             variable += char;
         }
-        return [(this.environment[variable] || {}).value || "", i];
+        return [this.environment.getOrDefault(variable, ""), i];
     }
 
     /**

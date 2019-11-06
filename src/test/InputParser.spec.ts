@@ -2,6 +2,7 @@ import "mocha";
 import {expect} from "chai";
 
 import "../main/js/Extensions"
+import {Environment} from "../main/js/Environment";
 import {InputParser} from "../main/js/Shell";
 
 
@@ -10,7 +11,7 @@ describe("input args", () => {
 
 
     beforeEach(() => {
-        parser = new InputParser({});
+        parser = new InputParser(new Environment());
     });
 
 
@@ -215,11 +216,7 @@ describe("input args", () => {
 
     describe("environment", () => {
         beforeEach(() => {
-            parser = new InputParser({
-                a: {value: "b", readonly: false},
-                aa: {value: "c", readonly: false},
-                r: {value: ">", readonly: false}
-            });
+            parser = new InputParser(new Environment([], {a: "b", aa: "c", r: ">"}));
         });
 
 
