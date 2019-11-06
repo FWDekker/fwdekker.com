@@ -2,7 +2,7 @@ import * as Cookies from "js-cookie";
 import "./Extensions"
 import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Path} from "./FileSystem"
-import {IllegalStateError} from "./Shared";
+import {IllegalArgumentError, IllegalStateError} from "./Shared";
 import {InputArgs} from "./Shell";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
@@ -72,10 +72,10 @@ export class Commands {
                 `In its first form, the file or directory at SOURCE is copied to DESTINATION.
                 If DESTINATION is an existing directory, SOURCE is copied into that directory, retaining the file name from SOURCE.
                 If DESTINATION does not exist, SOURCE is copied to the exact location of DESTINATION.
-                
+
                 In its second form, all files and directories at SOURCES are copied to DESTINATION.
                 DESTINATION must be a pre-existing directory, and all SOURCES are copied into DESTINATION retaining the file names from SOURCES.
-                
+
                 In both forms, sources are not copied if they are directories unless the -R options is given.`.trimLines(),
                 new InputValidator({minArgs: 2})
             ),
@@ -124,7 +124,7 @@ export class Commands {
                 `make directories`,
                 `mkdir [-p] DIRECTORY ...`,
                 `Creates the directories given by DIRECTORY.
-                    
+
                 If more than one directory is given, the directories are created in the order they are given in.
                 If the -p option is given, parent directories that do not exist are created as well.`.trimLines(),
                 new InputValidator({minArgs: 1})
@@ -137,7 +137,7 @@ export class Commands {
                 `In its first form, the file or directory at SOURCE is moved to DESTINATION.
                 If DESTINATION is an existing directory, SOURCE is moved into that directory, retaining the file name from SOURCE.
                 If DESTINATION does not exist, SOURCE is moved to the exact location of DESTINATION.
-                
+
                 In its second form, all files and directories at SOURCES are moved to DESTINATION.
                 DESTINATION must be a pre-existing directory, and all SOURCES are moved into DESTINATION retaining the file names from SOURCES.`.trimLines(),
                 new InputValidator({minArgs: 2})
@@ -147,7 +147,7 @@ export class Commands {
                 `open web page`,
                 `open [-b | --blank] FILE`,
                 `Opens the web page linked to by FILE in this browser window.
-                        
+
                 If -b or --blank is set, the web page is opened in a new tab.`.trimLines(),
                 new InputValidator({minArgs: 1, maxArgs: 1})
             ),
@@ -170,13 +170,13 @@ export class Commands {
                 `remove file`,
                 `rm [-f | --force] [-r | -R | --recursive] [--no-preserve-root] FILE...`,
                 `Removes the files given by FILE.
-                
+
                 If more than one file is given, the files are removed in the order they are given in.
-                
+
                 If -f or --force is set, no warning is given if a file could not be removed.
-                
+
                 If -r, -R, or --recursive is set, files and directories are removed recursively.
-                
+
                 Unless --no-preserve-root is set, the root directory cannot be removed.`.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
@@ -185,7 +185,7 @@ export class Commands {
                 `remove directories`,
                 `rmdir DIRECTORY...`,
                 `Removes the directories given by DIRECTORY.
-                    
+
                 If more than one directory is given, the directories are removed in the order they are given in.`.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
@@ -202,7 +202,7 @@ export class Commands {
                 `change file timestamps`,
                 `touch FILE...`,
                 `Update the access and modification times of each FILE to the current time.
-                    
+
                 If a file does not exist, it is created.`.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
@@ -252,13 +252,12 @@ export class Commands {
     private createUsageErrorOutput(commandName: string, errorMessage: string | undefined): string {
         const command = this.commands[commandName];
         if (command === undefined)
-            throw new Error(`Unknown command \`${commandName}\`.`);
+            throw new IllegalArgumentError(`Unknown command \`${commandName}\`.`);
 
-        return "" +
-            `Invalid usage of ${commandName}.${errorMessage === undefined ? "" : ` ${errorMessage}`}
-            
-            <b>Usage</b>
-            ${command.usage}`.trimLines();
+        return `Invalid usage of ${commandName}. ${errorMessage ?? ""}
+
+               <b>Usage</b>
+               ${command.usage}`.trimLines();
     }
 
 
@@ -337,18 +336,17 @@ export class Commands {
                     const commandName = it.toLowerCase();
                     const command = this.commands[commandName];
 
-                    return "" +
-                        `<b>Name</b>
-                        ${commandName}
-                        
-                        <b>Summary</b>
-                        ${command.summary}
+                    return `<b>Name</b>
+                           ${commandName}
 
-                        <b>Usage</b>
-                        ${command.usage}
+                           <b>Summary</b>
+                           ${command.summary}
 
-                        <b>Description</b>
-                        ${command.desc}`.trimLines();
+                           <b>Usage</b>
+                           ${command.usage}
+
+                           <b>Description</b>
+                           ${command.desc}`.trimLines();
                 })
                 .join("\n\n\n");
         } else {
@@ -360,13 +358,12 @@ export class Commands {
             const commandEntries = commandNames
                 .map((it, i) => `${commandLinks[i]}${this.commands[it].summary}`);
 
-            return "" +
-                `The source code of this website is <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on git</a>.
+            return `The source code of this website is <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on git</a>.
 
-                <b>List of commands</b>
-                ${commandEntries.join("\n")}
+                   <b>List of commands</b>
+                   ${commandEntries.join("\n")}
 
-                Write "help [COMMAND]" or click a command in the list above for more information on a command.`.trimLines();
+                   Write "help [COMMAND]" or click a command in the list above for more information on a command.`.trimLines();
         }
     }
 
@@ -478,15 +475,14 @@ export class Commands {
         });
 
         setTimeout(() => location.reload(), 2000);
-        return "" +
-            `Shutdown NOW!
-            
-            *** FINAL System shutdown message from ${userName}@fwdekker.com ***
-            
-            System going down IMMEDIATELY
-            
-            
-            System shutdown time has arrived`.trimLines();
+        return `Shutdown NOW!
+
+               *** FINAL System shutdown message from ${userName}@fwdekker.com ***
+
+               System going down IMMEDIATELY
+
+
+               System shutdown time has arrived`.trimLines();
     }
 
     private pwd(): string {
@@ -578,19 +574,19 @@ export class Commands {
             // Move into directory
             if (!(this.fileSystem.get(destination) instanceof Directory)) {
                 if (sources.length === 1)
-                    throw new Error(`'${destination}' already exists.`);
+                    throw new IllegalArgumentError(`'${destination}' already exists.`);
                 else
-                    throw new Error(`'${destination}' is not a directory.`);
+                    throw new IllegalArgumentError(`'${destination}' is not a directory.`);
             }
 
             mappings = sources.map(source => [source, destination.getChild(source.fileName)]);
         } else {
             // Move to exact location
             if (sources.length !== 1)
-                throw new Error(`'${destination}' is not a directory.`);
+                throw new IllegalArgumentError(`'${destination}' is not a directory.`);
 
             if (!(this.fileSystem.get(destination.parent) instanceof Directory))
-                throw new Error(`'${destination.parent}' is not a directory.`);
+                throw new IllegalArgumentError(`'${destination.parent}' is not a directory.`);
 
             mappings = sources.map(path => [path, destination]);
         }

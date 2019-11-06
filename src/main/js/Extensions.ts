@@ -7,7 +7,7 @@ interface String {
 /**
  * Returns this string with all leading and trailing whitespace removed from each line.
  */
-String.prototype.trimLines = function (): string {
+String.prototype.trimLines = function(): string {
     return this.split("\n").map(it => it.trim()).join("\n");
 };
 
@@ -17,7 +17,7 @@ String.prototype.trimLines = function (): string {
  * @param regex the regex to find matches with
  * @param replacement the string to replace matches with
  */
-String.prototype.replaceAll = function (regex: RegExp, replacement: string): string {
+String.prototype.replaceAll = function(regex: RegExp, replacement: string): string {
     let string = this.toString();
 
     while (regex.test(string))
@@ -37,8 +37,8 @@ interface Array<T> {
  * @param transform transforms elements of the array into a string that is used for comparing
  * @param caseSensitive `true` if and only if the comparator should be sensitive to the case of characters
  */
-Array.prototype.sortAlphabetically = function (transform: (_: any) => string = (it) => it,
-                                               caseSensitive: boolean = true) {
+Array.prototype.sortAlphabetically = function(transform: (_: any) => string = (it) => it,
+                                              caseSensitive: boolean = true) {
     return this.sort((a, b) => {
         const aName = caseSensitive ? transform(a) : transform(a).toLowerCase();
         const bName = caseSensitive ? transform(b) : transform(b).toLowerCase();

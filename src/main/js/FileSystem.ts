@@ -56,14 +56,14 @@ export class FileSystem {
             if (createParents)
                 this.add(target.parent, new Directory(), true);
             else
-                throw new Error(`The directory '${target.parent}' does not exist.`);
+                throw new IllegalArgumentError(`The directory '${target.parent}' does not exist.`);
         }
 
         const parent = this.get(target.parent);
         if (!(parent instanceof Directory))
-            throw new Error(`'${target.parent}' is not a directory.`);
+            throw new IllegalArgumentError(`'${target.parent}' is not a directory.`);
         if (parent.hasNode(target.fileName))
-            throw new Error(`A file or directory already exists at '${target}'.`);
+            throw new IllegalArgumentError(`A file or directory already exists at '${target}'.`);
 
         parent.addNode(target.fileName, node);
     }
@@ -79,13 +79,13 @@ export class FileSystem {
      */
     copy(source: Path, destination: Path, isRecursive: boolean): void {
         if (destination.ancestors.indexOf(source) >= 0)
-            throw new Error("Cannot move directory into itself.");
+            throw new IllegalArgumentError("Cannot move directory into itself.");
 
         const sourceNode = this.get(source);
         if (sourceNode === undefined)
-            throw new Error(`File or directory '${source}' does not exist.`);
+            throw new IllegalArgumentError(`File or directory '${source}' does not exist.`);
         if (sourceNode instanceof Directory && !isRecursive)
-            throw new Error(`'${source}' is a directory.`);
+            throw new IllegalArgumentError(`'${source}' is a directory.`);
 
         this.add(destination, sourceNode.copy(), false);
     }
@@ -116,7 +116,7 @@ export class FileSystem {
             return true;
 
         const parent = this.get(target.parent);
-        if (parent === undefined || !(parent instanceof Directory))
+        if (!(parent instanceof Directory))
             return false;
 
         return parent.hasNode(target.fileName);
@@ -132,11 +132,11 @@ export class FileSystem {
      */
     move(source: Path, destination: Path): void {
         if (destination.ancestors.indexOf(source) >= 0)
-            throw new Error("Cannot move directory into itself.");
+            throw new IllegalArgumentError("Cannot move directory into itself.");
 
         const sourceNode = this.get(source);
         if (sourceNode === undefined)
-            throw new Error(`File or directory '${source}' does not exist.`);
+            throw new IllegalArgumentError(`File or directory '${source}' does not exist.`);
 
         this.add(destination, sourceNode, false);
         this.remove(source, true, true, false);
@@ -157,7 +157,7 @@ export class FileSystem {
             if (force)
                 return;
             else
-                throw new Error(`The file or directory '${targetPath}' does not exist.`);
+                throw new IllegalArgumentError(`The file or directory '${targetPath}' does not exist.`);
         }
 
         const parent = this.get(targetPath.parent);
@@ -166,9 +166,9 @@ export class FileSystem {
 
         if (target instanceof Directory) {
             if (targetPath.toString() === "/" && !noPreserveRoot)
-                throw new Error(`Cannot remove root directory.`);
+                throw new IllegalArgumentError(`Cannot remove root directory.`);
             if (!recursive)
-                throw new Error(`'${targetPath}' is a directory.`);
+                throw new IllegalArgumentError(`'${targetPath}' is a directory.`);
         }
 
         parent.removeNode(targetPath.fileName);
@@ -393,7 +393,7 @@ export class Directory extends Node {
      */
     getNode(name: string): Node {
         if (!this.hasNode(name))
-            throw new Error(`Directory does not have a node with name '${name}'.`);
+            throw new IllegalArgumentError(`Directory does not have a node with name '${name}'.`);
 
         return this._nodes[name];
     }

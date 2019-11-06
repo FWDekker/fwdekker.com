@@ -94,10 +94,7 @@ export class Environment {
      * @param def the default value to return in case there is no environment variable with the given key
      */
     getOrDefault(key: string, def: string): string {
-        const value = this._variables[key];
-        if (value === undefined)
-            return def;
-        return value;
+        return this._variables[key] ?? def;
     }
 
     /**

@@ -2,7 +2,7 @@ import * as Cookies from "js-cookie";
 import {Commands} from "./Commands";
 import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Node, Path} from "./FileSystem";
-import {asciiHeaderHtml, IllegalStateError, stripHtmlTags} from "./Shared";
+import {asciiHeaderHtml, IllegalArgumentError, IllegalStateError, stripHtmlTags} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
 import {UserList} from "./UserList";
 
@@ -62,16 +62,15 @@ export class Shell {
         if (this.environment.get("user") === "")
             return "";
 
-        return "" +
-            `${asciiHeaderHtml}
+        return `${asciiHeaderHtml}
 
-            Student MSc Computer Science <span class="smallScreenOnly">
-            </span>@ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
-            <span class="wideScreenOnly">${(new Date()).toISOString()}
-            </span>
-            Type "<a href="#" onclick="execute('help');">help</a>" for help.
+               Student MSc Computer Science <span class="smallScreenOnly">
+               </span>@ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
+               <span class="wideScreenOnly">${(new Date()).toISOString()}
+               </span>
+               Type "<a href="#" onclick="execute('help');">help</a>" for help.
 
-            `.trimLines();
+               `.trimLines();
     }
 
     /**
@@ -80,24 +79,15 @@ export class Shell {
     generatePrefix(): string {
         const userName = this.environment.get("user");
         if (userName === "") {
-            if (this.attemptUser === undefined)
-                return "login as: ";
-            else
-                return `Password for ${this.attemptUser}@fwdekker.com: `;
+            return this.attemptUser === undefined
+                ? "login as: "
+                : `Password for ${this.attemptUser}@fwdekker.com: `;
         }
 
         const cwd = new Path(this.environment.get("cwd"));
-        const parts = cwd.ancestors.reverse();
-        parts.push(cwd);
-        const link = parts
-            .map(part => {
-                const node = this.fileSystem.get(part);
-                if (node === undefined)
-                    throw new IllegalStateError(`Ancestor '${part}' of cwd does not exist.`);
-
-                return node.nameString(part.fileName + "/", part);
-            })
-            .join("");
+        const link = cwd.ancestors.reverse()
+            .concat(cwd)
+            .map(part => this.fileSystem.get(part)?.nameString(part.fileName + "/", part)).join("");
 
         return `${userName}@fwdekker.com <span class="prefixPath">${link}</span>&gt; `;
     }
@@ -178,7 +168,7 @@ export class Shell {
 
         const target = this.fileSystem.get(path);
         if (!(target instanceof File))
-            throw new Error("File unexpectedly disappeared since last check.");
+            throw new IllegalStateError("File unexpectedly disappeared since last check.");
 
         if (append)
             target.contents += data;
@@ -427,7 +417,7 @@ export class InputParser {
             switch (char) {
                 case "\\":
                     if (i === input.length - 1)
-                        throw new Error("Unexpected end of input. `\\` was used but there was nothing to escape.");
+                        throw new IllegalArgumentError("Unexpected end of input. `\\` was used but there was nothing to escape.");
 
                     const nextChar = input[i + 1];
                     if (isInSingleQuotes || isInDoubleQuotes)
@@ -485,7 +475,7 @@ export class InputParser {
         }
 
         if (isInSingleQuotes || isInDoubleQuotes)
-            throw new Error("Unexpected end of input. Missing closing quotation mark.");
+            throw new IllegalArgumentError("Unexpected end of input. Missing closing quotation mark.");
 
         return [token, ""];
     }
@@ -544,7 +534,7 @@ export class InputParser {
 
             const argsParts = arg.split(/=(.*)/, 2);
             if (argsParts.length === 0 || argsParts.length > 2)
-                throw new Error("Unexpected number of parts.");
+                throw new IllegalArgumentError("Unexpected number of parts.");
             if (argsParts[0].indexOf(' ') >= 0)
                 break;
 
@@ -565,7 +555,7 @@ export class InputParser {
                     options[keys] = value;
                 } else {
                     if (value !== null)
-                        throw new Error("Cannot assign value to multiple short options.");
+                        throw new IllegalArgumentError("Cannot assign value to multiple short options.");
 
                     for (const key of keys)
                         options[key] = value;

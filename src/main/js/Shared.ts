@@ -78,7 +78,7 @@ export function parseCssPixels(string: string | null): number {
         return 0;
     } else {
         if (!string.endsWith("px"))
-            throw new Error("CSS string is not expressed in pixels.");
+            throw new IllegalArgumentError("CSS string is not expressed in pixels.");
 
         return parseFloat(string);
     }
