@@ -348,6 +348,37 @@ describe("tokenizer", () => {
         });
     });
 
+    describe("home directory", () => {
+        beforeEach(() => {
+            tokenizer = new Tokenizer(new Environment([], {home: "/home"}));
+        });
+
+
+        it("substitutes the home directory for ~ at the end of the input", () => {
+            expect(tokenizer.tokenize("token ~")).to.have.members(["token", "/home"]);
+        });
+
+        it("substitutes the home directory for ~ if followed by a /", () => {
+            expect(tokenizer.tokenize("token ~/")).to.have.members(["token", "/home/"]);
+        });
+
+        it("does not substitute the home directory for ~ if followed something else", () => {
+            expect(tokenizer.tokenize("token ~~")).to.have.members(["token", "~~"]);
+            expect(tokenizer.tokenize("token ~a")).to.have.members(["token", "~a"]);
+            expect(tokenizer.tokenize("token ~.")).to.have.members(["token", "~."]);
+        });
+
+        it("does not substitute the home directory in the middle of a token", () => {
+            expect(tokenizer.tokenize("token ab~cd")).to.have.members(["token", "ab~cd"]);
+        });
+
+        it("does not substitute the home directory for ~ if surrounded by parentheses or braces", () => {
+            expect(tokenizer.tokenize("token '~'")).to.have.members(["token", "~"]);
+            expect(tokenizer.tokenize(`token "~"`)).to.have.members(["token", "~"]);
+            expect(tokenizer.tokenize("token {~}")).to.have.members(["token", "~"]);
+        });
+    });
+
     describe("escapes", () => {
         it("escapes output target characters", () => {
             expect(tokenizer.tokenize("a >b")).to.have.members(["a", `${escape}>b`]);

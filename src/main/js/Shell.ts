@@ -86,11 +86,26 @@ export class Shell {
         }
 
         const cwd = new Path(this.environment.get("cwd"));
-        const link = cwd.ancestors.reverse()
-            .concat(cwd)
-            .map(part => this.fileSystem.get(part)?.nameString(part.fileName + "/", part)).join("");
+        const home = new Path(this.environment.get("home"));
 
-        return `${userName}@fwdekker.com <span class="prefixPath">${link}</span>&gt; `;
+        let anchorPath: Path;
+        let anchorSymbol: string;
+        if (home.isAncestorOf(cwd) || home.toString() === cwd.toString()) {
+            anchorPath = home;
+            anchorSymbol = "~";
+        } else {
+            anchorPath = new Path("/");
+            anchorSymbol = "/";
+        }
+
+        const parts = cwd.getAncestorsUntil(anchorPath).reverse().concat(cwd).slice(1);
+        const rootText = (this.fileSystem.get(anchorPath)?.nameString(anchorSymbol, anchorPath) ?? "")
+            + (parts.length !== 0 && !anchorSymbol.endsWith("/") ? "/" : "");
+        const partText = parts
+            .map(part => this.fileSystem.get(part)?.nameString(part.fileName, part) ?? "")
+            .join("/");
+
+        return `${userName}@fwdekker.com <span class="prefixPath">${rootText}${partText}</span>&gt; `;
     }
 
 

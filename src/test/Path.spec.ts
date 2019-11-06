@@ -100,7 +100,7 @@ describe("paths", () => {
 
     describe("ancestors", () => {
         it("returns an empty list for the root path", () => {
-            expect(new Path("/").ancestors.map(it => it.toString())).to.have.members([]);
+            expect(new Path("/").ancestors.map(it => it.toString())).to.be.empty;
         });
 
         it("returns the root path for a path to a subdirectory of root", () => {
@@ -109,6 +109,62 @@ describe("paths", () => {
 
         it("returns both ancestors of a second-level path", () => {
             expect(new Path("/dir1/dir2").ancestors.map(it => it.toString())).to.have.members(["/dir1", "/"]);
+        });
+    });
+
+    describe("is ancestor of", () => {
+        it("returns false for root self-ancestry", () => {
+            expect(new Path("/").isAncestorOf(new Path("/"))).to.be.false;
+        });
+
+        it("returns false for non-root self-ancestry", () => {
+            expect(new Path("/dir").isAncestorOf(new Path("/dir"))).to.be.false;
+        });
+
+        it("returns true when checking if the root is an ancestor", () => {
+            expect(new Path("/").isAncestorOf(new Path("/dir"))).to.be.true;
+            expect(new Path("/").isAncestorOf(new Path("/dir/file"))).to.be.true;
+        });
+
+        it("returns true when checking for a child of a non-root directory", () => {
+            expect(new Path("/dir").isAncestorOf(new Path("/dir/file"))).to.be.true;
+        });
+
+        it("returns false when checking if a non-root path is an ancestor of root", () => {
+            expect(new Path("/dir").isAncestorOf(new Path("/"))).to.be.false;
+        });
+
+        it("returns false when comparing two disjoint paths", () => {
+            expect(new Path("/dir1").isAncestorOf(new Path("/dir2"))).to.be.false;
+            expect(new Path("/dir/file1").isAncestorOf(new Path("/dir/file2"))).to.be.false;
+        });
+    });
+
+    describe("ancestors until", () => {
+        it("returns no ancestors between root and itself", () => {
+            expect(new Path("/").getAncestorsUntil(new Path("/"))).to.be.empty;
+        });
+
+        it("returns no ancestors between a non-root and itself", () => {
+            expect(new Path("/dir/file").getAncestorsUntil(new Path("/dir/file"))).to.be.empty;
+        });
+
+        it("returns the root parent if there are no other ancestors in between", () => {
+            expect(new Path("/dir").getAncestorsUntil(new Path("/")).map(it => it.toString()))
+                .to.have.members(["/"]);
+        });
+
+        it("returns the non-root parent if there are no other ancestors in between", () => {
+            expect(new Path("/dir/file").getAncestorsUntil(new Path("/dir")).map(it => it.toString()))
+                .to.have.members(["/dir"]);
+        });
+
+        it("throws an exception if it's not a child", () => {
+            expect(() => new Path("/dir1/file").getAncestorsUntil(new Path("/dir2"))).to.throw;
+        });
+
+        it("throws an exception if the order is the wrong way around", () => {
+            expect(() => new Path("/dir").getAncestorsUntil(new Path("/dir/file"))).to.throw;
         });
     });
 

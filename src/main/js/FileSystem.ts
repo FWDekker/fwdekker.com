@@ -84,7 +84,7 @@ export class FileSystem {
      * parent does not exist, if the target's parent is not a directory, or if the target already exists
      */
     copy(source: Path, destination: Path, isRecursive: boolean): void {
-        if (destination.ancestors.indexOf(source) >= 0)
+        if (source.isAncestorOf(destination))
             throw new IllegalArgumentError("Cannot move directory into itself.");
 
         const sourceNode = this.get(source);
@@ -137,7 +137,7 @@ export class FileSystem {
      * exist
      */
     move(source: Path, destination: Path): void {
-        if (destination.ancestors.indexOf(source) >= 0)
+        if (source.isAncestorOf(destination))
             throw new IllegalArgumentError("Cannot move directory into itself.");
 
         const sourceNode = this.get(source);
@@ -271,6 +271,31 @@ export class Path {
      */
     getChild(child: string): Path {
         return new Path(this.path + "/" + child);
+    }
+
+    /**
+     * Returns all ancestors up to and including the given ancestor.
+     *
+     * If the given ancestor is this path, an empty array is returned.
+     *
+     * @param ancestor the last ancestor to return
+     */
+    getAncestorsUntil(ancestor: Path): Path[] {
+        if (ancestor.path === this.path)
+            return [];
+        if (!ancestor.isAncestorOf(this))
+            throw new IllegalArgumentError("Cannot determine intermediate directories to non-ancestor.");
+
+        return this.ancestors.filter(it => !it.isAncestorOf(ancestor));
+    }
+
+    /**
+     * Returns `true` if and only if this path is an ancestor of the given path.
+     *
+     * @param path the path to check for ancestorness
+     */
+    isAncestorOf(path: Path): boolean {
+        return path.ancestors.some(path => path.path === this.path);
     }
 
     /**

@@ -257,6 +257,14 @@ export class Tokenizer {
                     else
                         token += EscapeCharacters.Escape + char;
                     break;
+                case "~":
+                    if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces || token !== "")
+                        token += char;
+                    else if (input[i + 1] === "/" || input[i + 1] === " " || input[i + 1] === undefined)
+                        token += this.environment.get("home");
+                    else
+                        token += char;
+                    break;
                 default:
                     token += char;
                     break;
