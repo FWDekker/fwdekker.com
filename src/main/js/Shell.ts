@@ -56,9 +56,7 @@ export class Shell {
 
 
     /**
-     * Generates the header that is displayed when a user logs in.
-     *
-     * @return the header that is displayed when a user logs in
+     * Returns the header that is displayed when a user logs in.
      */
     generateHeader(): string {
         if (this.environment.get("user") === "")
@@ -77,9 +75,7 @@ export class Shell {
     }
 
     /**
-     * Generates the prefix based on the current state of the terminal.
-     *
-     * @return  the prefix based on the current state of the terminal
+     * Returns the prefix based on the current state of the terminal.
      */
     generatePrefix(): string {
         const userName = this.environment.get("user");
@@ -172,7 +168,6 @@ export class Shell {
      * @param path the path of the file to write or append to
      * @param data the data to write or append
      * @param append `true` if and only if the data should be appended
-     * @return an empty string if the writing or appending was successful, or a message explaining what went wrong
      */
     private writeToFile(path: Path, data: string, append: boolean): string {
         try {
@@ -208,9 +203,6 @@ export class Shell {
     /**
      * Returns the file system loaded from a cookie, or the default file system if no cookie is present or the cookie
      * is invalid.
-     *
-     * @return the file system loaded from a cookie, or the default file system if no cookie is present or the cookie
-     * is invalid
      */
     private static loadFileSystem(): FileSystem {
         let files: Directory | undefined = undefined;
@@ -235,8 +227,6 @@ export class Shell {
      *
      * @param fileSystem the file system used to validate the `cwd` environment variable
      * @param userList the list of users used to validate the `user` environment variable
-     * @return the environment loaded from a cookie, or the default environment if no cookie is present or the cookie
-     * is invalid
      */
     private static loadEnvironment(fileSystem: FileSystem, userList: UserList): Environment {
         const environmentString = Cookies.get("env") || "{}";
@@ -325,8 +315,6 @@ export class InputArgs {
 
     /**
      * Returns a copy of the options the user has given.
-     *
-     * @return a copy of the options the user has given
      */
     get options(): InputOptions {
         return Object.assign({}, this._options);
@@ -336,7 +324,6 @@ export class InputArgs {
      * Returns `true` if and only if the option with the given key has been set.
      *
      * @param key the key to check
-     * @return `true` if and only if the option with the given key has been set
      */
     hasOption(key: string): boolean {
         return this._options.hasOwnProperty(key);
@@ -346,7 +333,6 @@ export class InputArgs {
      * Returns `true` if and only if at least one of the options with the given keys has been set.
      *
      * @param keys the keys to check
-     * @return `true` if and only if at least one of the options with the given keys has been set
      */
     hasAnyOption(keys: string[]): boolean {
         for (let i = 0; i < keys.length; i++)
@@ -359,8 +345,6 @@ export class InputArgs {
 
     /**
      * Returns a copy of the arguments the user has given.
-     *
-     * @return a copy of the arguments the user has given
      */
     get args(): string[] {
         return this._args.slice();
@@ -370,7 +354,6 @@ export class InputArgs {
      * Returns `true` if and only if there is an argument at the given index.
      *
      * @param index the index to check
-     * @return `true` if and only if there is an argument at the given index
      */
     hasArg(index: number): boolean {
         return this._args[index] !== undefined;
@@ -401,7 +384,6 @@ export class InputParser {
      * Parses the given input string to a set of command-line arguments.
      *
      * @param input the string to parse
-     * @return the set of parsed command-line arguments
      */
     parse(input: string): InputArgs {
         const tokens = this.tokenize(input);
@@ -418,7 +400,6 @@ export class InputParser {
      * Tokenizes the input string.
      *
      * @param input the string to tokenize
-     * @return the array of tokens found in the input string
      */
     private tokenize(input: string): string[] {
         const tokens = [];
@@ -436,7 +417,6 @@ export class InputParser {
      * Returns the first token in the given string and the remaining string.
      *
      * @param input the string of which to return the first token
-     * @return the first token in the given string and the remaining string
      */
     private getNextToken(input: string): [string, string] {
         let token = "";
@@ -514,7 +494,6 @@ export class InputParser {
      * Returns the value of the first environment variable in the given string and the length of the variable name.
      *
      * @param input the string to find the first environment variable in
-     * @return the value of the first environment variable in the given string and the length of the variable name
      */
     private getNextVariable(input: string): [string, number] {
         let variable = "";
@@ -534,8 +513,6 @@ export class InputParser {
      * target if no token describes a redirect target.
      *
      * @param tokens an array of tokens of which some tokens may describe a redirect target
-     * @return the redirect target described by the last token that describes a redirect target, or the default redirect
-     * target if no token describes a redirect target
      */
     private getRedirectTarget(tokens: string[]): ["default"] | ["write" | "append", string] {
         let redirectTarget: ["default"] | ["write" | "append", string] = ["default"];
@@ -554,7 +531,6 @@ export class InputParser {
      * Parses options and arguments.
      *
      * @param tokens the tokens that form the options and arguments
-     * @return the options and arguments as `[options, arguments]`
      */
     private parseOpts(tokens: string[]): [{ [key: string]: string | null }, string[]] {
         const options: { [key: string]: string | null } = {};

@@ -84,8 +84,6 @@ export class Terminal {
 
     /**
      * Returns the input the user has entered in the HTML element.
-     *
-     * @return the input the user has entered in the HTML element
      */
     private get inputText(): string {
         return this.input.innerHTML.replaceAll(/<br>/, "");
@@ -102,8 +100,6 @@ export class Terminal {
 
     /**
      * Returns the terminal output that is being displayed.
-     *
-     * @return the terminal output that is being displayed
      */
     private get outputText(): string {
         return this.output.innerHTML;
@@ -120,8 +116,6 @@ export class Terminal {
 
     /**
      * Returns the current prefix text.
-     *
-     * @return the current prefix text
      */
     private get prefixText(): string {
         return this.prefixDiv.innerHTML;
@@ -138,8 +132,6 @@ export class Terminal {
 
     /**
      * Returns how many lines the user has scrolled up in the terminal.
-     *
-     * @return how many lines the user has scrolled up in the terminal
      */
     private get scroll(): number {
         return -Math.round(parseCssPixels(this.terminal.style.marginBottom) / this.lineHeight);
@@ -170,8 +162,6 @@ export class Terminal {
 
     /**
      * Returns `true` if and only if the input field does not display the user's input.
-     *
-     * @return `true` if and only if the input field does not display the user's input
      */
     private get isInputHidden(): boolean {
         return this.input.classList.contains("terminalCurrentFocusInputHidden");
@@ -374,7 +364,6 @@ export class InputHistory {
      * Returns the entry at the given index, or an empty string if the index is negative.
      *
      * @param index the index to return the entry of, where `0` is the newest entry and `-1` returns an empty string
-     * @return the entry at the given index, or an empty string if the index is `-1`
      * @throws if the index is out of bounds and not `-1`
      */
     getEntry(index: number): string {
@@ -389,9 +378,6 @@ export class InputHistory {
      * entry.
      *
      * The read counter is decremented if possible.
-     *
-     * @return the next (newer) entry in the history, or an empty string if the read index has gone past the newest
-     * entry
      */
     nextEntry(): string {
         this.index--;
@@ -406,9 +392,6 @@ export class InputHistory {
      * entry.
      *
      * The read counter is incremented if possible.
-     *
-     * @return the previous (older) entry in the history, or the oldest entry if the read index is already at the oldest
-     * entry
      */
     previousEntry(): string {
         this.index++;

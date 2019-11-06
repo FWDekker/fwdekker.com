@@ -32,8 +32,6 @@ export class Environment {
 
     /**
      * Returns a copy of the variables contained within this environment.
-     *
-     * @return a copy of the variables contained within this environment
      */
     get variables(): { [key: string]: string } {
         return Object.assign({}, this._variables);
@@ -79,7 +77,6 @@ export class Environment {
      * environment variable.
      *
      * @param key the key of the environment variable to return
-     * @return the value of the environment variable with the given key
      * @throws if there is no such environment variable
      */
     get(key: string): string {
@@ -94,9 +91,7 @@ export class Environment {
      * environment variable.
      *
      * @param key the key of the environment variable to return
-     * @param def the
-     * @return the value of the environment variable with the given key, or the given default value if there is no such
-     * environment variable
+     * @param def the default value to return in case there is no environment variable with the given key
      */
     getOrDefault(key: string, def: string): string {
         const value = this._variables[key];
@@ -109,7 +104,6 @@ export class Environment {
      * Returns `true` if and only if there is an environment variable with the given key.
      *
      * @param key the key of the environment variable to check
-     * @return `true` if and only if there is an environment variable with the given key
      */
     has(key: string): boolean {
         return this._variables.hasOwnProperty(key);
@@ -158,7 +152,6 @@ export class Environment {
      * Returns `true` if and only if the given key has a valid format.
      *
      * @param key the key to validate
-     * @return `true` if and only if the given key has a valid format
      */
     private static isKeyValid(key: string): boolean {
         return !!key.match(/^[0-9a-z_]+$/i);

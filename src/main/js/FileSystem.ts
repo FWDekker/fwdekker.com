@@ -94,7 +94,6 @@ export class FileSystem {
      * Returns the node at the given path, or `undefined` if the node does not exist.
      *
      * @param target the path of the node to return
-     * @return the node at the given path, or `undefined` if the node does not exist
      */
     get(target: Path): Node | undefined {
         if (target.toString() === "/")
@@ -111,7 +110,6 @@ export class FileSystem {
      * Returns `true` if and only if there exists a node at the given path.
      *
      * @param target the path to check for node presence
-     * @return `true` if and only if there exists a node at the given path
      */
     has(target: Path): boolean {
         if (target.toString() === "/")
@@ -224,7 +222,6 @@ export class Path {
      *
      * @param cwd the current working directory, used as a baseline
      * @param paths the paths that may or may not be absolute
-     * @return an absolute path
      */
     static interpret(cwd: string, ...paths: string[]): Path {
         if (paths.length === 0)
@@ -238,8 +235,6 @@ export class Path {
 
     /**
      * Returns the path describing the parent directory.
-     *
-     * @return the path describing the parent directory
      */
     get parent(): Path {
         return new Path(this._parent);
@@ -247,8 +242,6 @@ export class Path {
 
     /**
      * Returns all ancestors of this path, starting at the parent and ending at the root.
-     *
-     * @return all ancestors of this path, starting at the parent and ending at the root
      */
     get ancestors(): Path[] {
         const parents: Path[] = [];
@@ -269,7 +262,6 @@ export class Path {
      * Returns a path describing the path to the desired child node of `this` path.
      *
      * @param child the path to the desired node relative to `this` path
-     * @return a path describing the path to the desired child node of `this` path
      */
     getChild(child: string): Path {
         return new Path(this.path + "/" + child);
@@ -279,7 +271,6 @@ export class Path {
      * Returns the string representation of this path.
      *
      * @param escape `true` if and only if special characters should be escaped for use inside strings
-     * @return the string representation of this path
      */
     toString(escape: boolean = false): string {
         if (!escape)
@@ -318,15 +309,12 @@ export abstract class Node {
      *
      * @param name the name of this node
      * @param path the path to this node
-     * @return a string representation of this node given the name of and path to this node
      */
     abstract nameString(name: string, path: Path): string;
 
 
     /**
      * Returns the JSON serialization of this node.
-     *
-     * @return the JSON serialization of this node
      */
     serialize(): string {
         return JSON.stringify(this);
@@ -339,7 +327,6 @@ export abstract class Node {
      * corresponding parse method for that type.
      *
      * @param json a JSON string or object describing a node
-     * @return the JSON deserialization of the given string as a node
      */
     static deserialize(json: string | any): Node {
         if (typeof json === "string") {
@@ -385,8 +372,6 @@ export class Directory extends Node {
 
     /**
      * Returns a copy of all nodes contained in this directory.
-     *
-     * @return a copy of all nodes contained in this directory
      */
     get nodes(): { [name: string]: Node } {
         return Object.assign({}, this._nodes);
@@ -394,8 +379,6 @@ export class Directory extends Node {
 
     /**
      * Returns the number of nodes in this directory.
-     *
-     * @return the number of nodes in this directory
      */
     get nodeCount(): number {
         return Object.keys(this._nodes).length;
@@ -420,8 +403,6 @@ export class Directory extends Node {
      * directory.
      *
      * @param name the name to check
-     * @return `true` if and only if this directory contains a node with the given name or the name refers to this
-     * directory
      */
     hasNode(name: string): boolean {
         if (name === "." || name === ".." || new Path(`/${name}`).toString() === "/")
@@ -472,7 +453,6 @@ export class Directory extends Node {
      *
      * @param name the name of this node
      * @param path the path to this node
-     * @return a string that contains an HTML hyperlink that runs a command to `cd` to this directory
      */
     nameString(name: string, path: Path): string {
         return `<a href="#" class="dirLink" onclick="execute('cd ${path.toString(true)}');execute('ls')">${name}</a>`;
@@ -485,7 +465,6 @@ export class Directory extends Node {
      * The nodes inside the directory of the given object are also recursively parsed by this method.
      *
      * @param obj the object that describes a directory
-     * @return the directory described by the given object
      */
     static parse(obj: any): Directory {
         if (obj["type"] !== "Directory")
@@ -542,7 +521,6 @@ export class File extends Node {
      * Parses the given object into a file.
      *
      * @param obj the object that describes a file
-     * @return the file described by the given object
      */
     static parse(obj: any): File {
         if (obj["type"] !== "File")

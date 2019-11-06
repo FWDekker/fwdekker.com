@@ -26,8 +26,6 @@ export class UserList {
 
     /**
      * Returns a copy of the list of all users.
-     *
-     * @return a copy of the list of all users
      */
     get users(): User[] {
         return this._users.slice();
@@ -38,7 +36,6 @@ export class UserList {
      * Returns `true` if and only if a user with the given name exists.
      *
      * @param name the name of the user to check
-     * @return `true` if and only if a user with the given name exists
      */
     has(name: string): boolean {
         return this.get(name) !== undefined;
@@ -48,7 +45,6 @@ export class UserList {
      * Returns the user with the given name, or `undefined` if there is no such user.
      *
      * @param name the name of the user to return
-     * @return the user with the given name, or `undefined` if there is no such user
      */
     get(name: string): User | undefined {
         return this._users.find(it => it.name === name);
