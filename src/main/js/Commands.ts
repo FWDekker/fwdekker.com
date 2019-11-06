@@ -4,7 +4,7 @@ import {Directory, File, FileSystem, Path} from "./FileSystem"
 import {IllegalStateError} from "./Shared";
 import {Environment, InputArgs} from "./Shell";
 import {EscapeCharacters} from "./Terminal";
-import {UserSession} from "./UserSession";
+import {UserList} from "./UserList";
 
 
 /**
@@ -18,7 +18,7 @@ export class Commands {
     /**
      * The user session describing the user that executes commands.
      */
-    private readonly userSession: UserSession;
+    private readonly userSession: UserList;
     /**
      * The file system to interact with.
      */
@@ -36,7 +36,7 @@ export class Commands {
      * @param userSession the user session describing the user that executes commands
      * @param fileSystem the file system to interact with
      */
-    constructor(environment: Environment, userSession: UserSession, fileSystem: FileSystem) {
+    constructor(environment: Environment, userSession: UserList, fileSystem: FileSystem) {
         this.environment = environment;
         this.userSession = userSession;
         this.fileSystem = fileSystem;
@@ -225,8 +225,6 @@ export class Commands {
     execute(input: InputArgs): string {
         if (input.command === "factory-reset") {
             Cookies.remove("files");
-            Cookies.remove("cwd");
-            Cookies.remove("user");
             Cookies.remove("env");
             location.reload();
             throw new Error("Goodbye");
@@ -324,7 +322,7 @@ export class Commands {
     }
 
     private exit(): string {
-        this.userSession.logOut();
+        this.environment["user"].value = "";
         return "";
     }
 
@@ -471,8 +469,8 @@ export class Commands {
     }
 
     private poweroff(): string {
-        const user = this.userSession.currentUser;
-        if (user === undefined)
+        const userName = this.environment["user"].value;
+        if (userName === "")
             throw new IllegalStateError("Cannot execute `poweroff` while not logged in.");
 
         Cookies.set("poweroff", "true", {
@@ -484,7 +482,7 @@ export class Commands {
         return "" +
             `Shutdown NOW!
             
-            *** FINAL System shutdown message from ${user.name}@fwdekker.com ***
+            *** FINAL System shutdown message from ${userName}@fwdekker.com ***
             
             System going down IMMEDIATELY
             
@@ -563,7 +561,7 @@ export class Commands {
     }
 
     private whoami(): string {
-        const user = this.userSession.currentUser;
+        const user = this.userSession.get(this.environment["user"].value);
         if (user === undefined)
             throw new IllegalStateError("Cannot execute `whoami` while not logged in.");
 

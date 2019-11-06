@@ -3,7 +3,7 @@ import {Commands} from "./Commands";
 import {Directory, File, FileSystem, Node, Path} from "./FileSystem";
 import {asciiHeaderHtml, IllegalStateError, stripHtmlTags} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
-import {UserSession} from "./UserSession";
+import {UserList} from "./UserList";
 
 
 /**
@@ -21,7 +21,7 @@ export class Shell {
     /**
      * The user session describing the user that interacts with the shell.
      */
-    private readonly userSession: UserSession;
+    private readonly userList: UserList;
     /**
      * The file system.
      */
@@ -45,46 +45,12 @@ export class Shell {
      */
     constructor(inputHistory: InputHistory) {
         this.inputHistory = inputHistory;
+        this.userList = new UserList();
+        this.fileSystem = Shell.loadFileSystem();
+        this.environment = Shell.loadEnvironment(this.fileSystem, this.userList);
+        this.commands = new Commands(this.environment, this.userList, this.fileSystem);
 
-        // Read user from cookie
-        const user = Cookies.get("user");
-        if (user === "")
-            this.userSession = new UserSession();
-        else if (user === undefined || !UserSession.userExists(user))
-            this.userSession = new UserSession("felix");
-        else
-            this.userSession = new UserSession(user);
-
-        // Read files from cookie
-        let files: Directory | undefined = undefined;
-        const filesJson = Cookies.get("files");
-        if (filesJson !== undefined) {
-            try {
-                const parsedFiles = Node.deserialize(filesJson);
-                if (parsedFiles instanceof Directory)
-                    files = parsedFiles;
-                else
-                    console.warn("`files` cookie contains non-directory.");
-            } catch (error) {
-                console.warn("Failed to deserialize `files` cookie.", error);
-            }
-        }
-        this.fileSystem = new FileSystem(files);
-
-        // Read environment from cookie
-        const environment = Cookies.get("env") || "{}";
-        try {
-            this.environment = JSON.parse(environment);
-        } catch (error) {
-            console.warn("Failed to set environment from cookie.");
-            this.environment = {};
-        }
-
-        // Check cwd in environment
-        if (this.environment["cwd"] === undefined || !this.fileSystem.has(new Path(this.environment["cwd"].value)))
-            this.environment["cwd"] = {value: "/", readonly: true};
-
-        this.commands = new Commands(this.environment, this.userSession, this.fileSystem);
+        this.saveState();
     }
 
 
@@ -94,7 +60,7 @@ export class Shell {
      * @return the header that is displayed when a user logs in
      */
     generateHeader(): string {
-        if (!this.userSession.isLoggedIn)
+        if (this.environment["user"].value === "")
             return "";
 
         return "" +
@@ -115,30 +81,28 @@ export class Shell {
      * @return  the prefix based on the current state of the terminal
      */
     generatePrefix(): string {
-        if (!this.userSession.isLoggedIn) {
+        const userName = this.environment["user"].value;
+        if (userName === "") {
             if (this.attemptUser === undefined)
                 return "login as: ";
             else
                 return `Password for ${this.attemptUser}@fwdekker.com: `;
-        } else {
-            if (this.userSession.currentUser === undefined)
-                throw new IllegalStateError("User is logged in as undefined.");
-
-            const cwd = new Path(this.environment["cwd"].value);
-            const parts = cwd.ancestors.reverse();
-            parts.push(cwd);
-            const link = parts
-                .map(part => {
-                    const node = this.fileSystem.get(part);
-                    if (node === undefined)
-                        throw new IllegalStateError(`Ancestor '${part}' of cwd does not exist.`);
-
-                    return node.nameString(part.fileName + "/", part);
-                })
-                .join("");
-
-            return `${this.userSession.currentUser.name}@fwdekker.com <span class="prefixPath">${link}</span>&gt; `;
         }
+
+        const cwd = new Path(this.environment["cwd"].value);
+        const parts = cwd.ancestors.reverse();
+        parts.push(cwd);
+        const link = parts
+            .map(part => {
+                const node = this.fileSystem.get(part);
+                if (node === undefined)
+                    throw new IllegalStateError(`Ancestor '${part}' of cwd does not exist.`);
+
+                return node.nameString(part.fileName + "/", part);
+            })
+            .join("");
+
+        return `${userName}@fwdekker.com <span class="prefixPath">${link}</span>&gt; `;
     }
 
 
@@ -148,19 +112,26 @@ export class Shell {
      * @param inputString the input to process
      */
     execute(inputString: string): string {
-        if (!this.userSession.isLoggedIn) {
+        if (this.environment["user"].value === "") {
             if (this.attemptUser === undefined) {
-                this.attemptUser = inputString.trim();
+                this.attemptUser = inputString.trim() || undefined; // Set to undefined if empty string
 
                 this.saveState();
                 return EscapeCharacters.Escape + EscapeCharacters.HideInput;
             } else {
-                const isLoggedIn = this.userSession.tryLogIn(this.attemptUser, inputString);
-                this.attemptUser = undefined;
+                const attemptUser = this.userList.get(this.attemptUser);
 
+                let resultString: string;
+                if (attemptUser !== undefined && attemptUser.password === inputString) {
+                    this.environment["user"].value = this.attemptUser;
+                    resultString = this.generateHeader();
+                } else {
+                    resultString = "Access denied\n";
+                }
+
+                this.attemptUser = undefined;
                 this.saveState();
-                return EscapeCharacters.Escape + EscapeCharacters.ShowInput
-                    + (isLoggedIn ? this.generateHeader() : "Access denied\n");
+                return EscapeCharacters.Escape + EscapeCharacters.ShowInput + resultString;
             }
         }
 
@@ -183,11 +154,12 @@ export class Shell {
             output = this.writeToFile(path, output, input.redirectTarget[0] === "append");
         }
 
-        if (!this.userSession.isLoggedIn) {
+        if (this.environment["user"].value === "") {
             this.inputHistory.clear();
             for (const key of Object.getOwnPropertyNames(this.environment))
                 delete this.environment[key];
             this.environment["cwd"] = {value: "/", readonly: true};
+            this.environment["user"] = {value: "", readonly: true};
         }
         this.saveState();
 
@@ -231,9 +203,70 @@ export class Shell {
             "path": "/"
         });
         Cookies.set("env", this.environment, {"path": "/"});
+    }
 
-        const user = this.userSession.currentUser;
-        Cookies.set("user", user === undefined ? "" : user.name, {"path": "/"});
+    /**
+     * Returns the file system loaded from a cookie, or the default file system if no cookie is present or the cookie
+     * is invalid.
+     *
+     * @return the file system loaded from a cookie, or the default file system if no cookie is present or the cookie
+     * is invalid
+     */
+    private static loadFileSystem(): FileSystem {
+        let files: Directory | undefined = undefined;
+        const filesString = Cookies.get("files");
+        if (filesString !== undefined) {
+            try {
+                const parsedFiles = Node.deserialize(filesString);
+                if (parsedFiles instanceof Directory)
+                    files = parsedFiles;
+                else
+                    console.warn("`files` cookie contains non-directory.");
+            } catch (error) {
+                console.warn("Failed to deserialize `files` cookie.", error);
+            }
+        }
+        return new FileSystem(files);
+    }
+
+    /**
+     * Returns the environment loaded from a cookie, or the default environment if no cookie is present or the cookie
+     * is invalid.
+     *
+     * @param fileSystem the file system used to validate the `cwd` environment variable
+     * @param userList the list of users used to validate the `user` environment variable
+     * @return the environment loaded from a cookie, or the default environment if no cookie is present or the cookie
+     * is invalid
+     */
+    private static loadEnvironment(fileSystem: FileSystem, userList: UserList): Environment {
+        const environmentString = Cookies.get("env") || "{}";
+        let environment: Environment;
+        try {
+            environment = JSON.parse(environmentString);
+        } catch (error) {
+            console.warn("Failed to set environment from cookie.");
+            environment = {};
+        }
+
+        // Check cwd in environment
+        if (environment["cwd"] === undefined) {
+            environment["cwd"] = {value: "/", readonly: true};
+        } else if (!fileSystem.has(new Path(environment["cwd"].value))) {
+            console.warn(`Invalid cwd '${environment["cwd"].value}' in environment.`);
+            environment["cwd"] = {value: "/", readonly: true};
+        }
+        environment["cwd"].readonly = true;
+
+        // Check user in environment
+        if (environment["user"] === undefined) {
+            environment["user"] = {value: "felix", readonly: true};
+        } else if (environment["user"].value !== "" && !userList.has(environment["user"].value)) {
+            console.warn(`Invalid user '${environment["cwd"].value}' in environment.`);
+            environment["user"] = {value: "felix", readonly: true};
+        }
+        environment["user"].readonly = true;
+
+        return environment;
     }
 }
 

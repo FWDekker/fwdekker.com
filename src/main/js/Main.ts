@@ -28,6 +28,6 @@ addOnLoad(() => {
     window.execute = (command: string) => window.terminal.processInput(command);
 
     // @ts-ignore: Ugly hack to execute it anyway
-    if (window.terminal.shell.userSession.isLoggedIn)
+    if (window.terminal.shell.environment["user"].value !== "")
         window.terminal.processInput("ls");
 });
