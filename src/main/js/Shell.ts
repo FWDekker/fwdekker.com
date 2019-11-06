@@ -2,7 +2,8 @@ import * as Cookies from "js-cookie";
 import {Commands} from "./Commands";
 import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Node, Path} from "./FileSystem";
-import {asciiHeaderHtml, IllegalArgumentError, IllegalStateError, stripHtmlTags} from "./Shared";
+import {InputParser} from "./InputParser";
+import {asciiHeaderHtml, IllegalStateError, stripHtmlTags} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
 import {UserList} from "./UserList";
 
@@ -124,8 +125,13 @@ export class Shell {
 
         this.inputHistory.addEntry(inputString.trim());
 
-        const parser = new InputParser(this.environment);
-        const input = parser.parse(stripHtmlTags(inputString));
+        const parser = InputParser.create(this.environment, this.fileSystem);
+        let input;
+        try {
+            input = parser.parse(stripHtmlTags(inputString));
+        } catch (error) {
+            return error.message;
+        }
         if (input.redirectTarget[0] === "write") {
             try {
                 const path = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
@@ -349,226 +355,5 @@ export class InputArgs {
      */
     hasArg(index: number): boolean {
         return this._args[index] !== undefined;
-    }
-}
-
-/**
- * A parser for input strings.
- */
-export class InputParser {
-    /**
-     * The environment containing the variables to substitute.
-     */
-    private readonly environment: Environment;
-
-
-    /**
-     * Constructs a new input parser.
-     *
-     * @param environment the environment containing the variables to substitute
-     */
-    constructor(environment: Environment) {
-        this.environment = environment;
-    }
-
-
-    /**
-     * Parses the given input string to a set of command-line arguments.
-     *
-     * @param input the string to parse
-     */
-    parse(input: string): InputArgs {
-        const tokens = this.tokenize(input);
-        const command = tokens[0] ?? "";
-        const [options, args] = this.parseOpts(tokens.slice(1).filter(it => !it.startsWith(EscapeCharacters.Escape)));
-        const redirectTarget = this.getRedirectTarget(tokens.slice(1));
-
-        return new InputArgs(command, options, args, redirectTarget);
-    }
-
-
-    /**
-     * Tokenizes the input string.
-     *
-     * @param input the string to tokenize
-     */
-    private tokenize(input: string): string[] {
-        const tokens: string[] = [];
-
-        let token = "";
-        let isInSingleQuotes = false;
-        let isInDoubleQuotes = false;
-        let isInCurlyBraces = 0;
-        for (let i = 0; i < input.length; i++) {
-            const char = input[i];
-            switch (char) {
-                case "\\":
-                    if (i === input.length - 1)
-                        throw new IllegalArgumentError(
-                            "Unexpected end of input. '\\' was used but there was nothing to escape.");
-
-                    const nextChar = input[i + 1];
-                    if (isInSingleQuotes || isInDoubleQuotes)
-                        token += "\\" + nextChar;
-                    else if (nextChar === "n")
-                        token += "\n";
-                    else
-                        token += nextChar;
-                    i++;
-                    break;
-                case "'":
-                    if (isInDoubleQuotes)
-                        token += char;
-                    else
-                        isInSingleQuotes = !isInSingleQuotes;
-                    break;
-                case "\"":
-                    if (isInSingleQuotes)
-                        token += char;
-                    else
-                        isInDoubleQuotes = !isInDoubleQuotes;
-                    break;
-                case "{":
-                    if (isInSingleQuotes || isInDoubleQuotes)
-                        token += char;
-                    else
-                        isInCurlyBraces++;
-                    break;
-                case "}":
-                    if (isInSingleQuotes || isInDoubleQuotes)
-                        token += char;
-                    else
-                        isInCurlyBraces--;
-
-                    if (isInCurlyBraces < 0)
-                        throw new IllegalArgumentError("Unexpected closing '}' without corresponding '{'.");
-                    break;
-                case " ":
-                    if (isInSingleQuotes || isInDoubleQuotes) {
-                        token += char;
-                    } else if (token !== "") {
-                        tokens.push(token);
-                        token = "";
-                    }
-                    break;
-                case "$":
-                    if (isInSingleQuotes || isInDoubleQuotes) {
-                        token += char;
-                        break;
-                    }
-
-                    let key = "";
-                    for (; i + 1 < input.length; i++) {
-                        const nextChar = input[i + 1];
-                        if (nextChar.match(/^[0-9a-z_]+$/i))
-                            key += nextChar;
-                        else
-                            break;
-                    }
-                    if (key === "")
-                        throw new IllegalArgumentError(`Missing variable name after '$'.`);
-
-                    token += this.environment.getOrDefault(key, "");
-                    break;
-                case ">":
-                    if (isInSingleQuotes || isInDoubleQuotes) {
-                        token += char;
-                        break;
-                    }
-
-                    if (token !== "") {
-                        tokens.push(token);
-                        token = "";
-                    }
-
-                    token += EscapeCharacters.Escape + ">";
-                    if (input[i + 1] === ">") {
-                        token += `>`;
-                        i++;
-                    }
-                    while (input[i + 1] === " ")
-                        i++;
-
-                    break;
-                default:
-                    token += char;
-                    break;
-            }
-        }
-        if (token !== "")
-            tokens.push(token);
-
-        if (isInSingleQuotes || isInDoubleQuotes)
-            throw new IllegalArgumentError("Unexpected end of input. Missing closing quotation mark.");
-
-        return tokens;
-    }
-
-    /**
-     * Returns the redirect target described by the last token that describes a redirect target, or the default redirect
-     * target if no token describes a redirect target.
-     *
-     * @param tokens an array of tokens of which some tokens may describe a redirect target
-     */
-    private getRedirectTarget(tokens: string[]): InputArgs.RedirectTarget {
-        let redirectTarget: InputArgs.RedirectTarget = ["default"];
-
-        tokens.forEach(token => {
-            if (token.startsWith(`${EscapeCharacters.Escape}>>`))
-                redirectTarget = ["append", token.slice(3)];
-            else if (token.startsWith(`${EscapeCharacters.Escape}>`))
-                redirectTarget = ["write", token.slice(2)];
-        });
-
-        return redirectTarget;
-    }
-
-    /**
-     * Parses options and arguments.
-     *
-     * @param tokens the tokens that form the options and arguments
-     */
-    private parseOpts(tokens: string[]): [InputArgs.Options, string[]] {
-        const options: { [key: string]: string | null } = {};
-
-        let i;
-        for (i = 0; i < tokens.length; i++) {
-            const arg = tokens[i];
-
-            if (!arg.startsWith("-") || arg === "--")
-                break;
-
-            const argsParts = arg.split(/=(.*)/, 2);
-            if (argsParts.length === 0 || argsParts.length > 2)
-                throw new IllegalArgumentError("Unexpected number of parts.");
-            if (argsParts[0].indexOf(' ') >= 0)
-                break;
-
-            const value = argsParts.length === 1 ? null : argsParts[1];
-
-            if (argsParts[0].startsWith("--")) {
-                const key = argsParts[0].substr(2);
-                if (key === "")
-                    break;
-
-                options[key] = value;
-            } else {
-                const keys = argsParts[0].substr(1);
-                if (keys === "")
-                    break;
-
-                if (keys.length === 1) {
-                    options[keys] = value;
-                } else {
-                    if (value !== null)
-                        throw new IllegalArgumentError("Cannot assign value to multiple short options.");
-
-                    for (const key of keys)
-                        options[key] = value;
-                }
-            }
-        }
-
-        return [options, tokens.slice(i)];
     }
 }

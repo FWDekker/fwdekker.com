@@ -10,8 +10,8 @@ describe("environment", () => {
 
 
     beforeEach(() => {
-        environment = new Environment();
-        roEnvironment = new Environment(["readonly"]);
+        environment = new Environment([], {cwd: "/"});
+        roEnvironment = new Environment(["readonly"], {cwd: "/"});
     });
 
 

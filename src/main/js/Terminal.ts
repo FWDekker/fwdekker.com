@@ -219,7 +219,7 @@ export class Terminal {
                     this.isInputHidden = false;
                     break;
                 default:
-                    buffer += output.charAt(i) + output.charAt(i + 1);
+                    buffer += output.charAt(i + 1);
                     break;
             }
             i++;

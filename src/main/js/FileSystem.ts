@@ -1,4 +1,4 @@
-import {getFileExtension, IllegalArgumentError, IllegalStateError} from "./Shared";
+import {emptyFunction, getFileExtension, IllegalArgumentError, IllegalStateError} from "./Shared";
 
 
 /**
@@ -312,6 +312,19 @@ export abstract class Node {
      */
     abstract nameString(name: string, path: Path): string;
 
+    /**
+     * Recursively visits all nodes contained within this node.
+     *
+     * @param path the path to the current node
+     * @param fun the function to apply to each node, including this node
+     * @param pre the function to apply to the current node before applying the first `fun`
+     * @param post the function to apply to the current node after applying the last `fun`
+     */
+    abstract visit(path: string,
+                   fun: (node: Node, path: string) => void,
+                   pre: (node: Node, path: string) => void,
+                   post: (node: Node, path: string) => void): void;
+
 
     /**
      * Returns the JSON deserialization of the given string as a node.
@@ -451,6 +464,18 @@ export class Directory extends Node {
         return `<a href="#" class="dirLink" onclick="execute('cd ${path.toString(true)}');execute('ls')">${name}</a>`;
     }
 
+    visit(path: string,
+          fun: (node: Node, path: string) => void,
+          pre: (node: Node, path: string) => void = emptyFunction,
+          post: (node: Node, path: string) => void = emptyFunction) {
+        pre(this, path);
+
+        fun(this, path);
+        Object.keys(this._nodes).forEach(name => this._nodes[name].visit(`${path}/${name}`, fun, pre, post));
+
+        post(this, path);
+    }
+
 
     /**
      * Parses the given object into a directory.
@@ -507,6 +532,15 @@ export class File extends Node {
             default:
                 return name;
         }
+    }
+
+    visit(path: string,
+          fun: (node: Node, path: string) => void,
+          pre: (node: Node, path: string) => void = emptyFunction,
+          post: (node: Node, path: string) => void = emptyFunction) {
+        pre(this, path);
+        fun(this, path);
+        post(this, path);
     }
 
 

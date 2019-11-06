@@ -3,107 +3,34 @@ import {expect} from "chai";
 
 import "../main/js/Extensions"
 import {Environment} from "../main/js/Environment";
-import {InputParser} from "../main/js/Shell";
+import {Globber, InputParser, Tokenizer} from "../main/js/InputParser";
+import {Directory, File, FileSystem} from "../main/js/FileSystem";
+import {EscapeCharacters} from "../main/js/Terminal";
 
 
-describe("input args", () => {
+describe("input parser", () => {
     let parser: InputParser;
 
 
     beforeEach(() => {
-        parser = new InputParser(new Environment());
+        const dummyGlobber = new class extends Globber {
+            constructor() {
+                super(new FileSystem(), "");
+            }
+
+
+            glob(tokens: string[]): string[] {
+                return tokens;
+            }
+        };
+
+        parser = new InputParser(new Tokenizer(new Environment()), dummyGlobber);
     });
 
-
-    describe("tokenization", () => {
-        it("concatenates multiple strings into one token", () => {
-            expect(parser.parse(`'co'm"m nd"`).command).to.equal("comm nd");
-        });
-
-        it("includes escaped spaces into the token", () => {
-            expect(parser.parse("com\\ mand").command).to.equal("com mand");
-        });
-
-        it("includes escaped quotation marks into the token", () => {
-            expect(parser.parse(`com\\'man\\"d`).command).to.equal(`com'man"d`);
-        });
-
-        it("does not escape ordinary characters inside strings", () => {
-            expect(parser.parse(`\\p`).command).to.equal("p");
-            expect(parser.parse(`'\\p'`).command).to.equal("\\p");
-            expect(parser.parse(`"\\p"`).command).to.equal("\\p");
-        });
-
-        describe("grouping", () => {
-            describe("quotes",() => {
-                it("groups using single quotes", () => {
-                    expect(parser.parse("a'b'a").command).to.equal("aba");
-                });
-
-                it("groups using double quotes", () => {
-                    expect(parser.parse(`a"b"a`).command).to.equal("aba");
-                });
-
-                it("throws an error if single quotes are not closed", () => {
-                    expect(() => parser.parse("a'ba")).to.throw;
-                });
-
-                it("throws an error if double quotes are not closed", () => {
-                    expect(() => parser.parse(`a"ba`)).to.throw;
-                });
-
-                it("does not group double quotes within single quotes", () => {
-                    expect(parser.parse(`a'b"b'a`).command).to.equal(`ab"ba`);
-                });
-
-                it("does not group single quotes within double quotes", () => {
-                    expect(parser.parse(`a"b'b"a`).command).to.equal("ab'ba");
-                });
-            });
-
-            describe("curly braces",() => {
-                it("groups using curly braces", () => {
-                    expect(parser.parse("a{b}a").command).to.equal("aba");
-                });
-
-                it("groups using nested curly braces", ()=> {
-                    expect(parser.parse("a{{b}{b}}a").command).to.equal("abba");
-                });
-
-                it("throws an error if curly braces are not closed", () => {
-                    expect(() => parser.parse("a{ba")).to.throw;
-                });
-
-                it("throws an error if curly braces are not opened", () => {
-                    expect(() => parser.parse("a}ba")).to.throw;
-                });
-
-                it("throws an error if nested curly braces are not closed", () => {
-                    expect(() => parser.parse("a{{b}a")).to.throw;
-                });
-
-                it("does not group curly braces within single quotes", () => {
-                    expect(parser.parse(`a'b{b'a`).command).to.equal("ab{ba");
-                });
-
-                it("does not group curly braces within double quotes", () => {
-                    expect(parser.parse(`a"b{b"a`).command).to.equal("ab{ba");
-                });
-            });
-        });
-    });
 
     describe("command", () => {
         it("returns the first token as the command", () => {
             expect(parser.parse("command arg1 arg2").command).to.equal("command");
-        });
-
-        it("returns the first token as the command even if there are unnecessary spaces", () => {
-            expect(parser.parse("   command  arg1   arg2").command).to.equal("command");
-        });
-
-        it("returns the first token as the command even if it contains special symbols", () => {
-            expect(parser.parse("4com-mand3 arg1 arg2").command).to.equal("4com-mand3");
         });
     });
 
@@ -276,45 +203,252 @@ describe("input args", () => {
             expect(inputArgs.args).to.have.members([">", "file"]);
         });
     });
+});
+
+describe("tokenizer", () => {
+    const escape = EscapeCharacters.Escape;
+    let tokenizer: Tokenizer;
+
+
+    beforeEach(() => {
+        tokenizer = new Tokenizer(new Environment());
+    });
+
+
+    describe("tokens", () => {
+        describe("whitespace", () => {
+            it("ignores unnecessary leading whitespace", () => {
+                expect(tokenizer.tokenize("    token1 token2")).to.have.members(["token1", "token2"]);
+            });
+
+            it("ignores unnecessary trailing whitespace", () => {
+                expect(tokenizer.tokenize("token1 token2   ")).to.have.members(["token1", "token2"]);
+            });
+
+            it("ignores unnecessary whitespace in between tokens", () => {
+                expect(tokenizer.tokenize("token1     token2")).to.have.members(["token1", "token2"]);
+            });
+        });
+
+        describe("escape characters", () => {
+            it("includes escaped spaces into the token", () => {
+                expect(tokenizer.tokenize("com\\ mand")).to.have.members(["com mand"]);
+            });
+
+            it("includes escaped quotation marks in the token", () => {
+                expect(tokenizer.tokenize(`com\\'man\\"d`)).to.have.members([`com'man"d`]);
+            });
+
+            it("does not escape ordinary characters inside strings", () => {
+                expect(tokenizer.tokenize(`\\p`)).to.have.members(["p"]);
+                expect(tokenizer.tokenize(`'\\p'`)).to.have.members(["\\p"]);
+                expect(tokenizer.tokenize(`"\\p"`)).to.have.members(["\\p"]);
+            });
+
+            it("includes escaped spaces at the very end", () => {
+                expect(tokenizer.tokenize("a b\\ ")).to.have.members(["a", "b "]);
+            });
+
+            it("throws an error if an escape occurs but no character follows", () => {
+                expect(() => tokenizer.tokenize("\\")).to.throw;
+            });
+        });
+
+        describe("grouping", () => {
+            describe("quotes", () => {
+                it("groups using single quotes", () => {
+                    expect(tokenizer.tokenize("a'b'a")).to.have.members(["aba"]);
+                });
+
+                it("groups using double quotes", () => {
+                    expect(tokenizer.tokenize(`a"b"a`)).to.have.members(["aba"]);
+                });
+
+                it("throws an error if single quotes are not closed", () => {
+                    expect(() => tokenizer.tokenize("a'ba")).to.throw;
+                });
+
+                it("throws an error if double quotes are not closed", () => {
+                    expect(() => tokenizer.tokenize(`a"ba`)).to.throw;
+                });
+
+                it("does not group double quotes within single quotes", () => {
+                    expect(tokenizer.tokenize(`a'b"b'a`)).to.have.members([`ab"ba`]);
+                });
+
+                it("does not group single quotes within double quotes", () => {
+                    expect(tokenizer.tokenize(`a"b'b"a`)).to.have.members(["ab'ba"]);
+                });
+            });
+
+            describe("curly braces", () => {
+                it("groups using curly braces", () => {
+                    expect(tokenizer.tokenize("a{b}a")).to.have.members(["aba"]);
+                });
+
+                it("groups using nested curly braces", () => {
+                    expect(tokenizer.tokenize("a{{b}{b}}a")).to.have.members(["abba"]);
+                });
+
+                it("throws an error if curly braces are not closed", () => {
+                    expect(() => tokenizer.tokenize("a{ba")).to.throw;
+                });
+
+                it("throws an error if curly braces are not opened", () => {
+                    expect(() => tokenizer.tokenize("a}ba")).to.throw;
+                });
+
+                it("throws an error if nested curly braces are not closed", () => {
+                    expect(() => tokenizer.tokenize("a{{b}a")).to.throw;
+                });
+
+                it("does not group curly braces within single quotes", () => {
+                    expect(tokenizer.tokenize(`a'b{b'a`)).to.have.members(["ab{ba"]);
+                });
+
+                it("does not group curly braces within double quotes", () => {
+                    expect(tokenizer.tokenize(`a"b{b"a`)).to.have.members(["ab{ba"]);
+                });
+            });
+        });
+    });
 
     describe("environment", () => {
         beforeEach(() => {
-            parser = new InputParser(new Environment([], {a: "b", aa: "c", r: ">"}));
+            tokenizer = new Tokenizer(new Environment([], {a: "b", aa: "c", r: ">", cwd: "/"}));
         });
 
 
         it("substitutes a known environment variable with its value", () => {
-            expect(parser.parse("$a").command).to.equal("b");
+            expect(tokenizer.tokenize("$a")).to.have.members(["b"]);
         });
 
         it("substitutes an unknown environment variable with nothing", () => {
-            expect(parser.parse("$b").command).to.equal("");
+            expect(tokenizer.tokenize("a$b")).to.have.members(["a"]);
         });
 
         it("substitutes consecutive known environment variables with their value", () => {
-            expect(parser.parse("$a$aa$a").command).to.equal("bcb");
+            expect(tokenizer.tokenize("$a$aa$a")).to.have.members(["bcb"]);
         });
 
         it("throws an error for nameless environment variables", () => {
-            expect(() => parser.parse("$").command).to.throw;
+            expect(() => tokenizer.tokenize("$")).to.throw;
         });
 
         it("does not substitute environment variables in the middle of a single-quoted string", () => {
-            expect(parser.parse("a'$a'c").command).to.equal("a$ac");
+            expect(tokenizer.tokenize("a'$a'c")).to.have.members(["a$ac"]);
         });
 
         it("does not substitute environment variables in the middle of a double-quoted string", () => {
-            expect(parser.parse(`a"$a"c`).command).to.equal("a$ac");
+            expect(tokenizer.tokenize(`a"$a"c`)).to.have.members(["a$ac"]);
         });
 
         it("substitutes environment variables in the middle of curly braces", () => {
-            expect(parser.parse("a{$a}c").command).to.equal("abc");
-        });
-
-        it("substitutes special characters without interpreting them", () => {
-            const inputArgs = parser.parse("command $r file");
-            expect(inputArgs.args).to.have.members([">", "file"]);
-            expect(inputArgs.redirectTarget).to.have.members(["default"]);
+            expect(tokenizer.tokenize("a{$a}c")).to.have.members(["abc"]);
         });
     });
+
+    describe("escapes", () => {
+        it("escapes output target characters", () => {
+            expect(tokenizer.tokenize("a >b")).to.have.members(["a", `${escape}>b`]);
+            expect(tokenizer.tokenize("a >>b")).to.have.members(["a", `${escape}>${escape}>b`]);
+        });
+
+        it("does not escape escaped target characters", () => {
+            expect(tokenizer.tokenize("a \\>b")).to.have.members(["a", ">b"]);
+            expect(tokenizer.tokenize("a \\>>b")).to.have.members(["a", ">", `${escape}>b`]);
+        });
+
+        it("escapes glob characters", () => {
+            expect(tokenizer.tokenize("a b?")).to.have.members(["a", `b${escape}?`]);
+            expect(tokenizer.tokenize("a b*")).to.have.members(["a", `b${escape}*`]);
+            expect(tokenizer.tokenize("a b**")).to.have.members(["a", `b${escape}*${escape}*`]);
+        });
+
+        it("does not escape escaped glob characters", () => {
+            expect(tokenizer.tokenize("a b\\?")).to.have.members(["a", `b?`]);
+            expect(tokenizer.tokenize("a b\\*")).to.have.members(["a", `b*`]);
+        });
+    });
+});
+
+describe("globber", () => {
+    const escape = EscapeCharacters.Escape;
+    let globber: Globber;
+
+
+    beforeEach(() => {
+        globber = new Globber(
+            new FileSystem(new Directory({
+                "aa": new Directory({
+                    "ab1": new File()
+                }),
+                "ab1": new File(),
+                "ab2": new File(),
+                "aa3": new File(),
+                "b?": new File(),
+                ".a": new File()
+            })),
+            "/"
+        );
+    });
+
+
+    describe("?", () => {
+        it("throws an error if no matches are found", () => {
+            expect(() => globber.glob([`x${escape}?`])).to.throw;
+        });
+
+        it("globs a single ?", () => {
+            expect(globber.glob([`ab${escape}?`])).to.have.members(["ab1", "ab2"]);
+        });
+
+        it("globs multiple ?s", () => {
+            expect(globber.glob([`a${escape}?${escape}?`])).to.have.members(["ab1", "ab2", "aa3"]);
+        });
+
+        it("does not process unescaped ?s", () => {
+            expect(globber.glob(["a?"])).to.have.members(["a?"]);
+        });
+    });
+
+    describe("*", () => {
+        it("throws an error if no matches are found", () => {
+            expect(() => globber.glob([`x${escape}*`])).to.throw;
+        });
+
+        it("globs a single *", () => {
+            expect(globber.glob([`a${escape}*`])).to.have.members(["aa", "ab1", "ab2", "aa3"]);
+        });
+
+        it("globs multiple *s", () => {
+            expect(globber.glob([`a${escape}*/${escape}*`])).to.have.members(["aa/ab1"]);
+        });
+
+        it("does not process unescaped *s", () => {
+            expect(globber.glob(["a*"])).to.have.members(["a*"]);
+        });
+    });
+
+    describe("**", () => {
+        it("throws an error if no matches are found", () => {
+            expect(() => globber.glob([`x${escape}**`])).to.throw;
+        });
+
+        it("globs **", () => {
+            expect(globber.glob([`${escape}*${escape}*b1`])).to.have.members(["ab1", "aa/ab1"]);
+        });
+
+        it("does not match the directory itself", () => {
+            expect(globber.glob([`${escape}*${escape}*`]).map(it => it.trim())).to.not.contain("");
+        });
+
+        it("does not process unescaped **s", () => {
+            expect(globber.glob(["a**"])).to.have.members(["a**"]);
+        });
+    });
+
+    it("does not use an embedded `.*` in regex matching", () => {
+        expect(globber.glob([`.${escape}*`])).to.have.members([".a"]);
+    })
 });

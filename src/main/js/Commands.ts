@@ -270,11 +270,11 @@ export class Commands {
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
                 if (!this.fileSystem.has(path))
-                    return `cat: ${it}: No such file`;
+                    return `cat: ${path}: No such file`;
 
                 const node = this.fileSystem.get(path);
                 if (!(node instanceof File))
-                    return `cat: ${it}: No such file`;
+                    return `cat: ${path}: No such file`;
 
                 return node.contents;
             })
