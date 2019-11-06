@@ -45,7 +45,7 @@ export class Commands {
             "cat": new Command(
                 this.cat,
                 `concatenate and print files`,
-                `cat FILE ...`,
+                `cat FILE...`,
                 `Reads files sequentially, writing them to the standard output.`,
                 new InputValidator({minArgs: 1})
             ),
@@ -53,30 +53,32 @@ export class Commands {
                 this.clear,
                 `clear terminal output`,
                 `clear`,
-                `Clears all previous terminal output.`.trimLines(),
+                `Clears all previous terminal output.`,
                 new InputValidator({maxArgs: 0})
             ),
             "cd": new Command(
                 this.cd,
                 `change directory`,
                 `cd [DIRECTORY]`,
-                `Changes the current working directory to [DIRECTORY].
-                If [DIRECTORY] is empty, the current working directory is changed to the root.`.trimLines(),
+                `Changes the current working directory to [DIRECTORY]. If [DIRECTORY] is empty, the current working \\\
+                directory is changed to the root.`.trimMultiLines(),
                 new InputValidator({maxArgs: 1})
             ),
             "cp": new Command(
                 this.cp,
                 `copy files`,
-                `cp [-R] SOURCE DESTINATION
-                cp [-R] SOURCES... DESTINATION`,
-                `In its first form, the file or directory at SOURCE is copied to DESTINATION.
-                If DESTINATION is an existing directory, SOURCE is copied into that directory, retaining the file name from SOURCE.
-                If DESTINATION does not exist, SOURCE is copied to the exact location of DESTINATION.
+                `cp [-r | -R | --recursive] SOURCE DESTINATION
+                cp [-r | -R | --recursive] SOURCES... DESTINATION`,
+                `In its first form, the file or directory at SOURCE is copied to DESTINATION. If DESTINATION is an \\\
+                existing directory, SOURCE is copied into that directory, retaining the file name from SOURCE. If \\\
+                DESTINATION does not exist, SOURCE is copied to the exact location of DESTINATION.
 
-                In its second form, all files and directories at SOURCES are copied to DESTINATION.
-                DESTINATION must be a pre-existing directory, and all SOURCES are copied into DESTINATION retaining the file names from SOURCES.
+                In its second form, all files and directories at SOURCES are copied to DESTINATION. DESTINATION must \\\
+                be a pre-existing directory, and all SOURCES are copied into DESTINATION retaining the file names \\\
+                from SOURCES.
 
-                In both forms, sources are not copied if they are directories unless the -R options is given.`.trimLines(),
+                In both forms, sources are not copied if they are directories unless the -R options is given.\\\
+                `.trimMultiLines(),
                 new InputValidator({minArgs: 2})
             ),
             "echo": new Command(
@@ -84,14 +86,15 @@ export class Commands {
                 `display text`,
                 `echo [-n] [TEXT]`,
                 `Displays [TEXT].
-                Unless the -n parameter is given, a newline is appended to the end.`.trimLines(),
+
+                Unless the -n parameter is given, a newline is appended to the end.`.trimMultiLines(),
                 new InputValidator()
             ),
             "exit": new Command(
                 this.exit,
                 `close session`,
                 `exit`,
-                `Closes the terminal session.`.trimLines(),
+                `Closes the terminal session.`,
                 new InputValidator({maxArgs: 0})
             ),
             "help": new Command(
@@ -99,34 +102,37 @@ export class Commands {
                 `display documentation`,
                 `help [COMMAND...]`,
                 `Displays help documentation for each command in [COMMAND...].
-                If no commands are given, a list of all commands is shown.`.trimLines(),
+
+                If no commands are given, a list of all commands is shown.`.trimMultiLines(),
                 new InputValidator()
             ),
             "ls": new Command(
                 this.ls,
                 `list directory contents`,
-                `ls [-a] [DIRECTORY...]`,
-                `Displays the files and directories in [DIRECTORY...].
-                If no directory is given, the files and directories in the current working directory are shown.
-                If more than one directory is given, the files and directories are shown for each given directory in order.
-                Files starting with a . are only shown if the -a option is given, with the exception of . and .., which are always shown.`.trimLines(),
+                `ls [-a | -A] [DIRECTORY...]`,
+                `Displays the files and directories in [DIRECTORY...]. If no directory is given, the files and \\\
+                directories in the current working directory are shown. If more than one directory is given, the \\\
+                files and directories are shown for each given directory in order.
+
+                Files starting with a . are only shown if the -a option is given, with the exception of . and .., \\\
+                which are always shown.`.trimMultiLines(),
                 new InputValidator()
             ),
             "man": new Command(
                 this.man,
                 `display manual documentation pages`,
                 `man PAGE...`,
-                `Displays the manual pages with names PAGE....`.trimLines(),
+                `Displays the manual pages with names PAGE....`,
                 new InputValidator()
             ),
             "mkdir": new Command(
                 this.mkdir,
                 `make directories`,
-                `mkdir [-p] DIRECTORY ...`,
+                `mkdir [-p] DIRECTORY...`,
                 `Creates the directories given by DIRECTORY.
 
-                If more than one directory is given, the directories are created in the order they are given in.
-                If the -p option is given, parent directories that do not exist are created as well.`.trimLines(),
+                If more than one directory is given, the directories are created in the order they are given in. If \\\
+                the -p option is given, parent directories that do not exist are created as well.`.trimMultiLines(),
                 new InputValidator({minArgs: 1})
             ),
             "mv": new Command(
@@ -134,12 +140,13 @@ export class Commands {
                 `move files`,
                 `mv SOURCE DESTINATION
                 mv SOURCES... DESTINATION`,
-                `In its first form, the file or directory at SOURCE is moved to DESTINATION.
-                If DESTINATION is an existing directory, SOURCE is moved into that directory, retaining the file name from SOURCE.
-                If DESTINATION does not exist, SOURCE is moved to the exact location of DESTINATION.
+                `In its first form, the file or directory at SOURCE is moved to DESTINATION. If DESTINATION is an \\\
+                existing directory, SOURCE is moved into that directory, retaining the file name from SOURCE. If \\\
+                DESTINATION does not exist, SOURCE is moved to the exact location of DESTINATION.
 
-                In its second form, all files and directories at SOURCES are moved to DESTINATION.
-                DESTINATION must be a pre-existing directory, and all SOURCES are moved into DESTINATION retaining the file names from SOURCES.`.trimLines(),
+                In its second form, all files and directories at SOURCES are moved to DESTINATION. DESTINATION must \\\
+                be a pre-existing directory, and all SOURCES are moved into DESTINATION retaining the file names \\\
+                from SOURCES.`.trimMultiLines(),
                 new InputValidator({minArgs: 2})
             ),
             "open": new Command(
@@ -148,62 +155,59 @@ export class Commands {
                 `open [-b | --blank] FILE`,
                 `Opens the web page linked to by FILE in this browser window.
 
-                If -b or --blank is set, the web page is opened in a new tab.`.trimLines(),
+                If -b or --blank is set, the web page is opened in a new tab.`.trimMultiLines(),
                 new InputValidator({minArgs: 1, maxArgs: 1})
             ),
             "poweroff": new Command(
                 this.poweroff,
                 `close down the system`,
                 `poweroff`,
-                `Automated shutdown procedure to nicely notify users when the system is shutting down.`.trimLines(),
+                `Automated shutdown procedure to nicely notify users when the system is shutting down.`,
                 new InputValidator({maxArgs: 0})
             ),
             "pwd": new Command(
                 this.pwd,
                 `print working directory`,
                 `pwd`,
-                `Displays the current working directory.`.trimLines(),
+                `Displays the current working directory.`,
                 new InputValidator({maxArgs: 0})
             ),
             "rm": new Command(
                 this.rm,
                 `remove file`,
                 `rm [-f | --force] [-r | -R | --recursive] [--no-preserve-root] FILE...`,
-                `Removes the files given by FILE.
-
-                If more than one file is given, the files are removed in the order they are given in.
+                `Removes the files given by FILE. If more than one file is given, the files are removed in the order \\\
+                they are given in.
 
                 If -f or --force is set, no warning is given if a file could not be removed.
 
                 If -r, -R, or --recursive is set, files and directories are removed recursively.
 
-                Unless --no-preserve-root is set, the root directory cannot be removed.`.trimLines(),
+                Unless --no-preserve-root is set, the root directory cannot be removed.`.trimMultiLines(),
                 new InputValidator({minArgs: 1})
             ),
             "rmdir": new Command(
                 this.rmdir,
                 `remove directories`,
                 `rmdir DIRECTORY...`,
-                `Removes the directories given by DIRECTORY.
-
-                If more than one directory is given, the directories are removed in the order they are given in.`.trimLines(),
+                `Removes the directories given by DIRECTORY. If more than one directory is given, the directories \\\
+                are removed in the order they are given in.`.trimMultiLines(),
                 new InputValidator({minArgs: 1})
             ),
             "set": new Command(
                 this.set,
                 `set environment variable`,
-                `set key [value]`,
-                `Sets the environment variable with the given key to the given value.
-                If no value is given, the environment variable is cleared.`.trimLines(),
+                `set KEY [VALUE]`,
+                `Sets the environment variable KEY to VALUE. If no value is given, the environment variable is \\\
+                cleared. Read-only variables cannot be set.`.trimMultiLines(),
                 new InputValidator({minArgs: 1, maxArgs: 2})
             ),
             "touch": new Command(
                 this.touch,
                 `change file timestamps`,
                 `touch FILE...`,
-                `Update the access and modification times of each FILE to the current time.
-
-                If a file does not exist, it is created.`.trimLines(),
+                `Update the access and modification times of each FILE to the current time. If a file does not \\\
+                exist, it is created.`.trimMultiLines(),
                 new InputValidator({minArgs: 1})
             ),
             "whoami": new Command(
@@ -297,7 +301,7 @@ export class Commands {
             return this.moveCopyMappings(input)
                 .map(([source, destination]) => {
                     try {
-                        this.fileSystem.copy(source, destination, input.hasAnyOption(["r", "R"]));
+                        this.fileSystem.copy(source, destination, input.hasAnyOption(["r", "R", "recursive"]));
                         return "";
                     } catch (error) {
                         return error.message;
@@ -358,12 +362,14 @@ export class Commands {
             const commandEntries = commandNames
                 .map((it, i) => `${commandLinks[i]}${this.commands[it].summary}`);
 
-            return `The source code of this website is <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on git</a>.
+            return `The source code of this website is \\\
+                   <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on git</a>.
 
                    <b>List of commands</b>
                    ${commandEntries.join("\n")}
 
-                   Write "help [COMMAND]" or click a command in the list above for more information on a command.`.trimLines();
+                   Write "help [COMMAND]" or click a command in the list above for more information on a command.\\\
+                   `.trimMultiLines();
         }
     }
 

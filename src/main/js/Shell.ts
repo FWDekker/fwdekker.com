@@ -417,7 +417,8 @@ export class InputParser {
             switch (char) {
                 case "\\":
                     if (i === input.length - 1)
-                        throw new IllegalArgumentError("Unexpected end of input. `\\` was used but there was nothing to escape.");
+                        throw new IllegalArgumentError(
+                            "Unexpected end of input. `\\` was used but there was nothing to escape.");
 
                     const nextChar = input[i + 1];
                     if (isInSingleQuotes || isInDoubleQuotes)

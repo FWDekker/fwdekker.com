@@ -54,7 +54,8 @@ export class Environment {
      */
     delete(key: string): void {
         if (!Environment.isKeyValid(key))
-            throw new IllegalArgumentError("Environment variable keys can only contain alphanumerical characters and underscores.");
+            throw new IllegalArgumentError(
+                "Environment variable keys can only contain alphanumerical characters and underscores.");
 
         delete this._variables[key];
     }
@@ -125,7 +126,8 @@ export class Environment {
      */
     set(key: string, value: string): void {
         if (!Environment.isKeyValid(key))
-            throw new IllegalArgumentError("Environment variable keys can only contain alphanumerical characters and underscores.");
+            throw new IllegalArgumentError(
+                "Environment variable keys can only contain alphanumerical characters and underscores.");
 
         this._variables[key] = value;
     }

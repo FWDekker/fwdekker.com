@@ -1,6 +1,8 @@
 interface String {
     trimLines(): string;
 
+    trimMultiLines(): string;
+
     replaceAll(regex: RegExp, replacement: string): string;
 }
 
@@ -8,7 +10,18 @@ interface String {
  * Returns this string with all leading and trailing whitespace removed from each line.
  */
 String.prototype.trimLines = function(): string {
-    return this.split("\n").map(it => it.trim()).join("\n");
+    return this.split("\n").map(it => it.trimStart()).join("\n");
+};
+
+/**
+ * Returns this string with all leading and trailing whitespace removed from each line, and from lines that are split
+ * using a the `\\` symbol.
+ *
+ * That is, when writing multilines, write `\\\` at the end for this method to recognise where the string has been
+ * split.
+ */
+String.prototype.trimMultiLines = function(): string {
+    return this.trimLines().split("\\").map(it => it.trimStart()).join("");
 };
 
 /**
