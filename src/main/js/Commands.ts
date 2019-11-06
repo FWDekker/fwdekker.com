@@ -191,7 +191,8 @@ export class Commands {
                 `remove directories`,
                 `rmdir DIRECTORY...`,
                 `Removes the directories given by DIRECTORY. If more than one directory is given, the directories \\\
-                are removed in the order they are given in.`.trimMultiLines(),
+                are removed in the order they are given in. Non-empty directories will not be removed.\\\
+                `.trimMultiLines(),
                 new InputValidator({minArgs: 1})
             ),
             "set": new Command(
@@ -520,7 +521,7 @@ export class Commands {
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
                 try {
-                    this.fileSystem.remove(path, false, false, false);
+                    this.fileSystem.remove(path, false, true, false);
                     return "";
                 } catch (error) {
                     return error.message;

@@ -69,7 +69,7 @@ describe("input parser", () => {
             });
 
             it("considers an assignment to an empty short option to be an argument", () => {
-                expect(parser.parse("command -=value -p").options).not.to.have.own.property("p");
+                expect(parser.parse("command -=value -p").options).to.not.have.own.property("p");
             });
         });
 
@@ -98,7 +98,7 @@ describe("input parser", () => {
 
             it("considers an assignment to an empty long option to be an argument", () => {
                 const options = parser.parse("command --=value -p").options;
-                expect(options).not.to.have.own.property("p");
+                expect(options).to.not.have.own.property("p");
             });
         });
 

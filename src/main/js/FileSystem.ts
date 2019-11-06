@@ -147,7 +147,7 @@ export class FileSystem {
      *
      * @param targetPath the path to the node to be removed
      * @param force if inability to remove a file should be ignored
-     * @param recursive if directories should be removed recursively
+     * @param recursive if the target should be deleted even if it's a non-empty directory
      * @param noPreserveRoot `true` if and only if the root directory should be deletable
      * @throws if the node to remove does not exist and `force` is `false`
      */
@@ -167,8 +167,8 @@ export class FileSystem {
         if (target instanceof Directory) {
             if (targetPath.toString() === "/" && !noPreserveRoot)
                 throw new IllegalArgumentError(`Cannot remove root directory.`);
-            if (!recursive)
-                throw new IllegalArgumentError(`'${targetPath}' is a directory.`);
+            if (target.nodeCount !== 0 && !recursive)
+                throw new IllegalArgumentError(`'${targetPath} is a non-empty directory.'`);
         }
 
         parent.removeNode(targetPath.fileName);
