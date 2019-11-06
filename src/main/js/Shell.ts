@@ -185,6 +185,8 @@ export class Shell {
 
         if (!this.userSession.isLoggedIn) {
             this.inputHistory.clear();
+            for (const key of Object.getOwnPropertyNames(this.environment))
+                delete this.environment[key];
             this.environment["cwd"] = {value: "/", readonly: true};
         }
         this.saveState();

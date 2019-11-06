@@ -492,9 +492,8 @@ export class Directory extends Node {
             throw `Cannot deserialize node of type '${obj["type"]}'.`;
 
         const nodes: { [name: string]: Node } = {};
-        for (const name in obj["_nodes"])
-            if (obj["_nodes"].hasOwnProperty(name))
-                nodes[name] = Node.deserialize(obj["_nodes"][name]);
+        for (const name of Object.getOwnPropertyNames(obj["_nodes"]))
+            nodes[name] = Node.deserialize(obj["_nodes"][name]);
 
         return new Directory(nodes);
     }
