@@ -391,7 +391,7 @@ export class Commands {
 
                 const nodes = node.nodes;
                 Object.keys(nodes)
-                    .sortAlphabetically((x) => x, false)
+                    .sortAlphabetically(it => it, true)
                     .forEach(name => {
                         const node = nodes[name];
                         if (!input.hasAnyOption(["a", "A"]) && name.startsWith("."))

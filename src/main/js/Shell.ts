@@ -101,7 +101,7 @@ export class Shell {
     execute(inputString: string): string {
         if (this.environment.get("user") === "") {
             if (this.attemptUser === undefined) {
-                this.attemptUser = inputString.trim() || undefined; // Set to undefined if empty string
+                this.attemptUser = inputString.trim() ?? undefined; // Set to undefined if empty string
 
                 this.saveState();
                 return EscapeCharacters.Escape + EscapeCharacters.HideInput;
@@ -183,7 +183,7 @@ export class Shell {
      * Saves the shell's state in cookies.
      */
     private saveState() {
-        Cookies.set("files", this.fileSystem.root.serialize(), {
+        Cookies.set("files", this.fileSystem.root, {
             "expires": new Date(new Date().setFullYear(new Date().getFullYear() + 25)),
             "path": "/"
         });
@@ -219,7 +219,7 @@ export class Shell {
      * @param userList the list of users used to validate the `user` environment variable
      */
     private static loadEnvironment(fileSystem: FileSystem, userList: UserList): Environment {
-        const environmentString = Cookies.get("env") || "{}";
+        const environmentString = Cookies.get("env") ?? "{}";
         let environment: Environment;
         try {
             environment = new Environment(["cwd", "user"], JSON.parse(environmentString));
@@ -249,21 +249,23 @@ export class Shell {
 }
 
 
-/**
- * The options given to a command.
- */
-export type InputOptions = { [key: string]: string | null };
+export module InputArgs {
+    /**
+     * The options given to a command.
+     */
+    export type Options = { [key: string]: string | null };
 
-/**
- * The intended target of the output of a command.
- *
- * <ul>
- *     <li>`default` means that the output should be written to the standard output</li>
- *     <li>`write` means that the output should be written to the file in the given string</li>
- *     <li>`append` means that the output should be appended to the file in the given string</li>
- * </ul>
- */
-export type RedirectTarget = ["default"] | ["write" | "append", string];
+    /**
+     * The intended target of the output of a command.
+     *
+     * <ul>
+     *     <li>`default` means that the output should be written to the standard output</li>
+     *     <li>`write` means that the output should be written to the file in the given string</li>
+     *     <li>`append` means that the output should be appended to the file in the given string</li>
+     * </ul>
+     */
+    export type RedirectTarget = ["default"] | ["write" | "append", string];
+}
 
 /**
  * A set of parsed command-line arguments.
@@ -276,7 +278,7 @@ export class InputArgs {
     /**
      * The set of options and the corresponding values that the user has given.
      */
-    private readonly _options: InputOptions;
+    private readonly _options: InputArgs.Options;
     /**
      * The remaining non-option arguments that the user has given.
      */
@@ -284,7 +286,7 @@ export class InputArgs {
     /**
      * The target of the output stream.
      */
-    readonly redirectTarget: RedirectTarget;
+    readonly redirectTarget: InputArgs.RedirectTarget;
 
 
     /**
@@ -295,7 +297,7 @@ export class InputArgs {
      * @param args the remaining non-option arguments that the user has given
      * @param redirectTarget the target of the output stream
      */
-    constructor(command: string, options: InputOptions, args: string[], redirectTarget: RedirectTarget) {
+    constructor(command: string, options: InputArgs.Options, args: string[], redirectTarget: InputArgs.RedirectTarget) {
         this.command = command;
         this._options = options;
         this._args = args;
@@ -306,7 +308,7 @@ export class InputArgs {
     /**
      * Returns a copy of the options the user has given.
      */
-    get options(): InputOptions {
+    get options(): InputArgs.Options {
         return Object.assign({}, this._options);
     }
 
@@ -377,9 +379,8 @@ export class InputParser {
      */
     parse(input: string): InputArgs {
         const tokens = this.tokenize(input);
-        const command = tokens[0] || "";
-        const [options, args] =
-            this.parseOpts(tokens.slice(1).filter(it => !it.startsWith(`${EscapeCharacters.Escape}`)));
+        const command = tokens[0] ?? "";
+        const [options, args] = this.parseOpts(tokens.slice(1).filter(it => !it.startsWith(EscapeCharacters.Escape)));
         const redirectTarget = this.getRedirectTarget(tokens.slice(1));
 
         return new InputArgs(command, options, args, redirectTarget);
@@ -392,58 +393,82 @@ export class InputParser {
      * @param input the string to tokenize
      */
     private tokenize(input: string): string[] {
-        const tokens = [];
+        const tokens: string[] = [];
 
-        while (input !== "") {
-            let token;
-            [token, input] = this.getNextToken(input);
-            tokens.push(token);
-        }
-
-        return tokens;
-    }
-
-    /**
-     * Returns the first token in the given string and the remaining string.
-     *
-     * @param input the string of which to return the first token
-     */
-    private getNextToken(input: string): [string, string] {
         let token = "";
         let isInSingleQuotes = false;
         let isInDoubleQuotes = false;
+        let isInCurlyBraces = 0;
         for (let i = 0; i < input.length; i++) {
             const char = input[i];
             switch (char) {
                 case "\\":
                     if (i === input.length - 1)
                         throw new IllegalArgumentError(
-                            "Unexpected end of input. `\\` was used but there was nothing to escape.");
+                            "Unexpected end of input. '\\' was used but there was nothing to escape.");
 
                     const nextChar = input[i + 1];
                     if (isInSingleQuotes || isInDoubleQuotes)
                         token += "\\" + nextChar;
+                    else if (nextChar === "n")
+                        token += "\n";
                     else
                         token += nextChar;
                     i++;
                     break;
                 case "'":
                     if (isInDoubleQuotes)
-                        token += "'";
+                        token += char;
                     else
                         isInSingleQuotes = !isInSingleQuotes;
                     break;
                 case "\"":
                     if (isInSingleQuotes)
-                        token += "\"";
+                        token += char;
                     else
                         isInDoubleQuotes = !isInDoubleQuotes;
                     break;
-                case " ":
+                case "{":
                     if (isInSingleQuotes || isInDoubleQuotes)
                         token += char;
-                    else if (token !== "")
-                        return [token, input.slice(i + 1)];
+                    else
+                        isInCurlyBraces++;
+                    break;
+                case "}":
+                    if (isInSingleQuotes || isInDoubleQuotes)
+                        token += char;
+                    else
+                        isInCurlyBraces--;
+
+                    if (isInCurlyBraces < 0)
+                        throw new IllegalArgumentError("Unexpected closing '}' without corresponding '{'.");
+                    break;
+                case " ":
+                    if (isInSingleQuotes || isInDoubleQuotes) {
+                        token += char;
+                    } else if (token !== "") {
+                        tokens.push(token);
+                        token = "";
+                    }
+                    break;
+                case "$":
+                    if (isInSingleQuotes || isInDoubleQuotes) {
+                        token += char;
+                        break;
+                    }
+
+                    let key = "";
+                    for (; i + 1 < input.length; i++) {
+                        const nextChar = input[i + 1];
+                        if (nextChar.match(/^[0-9a-z_]+$/i))
+                            key += nextChar;
+                        else
+                            break;
+                    }
+                    if (key === "")
+                        throw new IllegalArgumentError(`Missing variable name after '$'.`);
+
+                    token += this.environment.getOrDefault(key, "");
                     break;
                 case ">":
                     if (isInSingleQuotes || isInDoubleQuotes) {
@@ -451,52 +476,32 @@ export class InputParser {
                         break;
                     }
 
-                    // Flush current token if not empty
-                    if (token !== "")
-                        return [token, input.slice(i)];
-
-                    if (i !== input.length - 1 && input[i + 1] === ">") {
-                        const token = this.getNextToken(input.slice(i + 2));
-                        token[0] = `${EscapeCharacters.Escape}>>${token[0]}`;
-                        return token;
-                    } else {
-                        const token = this.getNextToken(input.slice(i + 1));
-                        token[0] = `${EscapeCharacters.Escape}>${token[0]}`;
-                        return token;
+                    if (token !== "") {
+                        tokens.push(token);
+                        token = "";
                     }
-                case "$":
-                    const nextVariable = this.getNextVariable(input.slice(i + 1));
-                    token += nextVariable[0];
-                    i += nextVariable[1];
+
+                    token += EscapeCharacters.Escape + ">";
+                    if (input[i + 1] === ">") {
+                        token += `>`;
+                        i++;
+                    }
+                    while (input[i + 1] === " ")
+                        i++;
+
                     break;
                 default:
                     token += char;
                     break;
             }
         }
+        if (token !== "")
+            tokens.push(token);
 
         if (isInSingleQuotes || isInDoubleQuotes)
             throw new IllegalArgumentError("Unexpected end of input. Missing closing quotation mark.");
 
-        return [token, ""];
-    }
-
-    /**
-     * Returns the value of the first environment variable in the given string and the length of the variable name.
-     *
-     * @param input the string to find the first environment variable in
-     */
-    private getNextVariable(input: string): [string, number] {
-        let variable = "";
-        let i: number;
-        for (i = 0; i < input.length; i++) {
-            const char = input[i];
-            if (!char.match(/[0-9a-z_]/i))
-                break;
-
-            variable += char;
-        }
-        return [this.environment.getOrDefault(variable, ""), i];
+        return tokens;
     }
 
     /**
@@ -505,8 +510,8 @@ export class InputParser {
      *
      * @param tokens an array of tokens of which some tokens may describe a redirect target
      */
-    private getRedirectTarget(tokens: string[]): ["default"] | ["write" | "append", string] {
-        let redirectTarget: ["default"] | ["write" | "append", string] = ["default"];
+    private getRedirectTarget(tokens: string[]): InputArgs.RedirectTarget {
+        let redirectTarget: InputArgs.RedirectTarget = ["default"];
 
         tokens.forEach(token => {
             if (token.startsWith(`${EscapeCharacters.Escape}>>`))
@@ -523,7 +528,7 @@ export class InputParser {
      *
      * @param tokens the tokens that form the options and arguments
      */
-    private parseOpts(tokens: string[]): [{ [key: string]: string | null }, string[]] {
+    private parseOpts(tokens: string[]): [InputArgs.Options, string[]] {
         const options: { [key: string]: string | null } = {};
 
         let i;

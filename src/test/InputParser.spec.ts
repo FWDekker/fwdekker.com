@@ -28,9 +28,68 @@ describe("input args", () => {
             expect(parser.parse(`com\\'man\\"d`).command).to.equal(`com'man"d`);
         });
 
-        it("does not escape inside strings", () => {
-            expect(parser.parse(`\\n`).command).to.equal("n");
-            expect(parser.parse(`"\\n"`).command).to.equal("\\n");
+        it("does not escape ordinary characters inside strings", () => {
+            expect(parser.parse(`\\p`).command).to.equal("p");
+            expect(parser.parse(`'\\p'`).command).to.equal("\\p");
+            expect(parser.parse(`"\\p"`).command).to.equal("\\p");
+        });
+
+        describe("grouping", () => {
+            describe("quotes",() => {
+                it("groups using single quotes", () => {
+                    expect(parser.parse("a'b'a").command).to.equal("aba");
+                });
+
+                it("groups using double quotes", () => {
+                    expect(parser.parse(`a"b"a`).command).to.equal("aba");
+                });
+
+                it("throws an error if single quotes are not closed", () => {
+                    expect(() => parser.parse("a'ba")).to.throw;
+                });
+
+                it("throws an error if double quotes are not closed", () => {
+                    expect(() => parser.parse(`a"ba`)).to.throw;
+                });
+
+                it("does not group double quotes within single quotes", () => {
+                    expect(parser.parse(`a'b"b'a`).command).to.equal(`ab"ba`);
+                });
+
+                it("does not group single quotes within double quotes", () => {
+                    expect(parser.parse(`a"b'b"a`).command).to.equal("ab'ba");
+                });
+            });
+
+            describe("curly braces",() => {
+                it("groups using curly braces", () => {
+                    expect(parser.parse("a{b}a").command).to.equal("aba");
+                });
+
+                it("groups using nested curly braces", ()=> {
+                    expect(parser.parse("a{{b}{b}}a").command).to.equal("abba");
+                });
+
+                it("throws an error if curly braces are not closed", () => {
+                    expect(() => parser.parse("a{ba")).to.throw;
+                });
+
+                it("throws an error if curly braces are not opened", () => {
+                    expect(() => parser.parse("a}ba")).to.throw;
+                });
+
+                it("throws an error if nested curly braces are not closed", () => {
+                    expect(() => parser.parse("a{{b}a")).to.throw;
+                });
+
+                it("does not group curly braces within single quotes", () => {
+                    expect(parser.parse(`a'b{b'a`).command).to.equal("ab{ba");
+                });
+
+                it("does not group curly braces within double quotes", () => {
+                    expect(parser.parse(`a"b{b"a`).command).to.equal("ab{ba");
+                });
+            });
         });
     });
 
@@ -173,6 +232,10 @@ describe("input args", () => {
             expect(parser.parse("command >file").redirectTarget).to.have.members(["write", "file"]);
         });
 
+        it("should find the redirect target with multiple spaces between the operator and filename", () => {
+            expect(parser.parse("command >   file").redirectTarget).to.have.members(["write", "file"]);
+        });
+
         it("should find the redirect target without a space between the previous token and the target", () => {
             const inputArgs = parser.parse("command arg>file");
             expect(inputArgs.redirectTarget).to.have.members(["write", "file"]);
@@ -232,12 +295,20 @@ describe("input args", () => {
             expect(parser.parse("$a$aa$a").command).to.equal("bcb");
         });
 
-        it("substitutes nameless environment variables with nothing", () => {
-            expect(parser.parse("$$$").command).to.equal("");
+        it("throws an error for nameless environment variables", () => {
+            expect(() => parser.parse("$").command).to.throw;
         });
 
-        it("substitutes known environment variables that are in the middle of a string", () => {
-            expect(parser.parse("a'$a'c").command).to.equal("abc");
+        it("does not substitute environment variables in the middle of a single-quoted string", () => {
+            expect(parser.parse("a'$a'c").command).to.equal("a$ac");
+        });
+
+        it("does not substitute environment variables in the middle of a double-quoted string", () => {
+            expect(parser.parse(`a"$a"c`).command).to.equal("a$ac");
+        });
+
+        it("substitutes environment variables in the middle of curly braces", () => {
+            expect(parser.parse("a{$a}c").command).to.equal("abc");
         });
 
         it("substitutes special characters without interpreting them", () => {

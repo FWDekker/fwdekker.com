@@ -314,13 +314,6 @@ export abstract class Node {
 
 
     /**
-     * Returns the JSON serialization of this node.
-     */
-    serialize(): string {
-        return JSON.stringify(this);
-    }
-
-    /**
      * Returns the JSON deserialization of the given string as a node.
      *
      * This method will automatically detect what kind of node is described by the string and will call the
