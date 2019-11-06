@@ -18,25 +18,31 @@ export class FileSystem {
      */
     constructor(root: Directory | undefined = undefined) {
         if (root === undefined)
-            this.root = new Directory({
-                "personal": new Directory({
-                    "steam.lnk": new File("https://steamcommunity.com/id/Waflix"),
-                    "nukapedia.lnk": new File("https://fallout.wikia.com/wiki/User:FDekker"),
-                    "blog.lnk": new File("https://blog.fwdekker.com/"),
-                }),
-                "projects": new Directory({
-                    "randomness.lnk": new File("https://github.com/FWDekker/intellij-randomness"),
-                    "schaapi.lnk": new File("https://cafejojo.org/schaapi"),
-                    "gitea.lnk": new File("https://git.fwdekker.com/explore/"),
-                    "github.lnk": new File("https://github.com/FWDekker/"),
-                }),
-                "social": new Directory({
-                    "github.lnk": new File("https://github.com/FWDekker/"),
-                    "stackoverflow.lnk": new File("https://stackoverflow.com/u/3307872"),
-                    "linkedin.lnk": new File("https://www.linkedin.com/in/fwdekker/")
-                }),
-                "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf")
-            });
+            this.root =
+                new Directory({
+                    "home": new Directory({
+                        "felix": new Directory({
+                            "personal": new Directory({
+                                "steam.lnk": new File("https://steamcommunity.com/id/Waflix"),
+                                "nukapedia.lnk": new File("https://fallout.wikia.com/wiki/User:FDekker"),
+                                "blog.lnk": new File("https://blog.fwdekker.com/"),
+                            }),
+                            "projects": new Directory({
+                                "randomness.lnk": new File("https://github.com/FWDekker/intellij-randomness"),
+                                "schaapi.lnk": new File("https://cafejojo.org/schaapi"),
+                                "gitea.lnk": new File("https://git.fwdekker.com/explore/"),
+                                "github.lnk": new File("https://github.com/FWDekker/"),
+                            }),
+                            "social": new Directory({
+                                "github.lnk": new File("https://github.com/FWDekker/"),
+                                "stackoverflow.lnk": new File("https://stackoverflow.com/u/3307872"),
+                                "linkedin.lnk": new File("https://www.linkedin.com/in/fwdekker/")
+                            }),
+                            "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf")
+                        })
+                    }),
+                    "root": new Directory()
+                });
         else
             this.root = root;
     }

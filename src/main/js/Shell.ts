@@ -111,7 +111,9 @@ export class Shell {
 
                 let resultString: string;
                 if (attemptUser !== undefined && attemptUser.password === inputString) {
-                    this.environment.set("user", this.attemptUser);
+                    this.environment.set("user", attemptUser.name);
+                    this.environment.set("home", attemptUser.home);
+                    this.environment.set("cwd", attemptUser.home);
                     resultString = this.generateHeader();
                 } else {
                     resultString = "Access denied\n";
@@ -150,7 +152,6 @@ export class Shell {
         if (this.environment.get("user") === "") {
             this.inputHistory.clear();
             this.environment.clear();
-            this.environment.set("cwd", "/");
             this.environment.set("user", "");
         }
         this.saveState();
@@ -228,18 +229,10 @@ export class Shell {
         const environmentString = Cookies.get("env") ?? "{}";
         let environment: Environment;
         try {
-            environment = new Environment(["cwd", "user"], JSON.parse(environmentString));
+            environment = new Environment(["cwd", "home", "user"], JSON.parse(environmentString));
         } catch (error) {
             console.warn("Failed to set environment from cookie.");
-            environment = new Environment(["cwd", "user"]);
-        }
-
-        // Check cwd in environment
-        if (!environment.has("cwd")) {
-            environment.set("cwd", "/");
-        } else if (!fileSystem.has(new Path(environment.get("cwd")))) {
-            console.warn(`Invalid cwd '${environment.get("cwd")}' in environment.`);
-            environment.set("cwd", "/");
+            environment = new Environment(["cwd", "home", "user"]);
         }
 
         // Check user in environment
@@ -248,6 +241,17 @@ export class Shell {
         } else if (environment.get("user") !== "" && !userList.has(environment.get("user"))) {
             console.warn(`Invalid user '${environment.get("user")}' in environment.`);
             environment.set("user", "felix");
+        }
+
+        // Set home directory
+        environment.set("home", userList.get(environment.get("user"))?.home ?? "/");
+
+        // Check cwd in environment
+        if (!environment.has("cwd")) {
+            environment.set("cwd", environment.get("home"));
+        } else if (!fileSystem.has(new Path(environment.get("cwd")))) {
+            console.warn(`Invalid cwd '${environment.get("cwd")}' in environment.`);
+            environment.set("cwd", environment.get("home"));
         }
 
         return environment;

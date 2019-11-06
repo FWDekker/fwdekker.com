@@ -285,7 +285,7 @@ export class Commands {
 
     private cd(input: InputArgs): string {
         if (input.args[0] === "") {
-            this.environment.set("cwd", "/");
+            this.environment.set("cwd", this.environment.get("home"));
             return "";
         }
 

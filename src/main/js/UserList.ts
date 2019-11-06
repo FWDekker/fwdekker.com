@@ -16,8 +16,8 @@ export class UserList {
     constructor(users: User[] | undefined = undefined) {
         if (users === undefined)
             this._users = [
-                new User("felix", "password", "Why are you logged in on <i>my</i> account?"),
-                new User("root", "root", "Wait how did you get here?")
+                new User("felix", "password", "/home/felix", "Why are you logged in on <i>my</i> account?"),
+                new User("root", "root", "/root", "Wait how did you get here?")
             ];
         else
             this._users = users;
@@ -65,6 +65,10 @@ export class User {
      */
     readonly password: string;
     /**
+     * The path to the user's home directory.
+     */
+    readonly home: string;
+    /**
      * The description of the user.
      */
     readonly description: string;
@@ -75,11 +79,13 @@ export class User {
      *
      * @param name the name of the user
      * @param password the password of the user
+     * @param home the path to the user's home directory
      * @param description the description of the user
      */
-    constructor(name: string, password: string, description: string) {
+    constructor(name: string, password: string, home: string, description: string) {
         this.name = name;
         this.password = password;
+        this.home = home;
         this.description = description;
     }
 }
