@@ -152,6 +152,8 @@ export class Shell {
         if (input.redirectTarget[0] === "write") {
             try {
                 const path = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
+                if (this.fileSystem.get(path) instanceof Directory)
+                    return `Error while redirecting: '${path}' is a directory.`;
                 this.fileSystem.remove(path, true, false, false);
             } catch (error) {
                 return error.message;
@@ -171,7 +173,7 @@ export class Shell {
         }
         this.saveState();
 
-        return input.redirectTarget[0] === "default" ? output : "";
+        return output;
     }
 
     /**
@@ -183,7 +185,8 @@ export class Shell {
      */
     private writeToFile(path: Path, data: string, append: boolean): string {
         try {
-            this.fileSystem.add(path, new File(), true);
+            if (!this.fileSystem.has(path))
+                this.fileSystem.add(path, new File(), true);
         } catch (error) {
             return error.message;
         }
