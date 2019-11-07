@@ -232,36 +232,9 @@ describe("input args", () => {
     });
 
     describe("remove", () => {
-        it("throws an error if the node does not exist", () => {
-            expect(() => fileSystem.remove(new Path("/error"), false, false, false)).to.throw;
-        });
-
-        it("does nothing if the node does not exist and the force option is given", () => {
-            expect(() => fileSystem.remove(new Path("/error"), true, false, false)).to.not.throw;
-        });
-
-        it("throws an error if a directory is removed without the recursive option", () => {
-            fileSystem.add(new Path("/dir"), new Directory(), false);
-
-            expect(() => fileSystem.remove(new Path("/dir"), false, false, false)).to.throw;
-        });
-
-        it("throws an error if a non-empty directory is removed, even with the recursive option", () => {
-            fileSystem.add(new Path("/dir"), new Directory(), false);
-            fileSystem.add(new Path("/dir/file"), new File(), false);
-
-            expect(() => fileSystem.remove(new Path("/dir"), false, true, false)).to.throw;
-        });
-
-        it("throws an error if the root is removed without the recursive or no-preserve-root option", () => {
-            expect(() => fileSystem.remove(new Path("/"), false, false, false)).to.throw;
-            expect(() => fileSystem.remove(new Path("/"), false, true, false)).to.throw;
-            expect(() => fileSystem.remove(new Path("/"), false, false, true)).to.throw;
-        });
-
         it("removes a file", () => {
             fileSystem.add(new Path("/file"), new File(), false);
-            fileSystem.remove(new Path("/file"), false, false, false);
+            fileSystem.remove(new Path("/file"));
 
             expect(fileSystem.has(new Path("/file"))).to.be.false;
         });
@@ -270,7 +243,7 @@ describe("input args", () => {
             fileSystem.add(new Path("/dir"), new Directory(), false);
             fileSystem.add(new Path("/dir/file"), new File(), false);
 
-            fileSystem.remove(new Path("/dir"), false, true, false);
+            fileSystem.remove(new Path("/dir"));
 
             expect(fileSystem.has(new Path("/dir"))).to.be.false;
             expect(fileSystem.has(new Path("/dir/file"))).to.be.false;
@@ -281,7 +254,7 @@ describe("input args", () => {
             fileSystem.add(new Path("/dir/file"), new File(), false);
             fileSystem.add(new Path("/file"), new File(), false);
 
-            fileSystem.remove(new Path("/"), false, true, true);
+            fileSystem.remove(new Path("/"));
 
             expect(fileSystem.has(new Path("/dir"))).to.be.false;
         });

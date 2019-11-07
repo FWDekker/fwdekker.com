@@ -154,7 +154,7 @@ export class Shell {
                 const path = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
                 if (this.fileSystem.get(path) instanceof Directory)
                     return `Error while redirecting: '${path}' is a directory.`;
-                this.fileSystem.remove(path, true, false, false);
+                this.fileSystem.remove(path);
             } catch (error) {
                 return error.message;
             }

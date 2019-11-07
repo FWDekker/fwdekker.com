@@ -501,12 +501,21 @@ export class Commands {
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
                 try {
-                    this.fileSystem.remove(
-                        path,
-                        input.hasAnyOption(["f", "force"]),
-                        input.hasAnyOption(["r", "R", "recursive"]),
-                        input.hasOption("no-preserve-root")
-                    );
+                    const target = this.fileSystem.get(path);
+                    if (target === undefined) {
+                        if (input.hasAnyOption(["f", "force"]))
+                            return "";
+                        else
+                            return `The file '${path}' does not exist.`;
+                    }
+                    if (target instanceof Directory) {
+                        if (!input.hasAnyOption(["r", "R", "recursive"]))
+                            return `'${path}' is a directory.`;
+                        if (path.toString() === "/" && !input.hasOption("no-preserve-root"))
+                            return "Cannot remove root directory.";
+                    }
+
+                    this.fileSystem.remove(path);
                     return "";
                 } catch (error) {
                     return error.message;
@@ -521,7 +530,15 @@ export class Commands {
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
                 try {
-                    this.fileSystem.remove(path, false, true, false);
+                    const target = this.fileSystem.get(path);
+                    if (target === undefined)
+                        return `'${path}' does not exist.`;
+                    if (!(target instanceof Directory))
+                        return `'${path}' is not a directory.`;
+                    if (target.nodeCount !== 0)
+                        return `'${path}' is not empty.`;
+
+                    this.fileSystem.remove(path);
                     return "";
                 } catch (error) {
                     return error.message;
