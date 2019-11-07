@@ -313,6 +313,8 @@ export class Globber {
      */
     glob(tokens: string[]): string[] {
         const cwdNode = this.fileSystem.get(this.cwd);
+        if (cwdNode === undefined)
+            return tokens;
         if (!(cwdNode instanceof Directory))
             throw new IllegalStateError("cwd is not a directory.");
 

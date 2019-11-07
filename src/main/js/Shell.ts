@@ -99,10 +99,10 @@ export class Shell {
         }
 
         const parts = cwd.getAncestorsUntil(anchorPath).reverse().concat(cwd).slice(1);
-        const rootText = (this.fileSystem.get(anchorPath)?.nameString(anchorSymbol, anchorPath) ?? "")
+        const rootText = (new Directory().nameString(anchorSymbol, anchorPath))
             + (parts.length !== 0 && !anchorSymbol.endsWith("/") ? "/" : "");
         const partText = parts
-            .map(part => this.fileSystem.get(part)?.nameString(part.fileName, part) ?? "")
+            .map(part => new Directory().nameString(part.fileName, part))
             .join("/");
 
         return `${userName}@fwdekker.com <span class="prefixPath">${rootText}${partText}</span>&gt; `;
