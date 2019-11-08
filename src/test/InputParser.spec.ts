@@ -4,7 +4,7 @@ import {expect} from "chai";
 import "../main/js/Extensions"
 import {Environment} from "../main/js/Environment";
 import {Globber, InputParser, Tokenizer} from "../main/js/InputParser";
-import {Directory, File, FileSystem} from "../main/js/FileSystem";
+import {Directory, File, FileSystem, Node, Path} from "../main/js/FileSystem";
 import {EscapeCharacters} from "../main/js/Terminal";
 
 
@@ -393,7 +393,6 @@ describe("tokenizer", () => {
         it("escapes glob characters", () => {
             expect(tokenizer.tokenize("a b?")).to.have.members(["a", `b${escape}?`]);
             expect(tokenizer.tokenize("a b*")).to.have.members(["a", `b${escape}*`]);
-            expect(tokenizer.tokenize("a b**")).to.have.members(["a", `b${escape}*${escape}*`]);
         });
 
         it("does not escape escaped glob characters", () => {
@@ -405,81 +404,200 @@ describe("tokenizer", () => {
 
 describe("globber", () => {
     const escape = EscapeCharacters.Escape;
-    let globber: Globber;
 
 
-    beforeEach(() => {
-        globber = new Globber(
-            new FileSystem(new Directory({
-                "aa": new Directory({
-                    "ab1": new File()
-                }),
-                "ab1": new File(),
-                "ab2": new File(),
-                "aa3": new File(),
-                "b?": new File(),
-                ".a": new File()
-            })),
-            "/"
-        );
-    });
+    const createGlobber = function(nodes: { [path: string]: Node } = {}, cwd: string = "/"): Globber {
+        const fs = new FileSystem(new Directory());
+        for (const path of Object.getOwnPropertyNames(nodes))
+            fs.add(new Path(path), nodes[path], true);
+
+        return new Globber(fs, cwd);
+    };
 
 
     describe("?", () => {
-        it("throws an error if no matches are found", () => {
-            expect(() => globber.glob([`x${escape}?`])).to.throw;
-        });
+        it("does not expand unescaped ?s", () => {
+            const globber = createGlobber({"/ab": new File()});
 
-        it("globs a single ?", () => {
-            expect(globber.glob([`ab${escape}?`])).to.have.members(["ab1", "ab2"]);
-        });
-
-        it("globs multiple ?s", () => {
-            expect(globber.glob([`a${escape}?${escape}?`])).to.have.members(["ab1", "ab2", "aa3"]);
-        });
-
-        it("does not process unescaped ?s", () => {
             expect(globber.glob(["a?"])).to.have.members(["a?"]);
+        });
+
+        it("expands a single instance", () => {
+            const globber = createGlobber({"/a1": new File(), "/a2": new File()});
+
+            expect(globber.glob([`a${escape}?`])).to.have.members(["a1", "a2"]);
+        });
+
+        it("expand multiple consecutive instances", () => {
+            const globber = createGlobber({"/a11": new File(), "/a12": new File(), "/a21": new File()});
+
+            expect(globber.glob([`a${escape}?${escape}?`])).to.have.members(["a11", "a12", "a21"]);
+        });
+
+        it("expand multiple non-consecutive instances", () => {
+            const globber = createGlobber({"/1a1": new File(), "/1a2": new File(), "/2a1": new File()});
+
+            expect(globber.glob([`${escape}?a${escape}?`])).to.have.members(["1a1", "1a2", "2a1"]);
+        });
+
+        it("does not expand to an empty character", () => {
+            const globber = createGlobber({"/a": new File(), "/aa": new File()});
+
+            expect(globber.glob([`a${escape}?`])).to.have.members(["aa"]);
+        });
+
+        it("does not expand to multiple characters", () => {
+            const globber = createGlobber({"/aa": new File(), "/aaa": new File()});
+
+            expect(globber.glob([`a${escape}?`])).to.have.members(["aa"]);
+        });
+
+        it("includes directories when not using a trailing slash", () => {
+            const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
+
+            expect(globber.glob([`a${escape}?`])).to.have.members(["a1", "a2"]);
+        });
+
+        it("excludes files when using a trailing slash", () => {
+            const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
+
+            expect(globber.glob([`a${escape}?/`])).to.have.members(["a2/"]);
+        });
+
+        it("expands in a subdirectory", () => {
+            const globber = createGlobber({"/a1": new File(), "/dir/a1": new File(), "/dir/a2": new File()});
+
+            expect(globber.glob([`/dir/a${escape}?`])).to.have.members(["/dir/a1", "/dir/a2"]);
+        });
+
+        it("expands in the parent directory", () => {
+            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+            expect(globber.glob([`../a${escape}?`])).to.have.members(["../a2", "../a3"]);
+        });
+
+        it("expands in the reflexive directory", () => {
+            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+            expect(globber.glob([`./a${escape}?`])).to.have.members(["./a1"]);
+        });
+
+        it("expands in an absolute path to the root", () => {
+            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+            expect(globber.glob([`/a${escape}?`])).to.have.members(["/a2", "/a3"]);
+        });
+
+        it("expands in an absolute path to a sibling", () => {
+            const globber = createGlobber({"/d1/a1": new File(), "/d2/a2": new File(), "/d2/a3": new File()}, "/d1");
+
+            expect(globber.glob([`/d2/a${escape}?`])).to.have.members(["/d2/a2", "/d2/a3"]);
         });
     });
 
     describe("*", () => {
-        it("throws an error if no matches are found", () => {
-            expect(() => globber.glob([`x${escape}*`])).to.throw;
-        });
-
-        it("globs a single *", () => {
-            expect(globber.glob([`a${escape}*`])).to.have.members(["aa", "ab1", "ab2", "aa3"]);
-        });
-
-        it("globs multiple *s", () => {
-            expect(globber.glob([`a${escape}*/${escape}*`])).to.have.members(["aa/ab1"]);
-        });
-
         it("does not process unescaped *s", () => {
+            const globber = createGlobber({"/ab": new File()});
+
             expect(globber.glob(["a*"])).to.have.members(["a*"]);
         });
+
+        it("expands a single instance", () => {
+            const globber = createGlobber({"/a1": new File(), "/a2": new File()});
+
+            expect(globber.glob([`a${escape}*`])).to.have.members(["a1", "a2"]);
+        });
+
+        it("expands multiple non-consecutive instances", () => {
+            const globber = createGlobber({"/1a1": new File(), "/2a2": new File()});
+
+            expect(globber.glob([`${escape}*a${escape}*`])).to.have.members(["1a1", "2a2"]);
+        });
+
+        it("expands to match all files in a directory", () => {
+            const globber = createGlobber({"/a": new File(), "/b": new File()});
+
+            expect(globber.glob([`${escape}*`])).to.have.members(["a", "b"]);
+        });
+
+        it("expands to an empty character", () => {
+            const globber = createGlobber({"/a": new File(), "/aa": new File()});
+
+            expect(globber.glob([`a${escape}*`])).to.have.members(["a", "aa"]);
+        });
+
+        it("expands to multiple characters", () => {
+            const globber = createGlobber({"/aa": new File(), "/aaa": new File()});
+
+            expect(globber.glob([`a${escape}*`])).to.have.members(["aa", "aaa"]);
+        });
+
+        it("does not expand to a slash", () => {
+            const globber = createGlobber({"/a1/file": new File(), "/a2": new File()});
+
+            expect(globber.glob([`a${escape}*`])).to.have.members(["a1", "a2"]);
+        });
+
+        it("includes directories when not using a trailing slash", () => {
+            const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
+
+            expect(globber.glob([`a${escape}*`])).to.have.members(["a1", "a2"]);
+        });
+
+        it("excludes files when using a trailing slash", () => {
+            const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
+
+            expect(globber.glob([`a${escape}*/`])).to.have.members(["a2/"]);
+        });
+
+        it("expands in a subdirectory", () => {
+            const globber = createGlobber({"/a1": new File(), "/dir/a1": new File(), "/dir/a2": new File()});
+
+            expect(globber.glob([`/dir/a${escape}*`])).to.have.members(["/dir/a1", "/dir/a2"]);
+        });
+
+        it("expands in the parent directory", () => {
+            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+            expect(globber.glob([`../a${escape}*`])).to.have.members(["../a2", "../a3"]);
+        });
+
+        it("expands in the reflexive directory", () => {
+            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+            expect(globber.glob([`./a${escape}*`])).to.have.members(["./a1"]);
+        });
+
+        it("expands in an absolute path to the root", () => {
+            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+            expect(globber.glob([`/a${escape}*`])).to.have.members(["/a2", "/a3"]);
+        });
+
+        it("expands in an absolute path to a sibling", () => {
+            const globber = createGlobber({"/d1/a1": new File(), "/d2/a2": new File(), "/d2/a3": new File()}, "/d1");
+
+            expect(globber.glob([`/d2/a${escape}*`])).to.have.members(["/d2/a2", "/d2/a3"]);
+        });
     });
 
-    describe("**", () => {
+    describe("shared edge cases", () => {
         it("throws an error if no matches are found", () => {
-            expect(() => globber.glob([`x${escape}**`])).to.throw;
+            expect(() => createGlobber().glob([`x${escape}?`])).to.throw;
         });
 
-        it("globs **", () => {
-            expect(globber.glob([`${escape}*${escape}*b1`])).to.have.members(["ab1", "aa/ab1"]);
+        it("returns an empty token without change", () => {
+            expect(createGlobber().glob([""])).to.have.members([""]);
         });
 
-        it("does not match the directory itself", () => {
-            expect(globber.glob([`${escape}*${escape}*`]).map(it => it.trim())).to.not.contain("");
+        it("returns a glob-less token without change", () => {
+            expect(createGlobber().glob(["abc"])).to.have.members(["abc"]);
         });
 
-        it("does not process unescaped **s", () => {
-            expect(globber.glob(["a**"])).to.have.members(["a**"]);
+        it("returns any token without change if the cwd does not exist", () => {
+            const globber = createGlobber({"/a1": new File()}, "/dir");
+
+            expect(globber.glob([`a${EscapeCharacters.Escape}?`])).to.have.members([`a${EscapeCharacters.Escape}?`]);
         });
     });
-
-    it("does not use an embedded `.*` in regex matching", () => {
-        expect(globber.glob([`.${escape}*`])).to.have.members([".a"]);
-    })
 });

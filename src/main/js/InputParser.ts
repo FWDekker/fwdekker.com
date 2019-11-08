@@ -1,6 +1,6 @@
 import {Environment} from "./Environment";
-import {Directory, FileSystem, Path} from "./FileSystem";
-import {IllegalArgumentError, IllegalStateError} from "./Shared";
+import {Directory, File, FileSystem, Path} from "./FileSystem";
+import {IllegalArgumentError} from "./Shared";
 import {InputArgs} from "./Shell";
 import {EscapeCharacters} from "./Terminal";
 
@@ -312,34 +312,65 @@ export class Globber {
      * @param tokens the tokens to glob
      */
     glob(tokens: string[]): string[] {
-        const cwdNode = this.fileSystem.get(this.cwd);
-        if (cwdNode === undefined)
-            return tokens;
-        if (!(cwdNode instanceof Directory))
-            throw new IllegalStateError("cwd is not a directory.");
-
-        const paths: string[] = [];
-        cwdNode.visit("", (_, path) => paths.push(path.slice(1)));
-        paths.shift();
-
-        let newTokens: string[] = [];
+        let results: string[] = [];
         tokens.forEach(token => {
-            if (token.indexOf(EscapeCharacters.Escape + "?") < 0 && token.indexOf(EscapeCharacters.Escape + "*") < 0) {
-                newTokens = newTokens.concat([token]);
-                return;
-            }
-
-            const pattern = token
-                .replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")
-                .replaceAll(new RegExp(`${EscapeCharacters.Escape}\\\\\\?`), ".")
-                .replaceAll(new RegExp(`${EscapeCharacters.Escape}\\\\\\*${EscapeCharacters.Escape}\\\\\\*`), ".*")
-                .replaceAll(new RegExp(`${EscapeCharacters.Escape}\\\\\\*`), "[^/]*");
-
-            const matches = paths.filter(path => path.match(new RegExp(`^${pattern}$`)));
-            if (matches.length === 0)
-                throw new IllegalArgumentError(`Glob pattern '${token}' has no matches.`);
-            newTokens = newTokens.concat(matches);
+            if (token.startsWith("/"))
+                results = results.concat(this.glob2("/", token.slice(1), new Path("/")));
+            else
+                results = results.concat(this.glob2("", token, this.cwd));
         });
-        return newTokens;
+        return results;
+    }
+
+    /**
+     * Recursively traverses the given path according to the glob pattern provided, keeping track of file system
+     * location with the given path, and returns all paths that match the glob pattern.
+     *
+     * @param history the "de-globbed" pattern until now; must end with a slash in between recursive calls
+     * @param glob the glob pattern that is still to be traversed
+     * @param path the current location in the file system
+     */
+    private glob2(history: string, glob: string, path: Path): string[] {
+        if (!glob.includes(EscapeCharacters.Escape + "?") && !glob.includes(EscapeCharacters.Escape + "*"))
+            return [history + glob];
+
+        const dir = this.fileSystem.get(path);
+        if (!(dir instanceof Directory))
+            return [history + glob];
+
+        const nextPart = glob.includes("/") ? glob.substring(0, glob.indexOf("/")) : glob; // excluding /
+        const remainder = glob.includes("/") ? glob.substring(glob.indexOf("/") + 1) : ""; // excluding /
+
+        if (nextPart === ".")
+            return this.glob2(history + nextPart + "/", remainder, path);
+        if (nextPart === "..")
+            return this.glob2(history + nextPart + "/", remainder, path.parent);
+
+        const pattern = nextPart
+            .replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&") // Escape regex from user input
+            .replaceAll(new RegExp(`${EscapeCharacters.Escape}\\\\\\?`), ".")
+            .replaceAll(new RegExp(`${EscapeCharacters.Escape}\\\\\\*`), "[^/]*");
+
+        return Object.keys(dir.nodes)
+            .filter(fileName => fileName.match(new RegExp(`^${pattern}$`)))
+            .map(fileName => {
+                if (dir.nodes[fileName] instanceof File) {
+                    // Only match files if there are no more /s to match
+                    if (!glob.includes("/"))
+                        return [history + fileName];
+                    return <string[]>[];
+                }
+
+                // Only recurse if there is still recurring to do
+                if (remainder !== "")
+                    return this.glob2(`${history}${fileName}/`, remainder, path.getChild(fileName));
+
+                // Add / depending on user input
+                if (glob.includes("/"))
+                    return [history + fileName + "/"];
+                else
+                    return [history + fileName];
+            })
+            .reduce((acc, it) => acc.concat(it));
     }
 }
