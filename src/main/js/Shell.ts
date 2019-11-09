@@ -6,6 +6,7 @@ import {Persistence} from "./Persistence";
 import {asciiHeaderHtml, IllegalStateError, stripHtmlTags} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
 import {UserList} from "./UserList";
+import {OutputStream} from "./Stream";
 
 
 /**
@@ -111,17 +112,18 @@ export class Shell {
 
 
     /**
-     * Processes a user's input.
+     * Processes a user's input and returns the associated exit code.
      *
      * @param inputString the input to process
+     * @param outputStream the standard output stream
      */
-    execute(inputString: string): string {
+    execute(inputString: string, outputStream: OutputStream): number {
         if (this.environment.get("user") === "") {
             if (this.attemptUser === undefined) {
                 this.attemptUser = inputString.trim() ?? undefined; // Set to undefined if empty string
 
                 this.saveState();
-                return EscapeCharacters.Escape + EscapeCharacters.HideInput;
+                outputStream.write(EscapeCharacters.Escape + EscapeCharacters.HideInput);
             } else {
                 const attemptUser = this.userList.get(this.attemptUser);
 
@@ -137,8 +139,9 @@ export class Shell {
 
                 this.attemptUser = undefined;
                 this.saveState();
-                return EscapeCharacters.Escape + EscapeCharacters.ShowInput + resultString;
+                outputStream.write(EscapeCharacters.Escape + EscapeCharacters.ShowInput + resultString);
             }
+            return 0;
         }
 
         this.inputHistory.addEntry(inputString.trim());
@@ -148,24 +151,15 @@ export class Shell {
         try {
             input = parser.parse(stripHtmlTags(inputString));
         } catch (error) {
-            return error.message;
+            outputStream.writeLine(error.message);
+            return -1;
         }
-        if (input.redirectTarget[0] === "write") {
-            try {
-                const path = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
-                if (this.fileSystem.get(path) instanceof Directory)
-                    return `Error while redirecting: '${path}' is a directory.`;
-                this.fileSystem.remove(path);
-            } catch (error) {
-                return error.message;
-            }
+        if (input.redirectTarget[0] !== "default") {
+            const target = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
+            outputStream = this.fileSystem.open(target, input.redirectTarget[0]);
         }
 
-        let output = this.commands.execute(input);
-        if (input.redirectTarget[0] !== "default") {
-            const path = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
-            output = this.writeToFile(path, output, input.redirectTarget[0] === "append");
-        }
+        let output = this.commands.execute(input, outputStream);
 
         if (this.environment.get("user") === "") {
             this.inputHistory.clear();
@@ -175,33 +169,6 @@ export class Shell {
         this.saveState();
 
         return output;
-    }
-
-    /**
-     * Writes or appends `data` to `file`.
-     *
-     * @param path the path of the file to write or append to
-     * @param data the data to write or append
-     * @param append `true` if and only if the data should be appended
-     */
-    private writeToFile(path: Path, data: string, append: boolean): string {
-        try {
-            if (!this.fileSystem.has(path))
-                this.fileSystem.add(path, new File(), true);
-        } catch (error) {
-            return error.message;
-        }
-
-        const target = this.fileSystem.get(path);
-        if (!(target instanceof File))
-            throw new IllegalStateError("File unexpectedly disappeared since last check.");
-
-        if (append)
-            target.contents += data;
-        else
-            target.contents = data;
-
-        return "";
     }
 
 

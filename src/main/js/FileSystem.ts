@@ -1,4 +1,5 @@
 import {emptyFunction, getFileExtension, IllegalArgumentError} from "./Shared";
+import {OutputStream} from "./Stream";
 
 
 /**
@@ -146,6 +147,38 @@ export class FileSystem {
 
         this.add(destination, sourceNode, false);
         this.remove(source);
+    }
+
+    /**
+     * Creates a new output stream to write to the node at the given path.
+     *
+     * @param target
+     * @param options
+     * @throws if the target points to a directory
+     */
+    open(target: Path, options: "write" | "append"): OutputStream {
+        if (!this.has(target))
+            this.add(target, new File(), true);
+
+        const targetNode = this.get(target);
+        if (!(targetNode instanceof File))
+            throw new IllegalArgumentError("Cannot open stream to directory.");
+
+        if (options === "write")
+            targetNode.contents = "";
+
+        return new class implements OutputStream {
+            write(string: string): void {
+                if (options === "write")
+                    targetNode.contents = string;
+                else
+                    targetNode.contents += string;
+            }
+
+            writeLine(string: string): void {
+                this.write(string + "\n");
+            }
+        };
     }
 
     /**

@@ -1,5 +1,6 @@
 import {moveCaretToEndOf, parseCssPixels} from "./Shared";
 import {Shell} from "./Shell";
+import {OutputStream} from "./Stream";
 
 
 /**
@@ -199,36 +200,73 @@ export class Terminal {
         this.inputText = "";
         this.outputText += `${this.prefixText}${this.isInputHidden ? "" : input.trim()}\n`;
 
-        const output = this.shell.execute(input);
-        let buffer = "";
-        for (let i = 0; i < output.length; i++) {
-            if (output.charAt(i) != EscapeCharacters.Escape) {
-                buffer += output.charAt(i);
-                continue;
-            }
-
-            switch (output.charAt(i + 1)) {
-                case EscapeCharacters.Clear:
-                    buffer = "";
-                    this.outputText = "";
-                    break;
-                case EscapeCharacters.HideInput:
-                    this.isInputHidden = true;
-                    break;
-                case EscapeCharacters.ShowInput:
-                    this.isInputHidden = false;
-                    break;
-                default:
-                    buffer += output.charAt(i + 1);
-                    break;
-            }
-            i++;
-        }
-        if (buffer !== "")
-            this.outputText += buffer + (buffer.endsWith("\n") ? "" : "\n");
+        this.shell.execute(input, this.getOutputStream());
 
         this.prefixText = this.shell.generatePrefix();
         this.scroll = 0;
+    }
+
+
+    /**
+     * Returns an output stream that writes to the terminal's output.
+     */
+    private getOutputStream(): OutputStream {
+        return new class implements OutputStream {
+            readonly terminal: Terminal;
+            buffer: string = "";
+            isInEscape: boolean = false;
+
+
+            constructor(terminal: Terminal) {
+                this.terminal = terminal;
+            }
+
+
+            write(output: string): void {
+                for (let i = 0; i < output.length; i++) {
+                    if (this.isInEscape) {
+                        switch (output[i]) {
+                            case EscapeCharacters.Clear:
+                                this.buffer = "";
+                                this.terminal.outputText = "";
+                                break;
+                            case EscapeCharacters.HideInput:
+                                this.terminal.isInputHidden = true;
+                                break;
+                            case EscapeCharacters.ShowInput:
+                                this.terminal.isInputHidden = false;
+                                break;
+                            default:
+                                this.buffer += output.charAt(i + 1);
+                                break;
+                        }
+                        this.isInEscape = false;
+                        continue;
+                    }
+
+                    if (output[i] === EscapeCharacters.Escape) {
+                        this.isInEscape = true;
+                        continue;
+                    }
+
+                    this.buffer += output.charAt(i);
+                }
+
+                this.flush();
+            }
+
+            writeLine(string: string): void {
+                this.write(string + "\n");
+            }
+
+            flush(): void {
+                if (this.buffer === "")
+                    return;
+
+                this.terminal.outputText += this.buffer;
+                this.buffer = "";
+            }
+        }(this);
     }
 
 
