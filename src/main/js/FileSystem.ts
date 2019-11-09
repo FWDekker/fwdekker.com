@@ -169,10 +169,7 @@ export class FileSystem {
 
         return new class implements OutputStream {
             write(string: string): void {
-                if (options === "write")
-                    targetNode.contents = string;
-                else
-                    targetNode.contents += string;
+                targetNode.contents += string;
             }
 
             writeLine(string: string): void {

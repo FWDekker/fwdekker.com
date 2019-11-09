@@ -6,7 +6,7 @@ import {IllegalArgumentError, IllegalStateError} from "./Shared";
 import {InputArgs} from "./Shell";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
-import {OutputStream} from "./Stream";
+import {StreamSet} from "./Stream";
 
 
 /**
@@ -227,9 +227,9 @@ export class Commands {
      * Parses and executes the given input string and returns the exit code of that command.
      *
      * @param input the input string to parse and execute
-     * @param output the stream to write output to
+     * @param streams the streams to interact with
      */
-    execute(input: InputArgs, output: OutputStream): number {
+    execute(input: InputArgs, streams: StreamSet): number {
         if (input.command === "factory-reset") {
             Persistence.reset();
             location.reload();
@@ -239,18 +239,18 @@ export class Commands {
         if (input.command === "")
             return 0;
         if (!this.commands.hasOwnProperty(input.command)) {
-            output.writeLine(`Unknown command '${input.command}'`);
+            streams.err.writeLine(`Unknown command '${input.command}'`);
             return -1;
         }
 
         const command = this.commands[input.command];
         const validation = command.validator.validate(input);
         if (!validation[0]) {
-            output.writeLine(this.createUsageErrorOutput(input.command, validation[1]));
+            streams.err.writeLine(this.createUsageErrorOutput(input.command, validation[1]));
             return -1;
         }
 
-        return command.fun.bind(this)(input, output);
+        return command.fun.bind(this)(input, streams);
     }
 
     /**
@@ -271,28 +271,31 @@ export class Commands {
     }
 
 
-    private cat(input: InputArgs, output: OutputStream): number {
+    private cat(input: InputArgs, streams: StreamSet): number {
         return input.args
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
                 if (!this.fileSystem.has(path)) {
-                    output.writeLine(`cat: ${path}: No such file`);
+                    streams.err.writeLine(`cat: ${path}: No such file`);
                     return -1;
                 }
 
                 const node = this.fileSystem.get(path);
                 if (!(node instanceof File)) {
-                    output.writeLine(`cat: ${path}: No such file`);
+                    streams.err.writeLine(`cat: ${path}: No such file`);
                     return -1;
                 }
 
-                output.writeLine(node.contents);
+                if (node.contents.endsWith("\n"))
+                    streams.out.write(node.contents);
+                else
+                    streams.out.writeLine(node.contents);
                 return 0;
             })
             .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
     }
 
-    private cd(input: InputArgs, output: OutputStream): number {
+    private cd(input: InputArgs, streams: StreamSet): number {
         if (input.args[0] === "") {
             this.environment.set("cwd", this.environment.get("home"));
             return 0;
@@ -300,7 +303,7 @@ export class Commands {
 
         const path = Path.interpret(this.environment.get("cwd"), input.args[0]);
         if (!this.fileSystem.has(path)) {
-            output.writeLine(`The directory '${path}' does not exist.`);
+            streams.err.writeLine(`The directory '${path}' does not exist.`);
             return -1;
         }
 
@@ -308,7 +311,7 @@ export class Commands {
         return 0;
     }
 
-    private cp(input: InputArgs, output: OutputStream): number {
+    private cp(input: InputArgs, streams: StreamSet): number {
         try {
             return this.moveCopyMappings(input)
                 .map(([source, destination]) => {
@@ -316,29 +319,29 @@ export class Commands {
                         this.fileSystem.copy(source, destination, input.hasAnyOption(["r", "R", "recursive"]));
                         return 0;
                     } catch (error) {
-                        output.writeLine(error.message);
+                        streams.err.writeLine(error.message);
                         return -1;
                     }
                 })
                 .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
         } catch (error) {
-            output.writeLine(error.message);
+            streams.err.writeLine(error.message);
             return -1;
         }
     }
 
-    private clear(_: InputArgs, output: OutputStream): number {
-        output.write(EscapeCharacters.Escape + EscapeCharacters.Clear);
+    private clear(_: InputArgs, streams: StreamSet): number {
+        streams.err.write(EscapeCharacters.Escape + EscapeCharacters.Clear);
         return 0;
     }
 
-    private echo(input: InputArgs, output: OutputStream): number {
+    private echo(input: InputArgs, streams: StreamSet): number {
         const message = input.args.join(" ").replace("hunter2", "*******");
 
         if (input.hasOption("n"))
-            output.write(message);
+            streams.out.write(message);
         else
-            output.writeLine(message);
+            streams.out.writeLine(message);
 
         return 0;
     }
@@ -348,24 +351,24 @@ export class Commands {
         return 0;
     }
 
-    private help(input: InputArgs, output: OutputStream): number {
+    private help(input: InputArgs, streams: StreamSet): number {
         const commandNames = Object.keys(this.commands);
 
         if (input.args.length > 0) {
             return input.args
                 .map((it, i) => {
                     if (i > 0)
-                        output.write("\n\n");
+                        streams.out.write("\n\n");
 
                     if (!this.commands.hasOwnProperty(it)) {
-                        output.writeLine(`Unknown command ${it}.`);
+                        streams.out.writeLine(`Unknown command ${it}.`);
                         return -1;
                     }
 
                     const commandName = it.toLowerCase();
                     const command = this.commands[commandName];
 
-                    output.writeLine(
+                    streams.out.writeLine(
                         `<b>Name</b>
                         ${commandName}
 
@@ -390,7 +393,7 @@ export class Commands {
             const commandEntries = commandNames
                 .map((it, i) => `${commandLinks[i]}${this.commands[it].summary}`);
 
-            output.writeLine(
+            streams.out.writeLine(
                 `The source code of this website is \\\
                 <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on git</a>.
 
@@ -403,20 +406,20 @@ export class Commands {
         }
     }
 
-    private ls(input: InputArgs, output: OutputStream): number {
+    private ls(input: InputArgs, streams: StreamSet): number {
         return (input.args.length === 0 ? [""] : input.args)
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map((path, i) => {
                 if (i > 0)
-                    output.write("\n");
+                    streams.out.write("\n");
 
                 const node = this.fileSystem.get(path);
                 if (node === undefined) {
-                    output.writeLine(`The directory '${path}' does not exist.`);
+                    streams.err.writeLine(`The directory '${path}' does not exist.`);
                     return -1;
                 }
                 if (!(node instanceof Directory)) {
-                    output.writeLine(`'${path}' is not a directory.`);
+                    streams.err.writeLine(`'${path}' is not a directory.`);
                     return -1;
                 }
 
@@ -443,27 +446,27 @@ export class Commands {
                     });
 
                 if (input.args.length > 1)
-                    output.writeLine(`<b>${path}</b>`);
-                output.writeLine(dirList.concat(fileList).join("\n"));
+                    streams.out.writeLine(`<b>${path}</b>`);
+                streams.out.writeLine(dirList.concat(fileList).join("\n"));
                 return 0;
             })
             .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
     }
 
-    private man(input: InputArgs, output: OutputStream): number {
+    private man(input: InputArgs, streams: StreamSet): number {
         if (input.args.length === 0) {
-            output.writeLine("What manual page do you want?");
+            streams.out.writeLine("What manual page do you want?");
             return 0;
         }
-        if (Object.keys(this.commands).includes(input.args[0])) {
-            output.writeLine(`No manual entry for ${input.args[0]}`);
+        if (!Object.keys(this.commands).includes(input.args[0])) {
+            streams.err.writeLine(`No manual entry for '${input.args[0]}'.`);
             return -1;
         }
 
-        return this.help(input, output);
+        return this.help(input, streams);
     }
 
-    private mkdir(input: InputArgs, output: OutputStream): number {
+    private mkdir(input: InputArgs, streams: StreamSet): number {
         return input.args
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
@@ -471,14 +474,14 @@ export class Commands {
                     this.fileSystem.add(path, new Directory(), input.hasOption("p"));
                     return 0;
                 } catch (error) {
-                    output.writeLine(error.message);
+                    streams.err.writeLine(error.message);
                     return -1;
                 }
             })
             .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
     }
 
-    private mv(input: InputArgs, output: OutputStream): number {
+    private mv(input: InputArgs, streams: StreamSet): number {
         try {
             return this.moveCopyMappings(input)
                 .map(([source, destination]) => {
@@ -486,28 +489,28 @@ export class Commands {
                         this.fileSystem.move(source, destination);
                         return 0;
                     } catch (error) {
-                        output.writeLine(error.message);
+                        streams.err.writeLine(error.message);
                         return -1;
                     }
                 })
                 .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
         } catch (error) {
-            output.writeLine(error.message);
+            streams.err.writeLine(error.message);
             return -1;
         }
     }
 
-    private open(input: InputArgs, output: OutputStream): number {
+    private open(input: InputArgs, streams: StreamSet): number {
         const path = Path.interpret(this.environment.get("cwd"), input.args[0]);
         const target = input.hasAnyOption(["b", "blank"]) ? "_blank" : "_self";
 
         const node = this.fileSystem.get(path);
         if (node === undefined) {
-            output.writeLine(`The file '${path}' does not exist`);
+            streams.err.writeLine(`The file '${path}' does not exist`);
             return -1;
         }
         if (!(node instanceof File)) {
-            output.writeLine(`'${path}' is not a file`);
+            streams.err.writeLine(`'${path}' is not a file`);
             return -1;
         }
 
@@ -515,17 +518,17 @@ export class Commands {
         return 0;
     }
 
-    private poweroff(_: InputArgs, output: OutputStream): number {
+    private poweroff(_: InputArgs, streams: StreamSet): number {
         const userName = this.environment.get("user");
         if (userName === "") {
-            output.writeLine("Cannot execute `poweroff` while not logged in.");
+            streams.err.writeLine("Cannot execute `poweroff` while not logged in.");
             return -1;
         }
 
         Persistence.setPoweroff(true);
         setTimeout(() => location.reload(), 2000);
 
-        output.writeLine(
+        streams.out.writeLine(
             `Shutdown NOW!
 
             *** FINAL System shutdown message from ${userName}@fwdekker.com ***
@@ -538,12 +541,12 @@ export class Commands {
         return 0;
     }
 
-    private pwd(_: InputArgs, output: OutputStream): number {
-        output.writeLine(this.environment.get("cwd") ?? "");
+    private pwd(_: InputArgs, streams: StreamSet): number {
+        streams.out.writeLine(this.environment.get("cwd") ?? "");
         return 0;
     }
 
-    private rm(input: InputArgs, output: OutputStream): number {
+    private rm(input: InputArgs, streams: StreamSet): number {
         return input.args
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
@@ -553,16 +556,16 @@ export class Commands {
                         if (input.hasAnyOption(["f", "force"]))
                             return 0;
 
-                        output.writeLine(`The file '${path}' does not exist.`);
+                        streams.err.writeLine(`The file '${path}' does not exist.`);
                         return -1;
                     }
                     if (target instanceof Directory) {
                         if (!input.hasAnyOption(["r", "R", "recursive"])) {
-                            output.writeLine(`'${path}' is a directory.`);
+                            streams.err.writeLine(`'${path}' is a directory.`);
                             return -1;
                         }
                         if (path.toString() === "/" && !input.hasOption("no-preserve-root")) {
-                            output.writeLine("Cannot remove root directory.");
+                            streams.err.writeLine("Cannot remove root directory.");
                             return -1;
                         }
                     }
@@ -570,57 +573,57 @@ export class Commands {
                     this.fileSystem.remove(path);
                     return 0;
                 } catch (error) {
-                    output.writeLine(error.message);
+                    streams.err.writeLine(error.message);
                     return -1;
                 }
             })
             .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
     }
 
-    private rmdir(input: InputArgs, output: OutputStream): number {
+    private rmdir(input: InputArgs, streams: StreamSet): number {
         return input.args
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
                 try {
                     const target = this.fileSystem.get(path);
                     if (target === undefined) {
-                        output.writeLine(`'${path}' does not exist.`);
+                        streams.err.writeLine(`'${path}' does not exist.`);
                         return -1;
                     }
                     if (!(target instanceof Directory)) {
-                        output.writeLine(`'${path}' is not a directory.`);
+                        streams.err.writeLine(`'${path}' is not a directory.`);
                         return -1;
                     }
                     if (target.nodeCount !== 0) {
-                        output.writeLine(`'${path}' is not empty.`);
+                        streams.err.writeLine(`'${path}' is not empty.`);
                         return -1;
                     }
 
                     this.fileSystem.remove(path);
                     return 0;
                 } catch (error) {
-                    output.writeLine(error.message);
+                    streams.err.writeLine(error.message);
                     return -1;
                 }
             })
             .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
     }
 
-    private set(input: InputArgs, output: OutputStream): number {
+    private set(input: InputArgs, streams: StreamSet): number {
         try {
             if (input.args.length === 1)
                 this.environment.safeDelete(input.args[0]);
             else
                 this.environment.safeSet(input.args[0], input.args[1]);
         } catch (error) {
-            output.writeLine(error.message);
+            streams.err.writeLine(error.message);
             return -1;
         }
 
         return 0;
     }
 
-    private touch(input: InputArgs, output: OutputStream): number {
+    private touch(input: InputArgs, streams: StreamSet): number {
         return input.args
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
@@ -628,21 +631,21 @@ export class Commands {
                     this.fileSystem.add(path, new File(), false);
                     return 0;
                 } catch (error) {
-                    output.writeLine(error.message);
+                    streams.err.writeLine(error.message);
                     return -1;
                 }
             })
             .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
     }
 
-    private whoami(_: InputArgs, output: OutputStream): number {
+    private whoami(_: InputArgs, streams: StreamSet): number {
         const user = this.userSession.get(this.environment.get("user"));
         if (user === undefined) {
-            output.writeLine("Cannot execute `whoami` while not logged in.");
+            streams.err.writeLine("Cannot execute `whoami` while not logged in.");
             return -1;
         }
 
-        output.writeLine(user.description);
+        streams.out.writeLine(user.description);
         return 0;
     }
 
@@ -690,7 +693,7 @@ class Command {
     /**
      * The function to execute with the command is executed.
      */
-    readonly fun: (args: InputArgs, output: OutputStream) => number;
+    readonly fun: (args: InputArgs, streams: StreamSet) => number;
     /**
      * A short summary of what the command does.
      */
@@ -718,7 +721,7 @@ class Command {
      * @param desc a longer description of what the command does and how its parameters work
      * @param validator a function that validates input for this command
      */
-    constructor(fun: (args: InputArgs, output: OutputStream) => number, summary: string, usage: string, desc: string,
+    constructor(fun: (args: InputArgs, streams: StreamSet) => number, summary: string, usage: string, desc: string,
                 validator: InputValidator) {
         this.fun = fun;
         this.summary = summary;

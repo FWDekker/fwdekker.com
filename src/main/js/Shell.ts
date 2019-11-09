@@ -1,12 +1,12 @@
 import {Commands} from "./Commands";
 import {Environment} from "./Environment";
-import {Directory, File, FileSystem, Path} from "./FileSystem";
+import {Directory, FileSystem, Path} from "./FileSystem";
 import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {asciiHeaderHtml, IllegalStateError, stripHtmlTags} from "./Shared";
+import {asciiHeaderHtml, stripHtmlTags} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
 import {UserList} from "./UserList";
-import {OutputStream} from "./Stream";
+import {StreamSet} from "./Stream";
 
 
 /**
@@ -115,51 +115,52 @@ export class Shell {
      * Processes a user's input and returns the associated exit code.
      *
      * @param inputString the input to process
-     * @param outputStream the standard output stream
+     * @param streams the standard streams
      */
-    execute(inputString: string, outputStream: OutputStream): number {
+    execute(inputString: string, streams: StreamSet): number {
         if (this.environment.get("user") === "") {
             if (this.attemptUser === undefined) {
-                this.attemptUser = inputString.trim() ?? undefined; // Set to undefined if empty string
+                streams.out.write(EscapeCharacters.Escape + EscapeCharacters.HideInput);
 
-                this.saveState();
-                outputStream.write(EscapeCharacters.Escape + EscapeCharacters.HideInput);
+                this.attemptUser = inputString.trim() ?? undefined; // Leave at undefined if empty string
             } else {
-                const attemptUser = this.userList.get(this.attemptUser);
+                streams.out.write(EscapeCharacters.Escape + EscapeCharacters.ShowInput);
 
-                let resultString: string;
+                const attemptUser = this.userList.get(this.attemptUser);
                 if (attemptUser !== undefined && attemptUser.password === inputString) {
                     this.environment.set("user", attemptUser.name);
                     this.environment.set("home", attemptUser.home);
                     this.environment.set("cwd", attemptUser.home);
-                    resultString = this.generateHeader();
+                    this.environment.set("status", "0");
+                    streams.out.writeLine(this.generateHeader());
                 } else {
-                    resultString = "Access denied\n";
+                    streams.out.writeLine("Access denied");
                 }
 
                 this.attemptUser = undefined;
-                this.saveState();
-                outputStream.write(EscapeCharacters.Escape + EscapeCharacters.ShowInput + resultString);
             }
+            this.saveState();
             return 0;
         }
 
         this.inputHistory.addEntry(inputString.trim());
 
-        const parser = InputParser.create(this.environment, this.fileSystem);
         let input;
         try {
-            input = parser.parse(stripHtmlTags(inputString));
+            input = InputParser.create(this.environment, this.fileSystem).parse(stripHtmlTags(inputString));
         } catch (error) {
-            outputStream.writeLine(error.message);
+            streams.err.writeLine(error.message);
+            this.environment.set("status", "-1");
             return -1;
         }
+
         if (input.redirectTarget[0] !== "default") {
             const target = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
-            outputStream = this.fileSystem.open(target, input.redirectTarget[0]);
+            streams.out = this.fileSystem.open(target, input.redirectTarget[0]);
         }
 
-        let output = this.commands.execute(input, outputStream);
+        const output = this.commands.execute(input, streams);
+        this.environment.set("status", "" + output);
 
         if (this.environment.get("user") === "") {
             this.inputHistory.clear();

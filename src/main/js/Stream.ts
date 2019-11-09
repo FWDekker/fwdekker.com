@@ -41,15 +41,15 @@ export class StreamSet {
     /**
      * The input stream.
      */
-    readonly ins: InputStream;
+    ins: InputStream;
     /**
      * The output stream.
      */
-    readonly out: OutputStream;
+    out: OutputStream;
     /**
      * The error output stream.
      */
-    readonly err: OutputStream;
+    err: OutputStream;
 
 
     /**

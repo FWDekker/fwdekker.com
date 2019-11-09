@@ -1,6 +1,6 @@
-import {moveCaretToEndOf, parseCssPixels} from "./Shared";
+import {IllegalStateError, moveCaretToEndOf, parseCssPixels} from "./Shared";
 import {Shell} from "./Shell";
-import {OutputStream} from "./Stream";
+import {InputStream, OutputStream, StreamSet} from "./Stream";
 
 
 /**
@@ -200,12 +200,34 @@ export class Terminal {
         this.inputText = "";
         this.outputText += `${this.prefixText}${this.isInputHidden ? "" : input.trim()}\n`;
 
-        this.shell.execute(input, this.getOutputStream());
+        this.shell.execute(input, this.getStreams());
 
         this.prefixText = this.shell.generatePrefix();
         this.scroll = 0;
     }
 
+
+    /**
+     * Returns the terminal's default set of streams.
+     */
+    private getStreams(): StreamSet {
+        return new StreamSet(this.getInputStream(), this.getOutputStream(), this.getOutputStream());
+    }
+
+    /**
+     * Returns an input stream that reads from the terminal's input.
+     */
+    private getInputStream(): InputStream {
+        return new class implements InputStream {
+            read(count: number | undefined): string {
+                throw new IllegalStateError("Default input stream has not been implemented.");
+            }
+
+            readLine(): string {
+                throw new IllegalStateError("Default input stream has not been implemented.");
+            }
+        }
+    }
 
     /**
      * Returns an output stream that writes to the terminal's output.

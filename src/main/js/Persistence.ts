@@ -54,10 +54,10 @@ export class Persistence {
 
         let environment: Environment;
         try {
-            environment = new Environment(["cwd", "home", "user"], JSON.parse(environmentString));
+            environment = new Environment(["cwd", "home", "user", "status"], JSON.parse(environmentString));
         } catch (error) {
             console.warn("Failed to set environment from cookie.");
-            environment = new Environment(["cwd", "home", "user"]);
+            environment = new Environment(["cwd", "home", "user", "status"]);
         }
 
         // Check user in environment
@@ -74,6 +74,9 @@ export class Persistence {
         // Check cwd in environment
         if (!environment.has("cwd"))
             environment.set("cwd", environment.get("home"));
+
+        // Set status
+        environment.set("status", "0");
 
         return environment;
     }
