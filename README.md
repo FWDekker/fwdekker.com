@@ -25,4 +25,6 @@ $> npm run clean
 ```shell script
 # Run tests
 $> npm test
+# Run tests with coverage
+$> npm run coverage
 ```
