@@ -1,6 +1,6 @@
 import * as Cookies from "js-cookie";
 import {Environment} from "./Environment";
-import {Directory, FileSystem, Node, Path} from "./FileSystem";
+import {Directory, FileSystem, Node} from "./FileSystem";
 import {UserList} from "./UserList";
 
 
@@ -47,10 +47,9 @@ export class Persistence {
      * Deserializes an environment from persistent storage, or returns the default environment if the deserialization
      * failed.
      *
-     * @param fileSystem the file system used to validate the `cwd` environment variable
      * @param userList the list of users used to validate the `user` environment variable
      */
-    static getEnvironment(fileSystem: FileSystem, userList: UserList): Environment {
+    static getEnvironment(userList: UserList): Environment {
         const environmentString = Cookies.get("env") ?? "{}";
 
         let environment: Environment;
@@ -73,12 +72,8 @@ export class Persistence {
         environment.set("home", userList.get(environment.get("user"))?.home ?? "/");
 
         // Check cwd in environment
-        if (!environment.has("cwd")) {
+        if (!environment.has("cwd"))
             environment.set("cwd", environment.get("home"));
-        } else if (!fileSystem.has(new Path(environment.get("cwd")))) {
-            console.warn(`Invalid cwd '${environment.get("cwd")}' in environment.`);
-            environment.set("cwd", environment.get("home"));
-        }
 
         return environment;
     }

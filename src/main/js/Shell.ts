@@ -49,7 +49,7 @@ export class Shell {
         this.inputHistory = inputHistory;
         this.userList = new UserList();
         this.fileSystem = Persistence.getFileSystem();
-        this.environment = Persistence.getEnvironment(this.fileSystem, this.userList);
+        this.environment = Persistence.getEnvironment(this.userList);
         this.commands = new Commands(this.environment, this.userList, this.fileSystem);
 
         this.saveState();
