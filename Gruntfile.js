@@ -17,6 +17,18 @@ module.exports = grunt => {
                 files: [{expand: true, cwd: "src/main/", src: "**/*.css", dest: "build/"}]
             }
         },
+        replace: {
+            default: {
+                src: "./build/bundle.js",
+                replacements: [
+                    {
+                        from: "%%VERSION_NUMBER%%",
+                        to: "<%= pkg.version %>"
+                    }
+                ],
+                overwrite: true
+            }
+        },
         webpack: {
             options: {
                 entry: "./src/main/js/Main.ts",
@@ -49,6 +61,7 @@ module.exports = grunt => {
 
     grunt.loadNpmTasks("grunt-contrib-clean");
     grunt.loadNpmTasks("grunt-contrib-copy");
+    grunt.loadNpmTasks("grunt-text-replace");
     grunt.loadNpmTasks("grunt-webpack");
 
     grunt.registerTask("dev", [
@@ -59,7 +72,9 @@ module.exports = grunt => {
         "copy:html",
         "copy:css",
         // Compile
-        "webpack:dev"
+        "webpack:dev",
+        // Post
+        "replace"
     ]);
     grunt.registerTask("deploy", [
         // Pre
@@ -69,7 +84,9 @@ module.exports = grunt => {
         "copy:html",
         "copy:css",
         // Compile JS
-        "webpack:deploy"
+        "webpack:deploy",
+        // Post
+        "replace"
     ]);
 
     grunt.registerTask("default", ["dev"]);

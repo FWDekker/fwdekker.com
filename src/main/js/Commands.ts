@@ -1,7 +1,7 @@
-import * as Cookies from "js-cookie";
 import "./Extensions"
 import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Path} from "./FileSystem"
+import {Persistence} from "./Persistence";
 import {IllegalArgumentError, IllegalStateError} from "./Shared";
 import {InputArgs} from "./Shell";
 import {EscapeCharacters} from "./Terminal";
@@ -229,8 +229,7 @@ export class Commands {
      */
     execute(input: InputArgs): string {
         if (input.command === "factory-reset") {
-            Cookies.remove("files");
-            Cookies.remove("env");
+            Persistence.reset();
             location.reload();
             throw new Error("Goodbye");
         }
@@ -369,7 +368,7 @@ export class Commands {
                    <b>List of commands</b>
                    ${commandEntries.join("\n")}
 
-                   Write "help [COMMAND]" or click a command in the list above for more information on a command.\\\
+                   Write "help [COMMAND]" or click a command in the list above for more information.\\\
                    `.trimMultiLines();
         }
     }
@@ -476,12 +475,9 @@ export class Commands {
         if (userName === "")
             throw new IllegalStateError("Cannot execute `poweroff` while not logged in.");
 
-        Cookies.set("poweroff", "true", {
-            "expires": new Date(new Date().setSeconds(new Date().getSeconds() + 30)),
-            "path": "/"
-        });
-
+        Persistence.setPoweroff(true);
         setTimeout(() => location.reload(), 2000);
+
         return `Shutdown NOW!
 
                *** FINAL System shutdown message from ${userName}@fwdekker.com ***

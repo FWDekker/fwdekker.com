@@ -29,5 +29,5 @@ addOnLoad(() => {
 
     // @ts-ignore: Ugly hack to execute it anyway
     if (window.terminal.shell.environment.get("user") !== "")
-        window.terminal.processInput("ls");
+        window.execute("ls");
 });

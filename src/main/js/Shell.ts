@@ -1,8 +1,8 @@
-import * as Cookies from "js-cookie";
 import {Commands} from "./Commands";
 import {Environment} from "./Environment";
-import {Directory, File, FileSystem, Node, Path} from "./FileSystem";
+import {Directory, File, FileSystem, Path} from "./FileSystem";
 import {InputParser} from "./InputParser";
+import {Persistence} from "./Persistence";
 import {asciiHeaderHtml, IllegalStateError, stripHtmlTags} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
 import {UserList} from "./UserList";
@@ -48,8 +48,8 @@ export class Shell {
     constructor(inputHistory: InputHistory) {
         this.inputHistory = inputHistory;
         this.userList = new UserList();
-        this.fileSystem = Shell.loadFileSystem();
-        this.environment = Shell.loadEnvironment(this.fileSystem, this.userList);
+        this.fileSystem = Persistence.getFileSystem();
+        this.environment = Persistence.getEnvironment(this.fileSystem, this.userList);
         this.commands = new Commands(this.environment, this.userList, this.fileSystem);
 
         this.saveState();
@@ -71,6 +71,7 @@ export class Shell {
                </span>
                Type "<a href="#" onclick="execute('help');">help</a>" for help.
 
+               Welcome to josh v%%VERSION_NUMBER%%, the javascript online shell.
                `.trimLines();
     }
 
@@ -205,74 +206,13 @@ export class Shell {
 
 
     /**
-     * Saves the shell's state in cookies.
+     * Persists the shell's state.
+     *
+     * @see Persistence
      */
     private saveState() {
-        Cookies.set("files", this.fileSystem.root, {
-            "expires": new Date(new Date().setFullYear(new Date().getFullYear() + 25)),
-            "path": "/"
-        });
-        Cookies.set("env", this.environment.variables, {"path": "/"});
-    }
-
-    /**
-     * Returns the file system loaded from a cookie, or the default file system if no cookie is present or the cookie
-     * is invalid.
-     */
-    private static loadFileSystem(): FileSystem {
-        let files: Directory | undefined = undefined;
-        const filesString = Cookies.get("files");
-        if (filesString !== undefined) {
-            try {
-                const parsedFiles = Node.deserialize(filesString);
-                if (parsedFiles instanceof Directory)
-                    files = parsedFiles;
-                else
-                    console.warn("`files` cookie contains non-directory.");
-            } catch (error) {
-                console.warn("Failed to deserialize `files` cookie.", error);
-            }
-        }
-        return new FileSystem(files);
-    }
-
-    /**
-     * Returns the environment loaded from a cookie, or the default environment if no cookie is present or the cookie
-     * is invalid.
-     *
-     * @param fileSystem the file system used to validate the `cwd` environment variable
-     * @param userList the list of users used to validate the `user` environment variable
-     */
-    private static loadEnvironment(fileSystem: FileSystem, userList: UserList): Environment {
-        const environmentString = Cookies.get("env") ?? "{}";
-        let environment: Environment;
-        try {
-            environment = new Environment(["cwd", "home", "user"], JSON.parse(environmentString));
-        } catch (error) {
-            console.warn("Failed to set environment from cookie.");
-            environment = new Environment(["cwd", "home", "user"]);
-        }
-
-        // Check user in environment
-        if (!environment.has("user")) {
-            environment.set("user", "felix");
-        } else if (environment.get("user") !== "" && !userList.has(environment.get("user"))) {
-            console.warn(`Invalid user '${environment.get("user")}' in environment.`);
-            environment.set("user", "felix");
-        }
-
-        // Set home directory
-        environment.set("home", userList.get(environment.get("user"))?.home ?? "/");
-
-        // Check cwd in environment
-        if (!environment.has("cwd")) {
-            environment.set("cwd", environment.get("home"));
-        } else if (!fileSystem.has(new Path(environment.get("cwd")))) {
-            console.warn(`Invalid cwd '${environment.get("cwd")}' in environment.`);
-            environment.set("cwd", environment.get("home"));
-        }
-
-        return environment;
+        Persistence.setFileSystem(this.fileSystem);
+        Persistence.setEnvironment(this.environment);
     }
 }
 
