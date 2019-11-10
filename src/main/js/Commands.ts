@@ -2,7 +2,7 @@ import "./Extensions"
 import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Path} from "./FileSystem"
 import {Persistence} from "./Persistence";
-import {IllegalArgumentError, IllegalStateError} from "./Shared";
+import {escapeHtml, IllegalArgumentError, IllegalStateError} from "./Shared";
 import {InputArgs} from "./Shell";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
@@ -46,8 +46,12 @@ export class Commands {
             "cat": new Command(
                 this.cat,
                 `concatenate and print files`,
-                `cat <u>file</u> <u>...</u>`,
-                `Reads files sequentially, writing them to the standard output.`,
+                `cat [<b>-e</b> | <b>--escape-html</b>] <u>file</u> <u>...</u>`,
+                `Reads files sequentially, writing them to the standard output.
+                
+                If the file contains valid HTML, it will be displayed as such by default. If the <b>--html</b> \\\
+                option is given, special HTML characters are escaped and the raw text contents can be inspected.\\\
+                `.trimLines(),
                 new InputValidator({minArgs: 1})
             ),
             "clear": new Command(
@@ -122,7 +126,7 @@ export class Commands {
                 `display manual documentation pages`,
                 `man <u>page</u> <u>...</u>`,
                 `Displays the manual pages with names <u>page</u>. Equivalent to using <b>help</b> if at least one \\\
-                <u>page</u> is given.`.trimLines(),
+                <u>page</u> is given.`.trimMultiLines(),
                 new InputValidator()
             ),
             "mkdir": new Command(
@@ -175,7 +179,7 @@ export class Commands {
                 this.rm,
                 `remove file`,
                 `rm [<b>-f</b> | <b>--force</b>] [<b>-r</b> | <b>-R</b> | <b>--recursive</b>] \\\
-                [<b>--no-preserve-root</b>] <u>file</u> <u>...</u>`.trimLines(),
+                [<b>--no-preserve-root</b>] <u>file</u> <u>...</u>`.trimMultiLines(),
                 `Removes each given <u>file</u>. If more than one <u>file</u> is given, they are removed in the \\\
                 order they are given in.
 
@@ -285,10 +289,11 @@ export class Commands {
                     return -1;
                 }
 
-                if (node.contents.endsWith("\n"))
-                    streams.out.write(node.contents);
+                const contents = input.hasAnyOption("e", "--escape-html") ? escapeHtml(node.contents) : node.contents;
+                if (contents.endsWith("\n"))
+                    streams.out.write(contents);
                 else
-                    streams.out.writeLine(node.contents);
+                    streams.out.writeLine(contents);
                 return 0;
             })
             .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
@@ -637,7 +642,7 @@ export class Commands {
                     this.fileSystem.add(path, new File(), false);
                     return 0;
                 } catch (error) {
-                    streams.err.writeLine(`touche: ${error.message}`);
+                    streams.err.writeLine(`touch: ${error.message}`);
                     return -1;
                 }
             })

@@ -1,4 +1,4 @@
-import {moveCaretToEndOf, parseCssPixels} from "./Shared";
+import {escapeHtml, moveCaretToEndOf, parseCssPixels} from "./Shared";
 import {Shell} from "./Shell";
 import {Buffer, StreamSet} from "./Stream";
 
@@ -96,7 +96,7 @@ export class Terminal {
      * Returns the input the user has entered in the HTML element.
      */
     private get inputText(): string {
-        return this.input.innerHTML.replaceAll(/<br>/, "");
+        return this.input.innerText.replaceAll(/<br>/, "");
     }
 
     /**
@@ -105,7 +105,7 @@ export class Terminal {
      * @param inputText the text to set as the text of the input HTML element
      */
     private set inputText(inputText: string) {
-        this.input.innerHTML = inputText;
+        this.input.innerText = inputText;
     }
 
     /**
@@ -207,7 +207,7 @@ export class Terminal {
      */
     processInput(input: string): void {
         this.inputText = "";
-        this.outputText += `${this.prefixText}${this.isInputHidden ? "" : input.trim()}\n`;
+        this.outputText += `${this.prefixText}${this.isInputHidden ? "" : escapeHtml(input)}\n`;
 
         this.standardInput.writeLine(input);
         this.shell.execute(new StreamSet(this.standardInput, this.standardOutput, this.standardOutput));

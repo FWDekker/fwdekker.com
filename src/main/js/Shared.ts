@@ -18,8 +18,7 @@ export const asciiHeaderHtml =
 /**
  * A function that does nothing.
  */
-export const emptyFunction = () => {
-};
+export const emptyFunction = () => {};
 
 
 /**
@@ -36,6 +35,19 @@ export function addOnLoad(fun: () => void): void {
         oldOnLoad();
         fun();
     };
+}
+
+/**
+ * Replaces all special HTML characters with escaped variants.
+ *
+ * @param string the string to escape special HTML characters in
+ */
+export function escapeHtml(string: string): string {
+    return string
+        .replaceAll(/</, "&lt;")
+        .replaceAll(/>/, "&gt;")
+        .replaceAll(/"/, "&quot;")
+        .replaceAll(/'/, "&#039;");
 }
 
 /**
@@ -96,17 +108,6 @@ export function q(query: string): HTMLElement {
         throw `Could not find element \`${query}\`.`;
 
     return element;
-}
-
-/**
- * Returns this string with all HTML tags stripped.
- *
- * @param string the string to strip HTML tags from
- */
-export function stripHtmlTags(string: string): string {
-    const div = document.createElement("div");
-    div.innerHTML = string;
-    return div.textContent || div.innerText || "";
 }
 
 

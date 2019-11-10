@@ -162,7 +162,7 @@ export class FileSystem {
 
         const targetNode = this.get(target);
         if (!(targetNode instanceof File))
-            throw new IllegalArgumentError("Cannot open stream to directory.");
+            throw new IllegalArgumentError(`Cannot open stream to directory '${target}'.`);
 
         if (options === "write")
             targetNode.contents = "";

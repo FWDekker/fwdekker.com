@@ -3,7 +3,7 @@ import {Environment} from "./Environment";
 import {Directory, FileSystem, Path} from "./FileSystem";
 import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {asciiHeaderHtml, stripHtmlTags} from "./Shared";
+import {asciiHeaderHtml} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
 import {UserList} from "./UserList";
 import {StreamSet} from "./Stream";
@@ -144,11 +144,11 @@ export class Shell {
             return 0;
         }
 
-        this.inputHistory.addEntry(inputString.trimStart());
+        this.inputHistory.addEntry(inputString);
 
         let input;
         try {
-            input = InputParser.create(this.environment, this.fileSystem).parse(stripHtmlTags(inputString));
+            input = InputParser.create(this.environment, this.fileSystem).parse(inputString);
         } catch (error) {
             streams.err.writeLine(`Could not parse input: ${error.message}`);
             this.environment.set("status", "-1");
@@ -157,7 +157,13 @@ export class Shell {
 
         if (input.redirectTarget[0] !== "default") {
             const target = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
-            streams.out = this.fileSystem.open(target, input.redirectTarget[0]);
+            try {
+                streams.out = this.fileSystem.open(target, input.redirectTarget[0]);
+            } catch(error) {
+                streams.err.writeLine(`open: ${error.message}`);
+                this.environment.set("status", "-1");
+                return -1;
+            }
         }
 
         const output = this.commands.execute(input, streams);
