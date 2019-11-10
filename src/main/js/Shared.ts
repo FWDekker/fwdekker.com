@@ -78,7 +78,8 @@ export function moveCaretToEndOf(node: Node): void {
 }
 
 /**
- * Returns the number of pixels in a CSS value that describes a number of pixels, or `0` if the given string is `null`.
+ * Returns the number of pixels in a CSS value that describes a number of pixels, or `0` if the given string is `null`
+ * or does not contain a number.
  *
  * For example, if the given string is `"3px"`, this function will return `3`.
  *
@@ -92,7 +93,8 @@ export function parseCssPixels(string: string | null): number {
         if (!string.endsWith("px"))
             throw new IllegalArgumentError("CSS string is not expressed in pixels.");
 
-        return parseFloat(string);
+        const result = parseFloat(string);
+        return isNaN(result) ? 0 : result;
     }
 }
 
