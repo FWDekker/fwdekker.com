@@ -582,6 +582,12 @@ describe("globber", () => {
             expect(globber.glob([`/dir/a${escape}*`])).to.have.members(["/dir/a1", "/dir/a2"]);
         });
 
+        it("expands to no files in a subdirectory", () => {
+            const globber = createGlobber({"/dir1/a1": new File(), "/dir2": new Directory()});
+
+            expect(globber.glob([`/${escape}*/${escape}*`])).to.have.members(["/dir1/a1"]);
+        });
+
         it("expands in the parent directory", () => {
             const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
 

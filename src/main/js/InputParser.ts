@@ -371,6 +371,6 @@ export class Globber {
                 else
                     return [history + fileName];
             })
-            .reduce((acc, it) => acc.concat(it));
+            .reduce((acc, it) => acc.concat(it), []);
     }
 }
