@@ -95,7 +95,7 @@ export class InputParser {
             const argsParts = arg.split(/=(.*)/, 2);
             if (argsParts.length === 0 || argsParts.length > 2)
                 throw new IllegalArgumentError("Unexpected number of parts.");
-            if (argsParts[0].indexOf(' ') >= 0)
+            if (argsParts[0].includes(' ') || argsParts[0].match(/[0-9]/))
                 break;
 
             const value = argsParts.length === 1 ? null : argsParts[1];
