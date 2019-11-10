@@ -250,22 +250,13 @@ export class InputArgs {
     }
 
     /**
-     * Returns `true` if and only if the option with the given key has been set.
-     *
-     * @param key the key to check
-     */
-    hasOption(key: string): boolean {
-        return this._options.hasOwnProperty(key);
-    }
-
-    /**
      * Returns `true` if and only if at least one of the options with the given keys has been set.
      *
      * @param keys the keys to check
      */
-    hasAnyOption(keys: string[]): boolean {
+    hasAnyOption(...keys: string[]): boolean {
         for (let i = 0; i < keys.length; i++)
-            if (this.hasOption(keys[i]))
+            if (this._options.hasOwnProperty(keys[i]))
                 return true;
 
         return false;
