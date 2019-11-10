@@ -36,31 +36,31 @@ describe("input parser", () => {
     describe("options", () => {
         describe("short options", () => {
             it("assigns null to a parameter-less short option", () => {
-                expect(parser.parse("command -o").options).to.have.own.property("o", null);
+                expect(parser.parse("command -o").options).to.have.own.property("-o", null);
             });
 
             it("assigns null to each parameter-less short option", () => {
                 const options = parser.parse("command -o -p").options;
-                expect(options).to.have.own.property("o", null);
-                expect(options).to.have.own.property("p", null);
+                expect(options).to.have.own.property("-o", null);
+                expect(options).to.have.own.property("-p", null);
             });
 
             it("assigns null to each parameter-less short option in a group", () => {
                 const options = parser.parse("command -op").options;
-                expect(options).to.have.own.property("o", null);
-                expect(options).to.have.own.property("p", null);
+                expect(options).to.have.own.property("-o", null);
+                expect(options).to.have.own.property("-p", null);
             });
 
             it("assigns the given value to a short option", () => {
-                expect(parser.parse("command -o=value").options).to.have.own.property("o", "value");
+                expect(parser.parse("command -o=value").options).to.have.own.property("-o", "value");
             });
 
             it("assigns the given value containing a space to a short option", () => {
-                expect(parser.parse(`command -o="val ue"`).options).to.have.own.property("o", "val ue");
+                expect(parser.parse(`command -o="val ue"`).options).to.have.own.property("-o", "val ue");
             });
 
             it("assigns an empty string to a short option", () => {
-                expect(parser.parse("command -o= -p").options).to.have.own.property("o", "");
+                expect(parser.parse("command -o= -p").options).to.have.own.property("-o", "");
             });
 
             it("does not assign a value to grouped short options", () => {
@@ -68,77 +68,89 @@ describe("input parser", () => {
             });
 
             it("stops parsing options if a short option name contains a space", () => {
-                expect(parser.parse(`command "-opt ion" -p`).options).to.not.have.own.property("p");
+                expect(parser.parse(`command "-opt ion" -p`).options).to.not.have.own.property("-p");
             });
 
             it("stops parsing options if a short option-like negative number is given", () => {
-                expect(parser.parse(`command -2 -p`).options).to.not.have.own.property("p");
+                expect(parser.parse(`command -2 -p`).options).to.not.have.own.property("-p");
             });
 
             it("continues parsing options if the value of a short option is a number", () => {
-                expect(parser.parse(`command -a=2 -p`).options).to.have.own.property("a", "2");
+                expect(parser.parse(`command -a=2 -p`).options).to.have.own.property("-a", "2");
             });
 
             it("considers an assignment to an empty short option to be an argument", () => {
-                expect(parser.parse("command -=value -p").options).to.not.have.own.property("p");
+                expect(parser.parse("command -=value -p").options).to.not.have.own.property("-p");
             });
 
             it("considers a short option surrounded by quotes as any other option", () => {
                 const options = parser.parse(`command -o "-p"`).options;
-                expect(options).to.have.own.property("o", null);
-                expect(options).to.have.own.property("p", null);
+                expect(options).to.have.own.property("-o", null);
+                expect(options).to.have.own.property("-p", null);
             });
         });
 
         describe("long options", () => {
             it("assigns null to a parameter-less long option", () => {
-                expect(parser.parse("command --option").options).to.have.own.property("option", null);
+                expect(parser.parse("command --option").options).to.have.own.property("--option", null);
             });
 
             it("assigns null to each parameter-less long option", () => {
                 const options = parser.parse("command --optionA --optionB").options;
-                expect(options).to.have.own.property("optionA", null);
-                expect(options).to.have.own.property("optionB", null);
+                expect(options).to.have.own.property("--optionA", null);
+                expect(options).to.have.own.property("--optionB", null);
             });
 
             it("assigns the given value to a long option", () => {
-                expect(parser.parse("command --option=value").options).to.have.own.property("option", "value");
+                expect(parser.parse("command --option=value").options).to.have.own.property("--option", "value");
             });
 
             it("assigns the given value containing a space to a long option", () => {
-                expect(parser.parse(`command --option="val ue"`).options).to.have.own.property("option", "val ue");
+                expect(parser.parse(`command --option="val ue"`).options).to.have.own.property("--option", "val ue");
             });
 
             it("stops parsing options if a long option name contains a space", () => {
-                expect(parser.parse(`command "--opt ion" -p`).options).to.not.have.own.property("p");
+                expect(parser.parse(`command "--opt ion" -p`).options).to.not.have.own.property("-p");
             });
 
             it("stops parsing options if a long option-like negative number is given", () => {
-                expect(parser.parse(`command --2 -p`).options).to.not.have.own.property("p");
+                expect(parser.parse(`command --2 -p`).options).to.not.have.own.property("-p");
             });
 
             it("continues parsing options if the value of a long option is a number", () => {
-                expect(parser.parse(`command --a=2 -p`).options).to.have.own.property("a", "2");
+                expect(parser.parse(`command --a=2 -p`).options).to.have.own.property("--a", "2");
             });
 
             it("considers an assignment to an empty long option to be an argument", () => {
                 const options = parser.parse("command --=value -p").options;
-                expect(options).to.not.have.own.property("p");
+                expect(options).to.not.have.own.property("-p");
             });
 
             it("considers a long option surrounded by quotes as any other option", () => {
                 const options = parser.parse(`command -o "--p"`).options;
-                expect(options).to.have.own.property("o", null);
-                expect(options).to.have.own.property("p", null);
+                expect(options).to.have.own.property("-o", null);
+                expect(options).to.have.own.property("--p", null);
             });
         });
 
+        it("distinguishes between short and long options", () => {
+            const options = parser.parse("command -s --long").options;
+
+            expect(options).to.not.have.own.property("s", null);
+            expect(options).to.have.own.property("-s", null);
+            expect(options).to.not.have.own.property("--s", null);
+
+            expect(options).to.not.have.own.property("long", null);
+            expect(options).to.not.have.own.property("-long", null);
+            expect(options).to.have.own.property("--long", null);
+        });
+
         it("stops parsing options after the first non-option", () => {
-            expect(parser.parse("command -o=value arg -p").options).to.not.have.own.property("p");
+            expect(parser.parse("command -o=value arg -p").options).to.not.have.own.property("-p");
         });
 
         it("stops parsing options after --", () => {
-            expect(parser.parse("command -- -p").options).to.not.have.own.property("p");
+            expect(parser.parse("command -- -p").options).to.not.have.own.property("-p");
         });
     });
 
@@ -201,7 +213,7 @@ describe("input parser", () => {
 
         it("should find the writing redirect target if placed at the end", () => {
             const inputArgs = parser.parse("command -o=p arg1 > file");
-            expect(inputArgs.options).to.deep.equal({o: "p"});
+            expect(inputArgs.options).to.deep.equal({"-o": "p"});
             expect(inputArgs.args).to.have.members(["arg1"]);
             expect(inputArgs.redirectTarget).to.have.members(["write", "file"]);
         });
@@ -215,7 +227,7 @@ describe("input parser", () => {
         it("should find the redirect target if placed in between options", () => {
             const inputArgs = parser.parse("command -o=p >> file --ba=ba arg2");
             expect(inputArgs.redirectTarget).to.have.members(["append", "file"]);
-            expect(inputArgs.options).to.deep.equal({o: "p", ba: "ba"});
+            expect(inputArgs.options).to.deep.equal({"-o": "p", "--ba": "ba"});
         });
 
         it("should ignore the redirect target if inside quotation marks", () => {

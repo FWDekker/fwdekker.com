@@ -105,20 +105,20 @@ export class InputParser {
                 if (key === "")
                     break;
 
-                options[key] = value;
+                options[`--${key}`] = value;
             } else {
                 const keys = argsParts[0].substr(1);
                 if (keys === "")
                     break;
 
                 if (keys.length === 1) {
-                    options[keys] = value;
+                    options[`-${keys}`] = value;
                 } else {
                     if (value !== null)
                         throw new IllegalArgumentError("Cannot assign value to multiple short options.");
 
                     for (const key of keys)
-                        options[key] = value;
+                        options[`-${key}`] = value;
                 }
             }
         }

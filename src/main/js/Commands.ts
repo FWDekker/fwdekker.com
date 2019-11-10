@@ -322,7 +322,7 @@ export class Commands {
         return mappings
             .map(([source, destination]) => {
                 try {
-                    this.fileSystem.copy(source, destination, input.hasAnyOption("r", "R", "recursive"));
+                    this.fileSystem.copy(source, destination, input.hasAnyOption("-r", "-R", "--recursive"));
                     return 0;
                 } catch (error) {
                     streams.err.writeLine(`cp: ${error.message}`);
@@ -340,7 +340,7 @@ export class Commands {
     private echo(input: InputArgs, streams: StreamSet): number {
         const message = input.args.join(" ").replace("hunter2", "*******");
 
-        if (input.hasAnyOption("n", "newline"))
+        if (input.hasAnyOption("-n", "--newline"))
             streams.out.write(message);
         else
             streams.out.writeLine(message);
@@ -436,7 +436,7 @@ export class Commands {
                     .sortAlphabetically(it => it, true)
                     .forEach(name => {
                         const node = nodes[name];
-                        if (!input.hasAnyOption("a", "A", "all") && name.startsWith("."))
+                        if (!input.hasAnyOption("-a", "-A", "--all") && name.startsWith("."))
                             return;
 
                         if (node instanceof Directory)
@@ -474,7 +474,7 @@ export class Commands {
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
                 try {
-                    this.fileSystem.add(path, new Directory(), input.hasAnyOption("p", "parents"));
+                    this.fileSystem.add(path, new Directory(), input.hasAnyOption("-p", "--parents"));
                     return 0;
                 } catch (error) {
                     streams.err.writeLine(`mkdir: ${error.message}`);
@@ -508,7 +508,7 @@ export class Commands {
 
     private open(input: InputArgs, streams: StreamSet): number {
         const path = Path.interpret(this.environment.get("cwd"), input.args[0]);
-        const target = input.hasAnyOption("b", "blank") ? "_blank" : "_self";
+        const target = input.hasAnyOption("-b", "--blank") ? "_blank" : "_self";
 
         const node = this.fileSystem.get(path);
         if (node === undefined) {
@@ -559,18 +559,18 @@ export class Commands {
                 try {
                     const target = this.fileSystem.get(path);
                     if (target === undefined) {
-                        if (input.hasAnyOption("f", "force"))
+                        if (input.hasAnyOption("-f", "--force"))
                             return 0;
 
                         streams.err.writeLine(`rm: The file '${path}' does not exist.`);
                         return -1;
                     }
                     if (target instanceof Directory) {
-                        if (!input.hasAnyOption("r", "R", "recursive")) {
+                        if (!input.hasAnyOption("-r", "-R", "--recursive")) {
                             streams.err.writeLine(`rm: '${path}' is a directory.`);
                             return -1;
                         }
-                        if (path.toString() === "/" && !input.hasAnyOption("no-preserve-root")) {
+                        if (path.toString() === "/" && !input.hasAnyOption("--no-preserve-root")) {
                             streams.err.writeLine("rm: Cannot remove root directory.");
                             return -1;
                         }
