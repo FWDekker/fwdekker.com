@@ -1,6 +1,6 @@
-import {IllegalStateError, moveCaretToEndOf, parseCssPixels} from "./Shared";
+import {moveCaretToEndOf, parseCssPixels} from "./Shared";
 import {Shell} from "./Shell";
-import {InputStream, OutputStream, StreamSet} from "./Stream";
+import {Buffer, StreamSet} from "./Stream";
 
 
 /**
@@ -37,6 +37,15 @@ export class Terminal {
      * The shell that handles input.
      */
     private readonly shell: Shell;
+
+    /**
+     * The standard input stream.
+     */
+    private readonly standardInput = new Buffer();
+    /**
+     * The standard output stream.
+     */
+    private readonly standardOutput = new Buffer();
 
 
     /**
@@ -200,95 +209,41 @@ export class Terminal {
         this.inputText = "";
         this.outputText += `${this.prefixText}${this.isInputHidden ? "" : input.trim()}\n`;
 
-        this.shell.execute(input, this.getStreams());
+        this.standardInput.writeLine(input);
+        this.shell.execute(new StreamSet(this.standardInput, this.standardOutput, this.standardOutput));
+
+        let buffer = "";
+        while (this.standardOutput.has(1)) {
+            if (this.standardOutput.peek(1) === EscapeCharacters.Escape && !this.standardOutput.has(2))
+                break;
+
+            const char = this.standardOutput.read(1);
+            if (char !== EscapeCharacters.Escape) {
+                buffer += char;
+                continue;
+            }
+
+            const nextChar = this.standardOutput.read(1);
+            switch (nextChar) {
+                case EscapeCharacters.Clear:
+                    buffer = "";
+                    this.outputText = "";
+                    break;
+                case EscapeCharacters.HideInput:
+                    this.isInputHidden = true;
+                    break;
+                case EscapeCharacters.ShowInput:
+                    this.isInputHidden = false;
+                    break;
+                default:
+                    buffer += nextChar;
+                    break;
+            }
+        }
+        this.outputText += buffer;
 
         this.prefixText = this.shell.generatePrefix();
         this.scroll = 0;
-    }
-
-
-    /**
-     * Returns the terminal's default set of streams.
-     */
-    private getStreams(): StreamSet {
-        return new StreamSet(this.getInputStream(), this.getOutputStream(), this.getOutputStream());
-    }
-
-    /**
-     * Returns an input stream that reads from the terminal's input.
-     */
-    private getInputStream(): InputStream {
-        return new class implements InputStream {
-            read(count: number | undefined): string {
-                throw new IllegalStateError("Default input stream has not been implemented.");
-            }
-
-            readLine(): string {
-                throw new IllegalStateError("Default input stream has not been implemented.");
-            }
-        }
-    }
-
-    /**
-     * Returns an output stream that writes to the terminal's output.
-     */
-    private getOutputStream(): OutputStream {
-        return new class implements OutputStream {
-            readonly terminal: Terminal;
-            buffer: string = "";
-            isInEscape: boolean = false;
-
-
-            constructor(terminal: Terminal) {
-                this.terminal = terminal;
-            }
-
-
-            write(output: string): void {
-                for (let i = 0; i < output.length; i++) {
-                    if (this.isInEscape) {
-                        switch (output[i]) {
-                            case EscapeCharacters.Clear:
-                                this.buffer = "";
-                                this.terminal.outputText = "";
-                                break;
-                            case EscapeCharacters.HideInput:
-                                this.terminal.isInputHidden = true;
-                                break;
-                            case EscapeCharacters.ShowInput:
-                                this.terminal.isInputHidden = false;
-                                break;
-                            default:
-                                this.buffer += output.charAt(i + 1);
-                                break;
-                        }
-                        this.isInEscape = false;
-                        continue;
-                    }
-
-                    if (output[i] === EscapeCharacters.Escape) {
-                        this.isInEscape = true;
-                        continue;
-                    }
-
-                    this.buffer += output.charAt(i);
-                }
-
-                this.flush();
-            }
-
-            writeLine(string: string): void {
-                this.write(string + "\n");
-            }
-
-            flush(): void {
-                if (this.buffer === "")
-                    return;
-
-                this.terminal.outputText += this.buffer;
-                this.buffer = "";
-            }
-        }(this);
     }
 
 

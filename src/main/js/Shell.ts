@@ -114,10 +114,11 @@ export class Shell {
     /**
      * Processes a user's input and returns the associated exit code.
      *
-     * @param inputString the input to process
      * @param streams the standard streams
      */
-    execute(inputString: string, streams: StreamSet): number {
+    execute(streams: StreamSet): number {
+        const inputString = streams.ins.readLine().replace("\n", "");
+
         if (this.environment.get("user") === "") {
             if (this.attemptUser === undefined) {
                 streams.out.write(EscapeCharacters.Escape + EscapeCharacters.HideInput);
