@@ -86,7 +86,7 @@ export class FileSystem {
      */
     copy(source: Path, destination: Path, isRecursive: boolean): void {
         if (source.isAncestorOf(destination))
-            throw new IllegalArgumentError("Cannot move directory into itself.");
+            throw new IllegalArgumentError("Cannot copy directory into itself.");
 
         const sourceNode = this.get(source);
         if (sourceNode === undefined)

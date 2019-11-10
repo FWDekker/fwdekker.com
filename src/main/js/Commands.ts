@@ -239,7 +239,7 @@ export class Commands {
         if (input.command === "")
             return 0;
         if (!this.commands.hasOwnProperty(input.command)) {
-            streams.err.writeLine(`Unknown command '${input.command}'`);
+            streams.err.writeLine(`Unknown command '${input.command}'.`);
             return -1;
         }
 
@@ -262,7 +262,7 @@ export class Commands {
     private createUsageErrorOutput(commandName: string, errorMessage: string | undefined): string {
         const command = this.commands[commandName];
         if (command === undefined)
-            throw new IllegalArgumentError(`Unknown command \`${commandName}\`.`);
+            throw new IllegalArgumentError(`Unknown command '${commandName}'.`);
 
         return `Invalid usage of ${commandName}. ${errorMessage ?? ""}
 
@@ -276,13 +276,13 @@ export class Commands {
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map(path => {
                 if (!this.fileSystem.has(path)) {
-                    streams.err.writeLine(`cat: ${path}: No such file`);
+                    streams.err.writeLine(`cat: ${path}: No such file.`);
                     return -1;
                 }
 
                 const node = this.fileSystem.get(path);
                 if (!(node instanceof File)) {
-                    streams.err.writeLine(`cat: ${path}: No such file`);
+                    streams.err.writeLine(`cat: ${path}: No such file.`);
                     return -1;
                 }
 
@@ -303,7 +303,7 @@ export class Commands {
 
         const path = Path.interpret(this.environment.get("cwd"), input.args[0]);
         if (!this.fileSystem.has(path)) {
-            streams.err.writeLine(`The directory '${path}' does not exist.`);
+            streams.err.writeLine(`cd: The directory '${path}' does not exist.`);
             return -1;
         }
 
@@ -312,26 +312,29 @@ export class Commands {
     }
 
     private cp(input: InputArgs, streams: StreamSet): number {
+        let mappings;
         try {
-            return this.moveCopyMappings(input)
-                .map(([source, destination]) => {
-                    try {
-                        this.fileSystem.copy(source, destination, input.hasAnyOption(["r", "R", "recursive"]));
-                        return 0;
-                    } catch (error) {
-                        streams.err.writeLine(error.message);
-                        return -1;
-                    }
-                })
-                .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            mappings = this.moveCopyMappings(input);
         } catch (error) {
-            streams.err.writeLine(error.message);
+            streams.err.writeLine(`cp: ${error.message}`);
             return -1;
         }
+
+        return mappings
+            .map(([source, destination]) => {
+                try {
+                    this.fileSystem.copy(source, destination, input.hasAnyOption(["r", "R", "recursive"]));
+                    return 0;
+                } catch (error) {
+                    streams.err.writeLine(`cp: ${error.message}`);
+                    return -1;
+                }
+            })
+            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
     }
 
     private clear(_: InputArgs, streams: StreamSet): number {
-        streams.err.write(EscapeCharacters.Escape + EscapeCharacters.Clear);
+        streams.out.write(EscapeCharacters.Escape + EscapeCharacters.Clear);
         return 0;
     }
 
@@ -415,11 +418,11 @@ export class Commands {
 
                 const node = this.fileSystem.get(path);
                 if (node === undefined) {
-                    streams.err.writeLine(`The directory '${path}' does not exist.`);
+                    streams.err.writeLine(`ls: The directory '${path}' does not exist.`);
                     return -1;
                 }
                 if (!(node instanceof Directory)) {
-                    streams.err.writeLine(`'${path}' is not a directory.`);
+                    streams.err.writeLine(`ls: '${path}' is not a directory.`);
                     return -1;
                 }
 
@@ -442,7 +445,8 @@ export class Commands {
                         else if (node instanceof File)
                             fileList.push(node.nameString(name, path.getChild(name)));
                         else
-                            throw new IllegalStateError(`'${path.getChild(name)}' is neither a file nor a directory.`);
+                            throw new IllegalStateError(
+                                `ls: '${path.getChild(name)}' is neither a file nor a directory.`);
                     });
 
                 if (input.args.length > 1)
@@ -459,7 +463,7 @@ export class Commands {
             return 0;
         }
         if (!Object.keys(this.commands).includes(input.args[0])) {
-            streams.err.writeLine(`No manual entry for '${input.args[0]}'.`);
+            streams.err.writeLine(`man: No manual entry for '${input.args[0]}'.`);
             return -1;
         }
 
@@ -474,7 +478,7 @@ export class Commands {
                     this.fileSystem.add(path, new Directory(), input.hasOption("p"));
                     return 0;
                 } catch (error) {
-                    streams.err.writeLine(error.message);
+                    streams.err.writeLine(`mkdir: ${error.message}`);
                     return -1;
                 }
             })
@@ -482,22 +486,25 @@ export class Commands {
     }
 
     private mv(input: InputArgs, streams: StreamSet): number {
+        let mappings;
         try {
-            return this.moveCopyMappings(input)
-                .map(([source, destination]) => {
-                    try {
-                        this.fileSystem.move(source, destination);
-                        return 0;
-                    } catch (error) {
-                        streams.err.writeLine(error.message);
-                        return -1;
-                    }
-                })
-                .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            mappings = this.moveCopyMappings(input);
         } catch (error) {
-            streams.err.writeLine(error.message);
+            streams.err.writeLine(`mv: ${error.message}`);
             return -1;
         }
+
+        return mappings
+            .map(([source, destination]) => {
+                try {
+                    this.fileSystem.move(source, destination);
+                    return 0;
+                } catch (error) {
+                    streams.err.writeLine(`mv: ${error.message}`);
+                    return -1;
+                }
+            })
+            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
     }
 
     private open(input: InputArgs, streams: StreamSet): number {
@@ -506,11 +513,11 @@ export class Commands {
 
         const node = this.fileSystem.get(path);
         if (node === undefined) {
-            streams.err.writeLine(`The file '${path}' does not exist`);
+            streams.err.writeLine(`open: The file '${path}' does not exist.`);
             return -1;
         }
         if (!(node instanceof File)) {
-            streams.err.writeLine(`'${path}' is not a file`);
+            streams.err.writeLine(`open: '${path}' is not a file.`);
             return -1;
         }
 
@@ -521,7 +528,7 @@ export class Commands {
     private poweroff(_: InputArgs, streams: StreamSet): number {
         const userName = this.environment.get("user");
         if (userName === "") {
-            streams.err.writeLine("Cannot execute `poweroff` while not logged in.");
+            streams.err.writeLine("poweroff: Cannot execute while not logged in.");
             return -1;
         }
 
@@ -556,16 +563,16 @@ export class Commands {
                         if (input.hasAnyOption(["f", "force"]))
                             return 0;
 
-                        streams.err.writeLine(`The file '${path}' does not exist.`);
+                        streams.err.writeLine(`rm: The file '${path}' does not exist.`);
                         return -1;
                     }
                     if (target instanceof Directory) {
                         if (!input.hasAnyOption(["r", "R", "recursive"])) {
-                            streams.err.writeLine(`'${path}' is a directory.`);
+                            streams.err.writeLine(`rm: '${path}' is a directory.`);
                             return -1;
                         }
                         if (path.toString() === "/" && !input.hasOption("no-preserve-root")) {
-                            streams.err.writeLine("Cannot remove root directory.");
+                            streams.err.writeLine("rm: Cannot remove root directory.");
                             return -1;
                         }
                     }
@@ -573,7 +580,7 @@ export class Commands {
                     this.fileSystem.remove(path);
                     return 0;
                 } catch (error) {
-                    streams.err.writeLine(error.message);
+                    streams.err.writeLine(`rm: ${error.message}`);
                     return -1;
                 }
             })
@@ -587,22 +594,22 @@ export class Commands {
                 try {
                     const target = this.fileSystem.get(path);
                     if (target === undefined) {
-                        streams.err.writeLine(`'${path}' does not exist.`);
+                        streams.err.writeLine(`rmdir: '${path}' does not exist.`);
                         return -1;
                     }
                     if (!(target instanceof Directory)) {
-                        streams.err.writeLine(`'${path}' is not a directory.`);
+                        streams.err.writeLine(`rmdir: '${path}' is not a directory.`);
                         return -1;
                     }
                     if (target.nodeCount !== 0) {
-                        streams.err.writeLine(`'${path}' is not empty.`);
+                        streams.err.writeLine(`rmdir: '${path}' is not empty.`);
                         return -1;
                     }
 
                     this.fileSystem.remove(path);
                     return 0;
                 } catch (error) {
-                    streams.err.writeLine(error.message);
+                    streams.err.writeLine(`rmdir: ${error.message}`);
                     return -1;
                 }
             })
@@ -616,7 +623,7 @@ export class Commands {
             else
                 this.environment.safeSet(input.args[0], input.args[1]);
         } catch (error) {
-            streams.err.writeLine(error.message);
+            streams.err.writeLine(`set: ${error.message}`);
             return -1;
         }
 
@@ -631,7 +638,7 @@ export class Commands {
                     this.fileSystem.add(path, new File(), false);
                     return 0;
                 } catch (error) {
-                    streams.err.writeLine(error.message);
+                    streams.err.writeLine(`touche: ${error.message}`);
                     return -1;
                 }
             })
@@ -641,7 +648,7 @@ export class Commands {
     private whoami(_: InputArgs, streams: StreamSet): number {
         const user = this.userSession.get(this.environment.get("user"));
         if (user === undefined) {
-            streams.err.writeLine("Cannot execute `whoami` while not logged in.");
+            streams.err.writeLine("whoami: Cannot execute while not logged in.");
             return -1;
         }
 
@@ -753,7 +760,7 @@ class InputValidator {
      */
     constructor({minArgs = 0, maxArgs = Number.MAX_SAFE_INTEGER}: { minArgs?: number, maxArgs?: number } = {}) {
         if (minArgs > maxArgs)
-            throw new IllegalStateError("`minArgs` must be less than or equal to `maxArgs`.");
+            throw new IllegalStateError("'minArgs' must be less than or equal to 'maxArgs'.");
 
         this.minArgs = minArgs;
         this.maxArgs = maxArgs;

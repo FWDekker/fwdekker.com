@@ -150,7 +150,7 @@ export class Shell {
         try {
             input = InputParser.create(this.environment, this.fileSystem).parse(stripHtmlTags(inputString));
         } catch (error) {
-            streams.err.writeLine(error.message);
+            streams.err.writeLine(`Could not parse input: ${error.message}`);
             this.environment.set("status", "-1");
             return -1;
         }
