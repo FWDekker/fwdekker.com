@@ -106,9 +106,6 @@ export class FileSystem {
         if (target.toString() === "/")
             return this.root;
 
-        console.log("---");
-        console.log(target);
-        console.log(target.parent);
         const parent = this.get(target.parent);
         if (!(parent instanceof Directory) || !parent.hasNode(target.fileName))
             return undefined;

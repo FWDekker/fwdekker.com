@@ -296,7 +296,7 @@ export class Commands {
     }
 
     private cd(input: InputArgs, streams: StreamSet): number {
-        if (input.args[0] === "") {
+        if (input.args.length === 0 || input.args[0] === "") {
             this.environment.set("cwd", this.environment.get("home"));
             return 0;
         }
