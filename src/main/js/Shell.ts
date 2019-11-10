@@ -144,7 +144,7 @@ export class Shell {
             return 0;
         }
 
-        this.inputHistory.addEntry(inputString.trim());
+        this.inputHistory.addEntry(inputString.trimStart());
 
         let input;
         try {
