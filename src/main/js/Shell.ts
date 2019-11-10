@@ -236,9 +236,9 @@ export class InputArgs {
      */
     constructor(command: string, options: InputArgs.Options, args: string[], redirectTarget: InputArgs.RedirectTarget) {
         this.command = command;
-        this._options = options;
-        this._args = args;
-        this.redirectTarget = redirectTarget;
+        this._options = Object.assign({}, options);
+        this._args = args.slice();
+        this.redirectTarget = <InputArgs.RedirectTarget> redirectTarget.slice();
     }
 
 
@@ -271,11 +271,9 @@ export class InputArgs {
     }
 
     /**
-     * Returns `true` if and only if there is an argument at the given index.
-     *
-     * @param index the index to check
+     * Returns the number of arguments.
      */
-    hasArg(index: number): boolean {
-        return this._args[index] !== undefined;
+    get argc(): number {
+        return this.args.length;
     }
 }

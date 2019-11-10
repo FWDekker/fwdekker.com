@@ -358,7 +358,7 @@ export class Globber {
                     // Only match files if there are no more /s to match
                     if (!glob.includes("/"))
                         return [history + fileName];
-                    return <string[]>[];
+                    return <string[]> [];
                 }
 
                 // Only recurse if there is still recurring to do

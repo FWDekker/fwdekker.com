@@ -295,7 +295,7 @@ export class Commands {
     }
 
     private cd(input: InputArgs, streams: StreamSet): number {
-        if (input.args.length === 0 || input.args[0] === "") {
+        if (input.argc === 0 || input.args[0] === "") {
             this.environment.set("cwd", this.environment.get("home"));
             return 0;
         }
@@ -356,7 +356,7 @@ export class Commands {
     private help(input: InputArgs, streams: StreamSet): number {
         const commandNames = Object.keys(this.commands);
 
-        if (input.args.length > 0) {
+        if (input.argc > 0) {
             return input.args
                 .map((it, i) => {
                     if (i > 0)
@@ -409,7 +409,7 @@ export class Commands {
     }
 
     private ls(input: InputArgs, streams: StreamSet): number {
-        return (input.args.length === 0 ? [""] : input.args)
+        return (input.argc === 0 ? [""] : input.args)
             .map(arg => Path.interpret(this.environment.get("cwd"), arg))
             .map((path, i) => {
                 if (i > 0)
@@ -448,7 +448,7 @@ export class Commands {
                                 `ls: '${path.getChild(name)}' is neither a file nor a directory.`);
                     });
 
-                if (input.args.length > 1)
+                if (input.argc > 1)
                     streams.out.writeLine(`<b>${path}</b>`);
                 streams.out.writeLine(dirList.concat(fileList).join("\n"));
                 return 0;
@@ -457,7 +457,7 @@ export class Commands {
     }
 
     private man(input: InputArgs, streams: StreamSet): number {
-        if (input.args.length === 0) {
+        if (input.argc === 0) {
             streams.out.writeLine("What manual page do you want?");
             return 0;
         }
@@ -617,7 +617,7 @@ export class Commands {
 
     private set(input: InputArgs, streams: StreamSet): number {
         try {
-            if (input.args.length === 1)
+            if (input.argc === 1)
                 this.environment.safeDelete(input.args[0]);
             else
                 this.environment.safeSet(input.args[0], input.args[1]);
@@ -773,12 +773,12 @@ class InputValidator {
      * @param input the input to validate
      */
     validate(input: InputArgs): [true] | [false, string] {
-        if (this.minArgs === this.maxArgs && input.args.length !== this.minArgs)
-            return [false, `Expected ${this.args(this.minArgs)} but got ${input.args.length}.`];
-        if (input.args.length < this.minArgs)
-            return [false, `Expected at least ${this.args(this.minArgs)} but got ${input.args.length}.`];
-        if (input.args.length > this.maxArgs)
-            return [false, `Expected at most ${this.args(this.maxArgs)} but got ${input.args.length}.`];
+        if (this.minArgs === this.maxArgs && input.argc !== this.minArgs)
+            return [false, `Expected ${this.args(this.minArgs)} but got ${input.argc}.`];
+        if (input.argc < this.minArgs)
+            return [false, `Expected at least ${this.args(this.minArgs)} but got ${input.argc}.`];
+        if (input.argc > this.maxArgs)
+            return [false, `Expected at most ${this.args(this.maxArgs)} but got ${input.argc}.`];
 
         return [true];
     }

@@ -5,7 +5,7 @@ import "../main/js/Extensions"
 import {Directory, File, FileSystem, Path} from "../main/js/FileSystem";
 
 
-describe("input args", () => {
+describe("file system", () => {
     let fileSystem: FileSystem;
 
 

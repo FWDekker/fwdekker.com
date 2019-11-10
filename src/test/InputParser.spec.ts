@@ -1,7 +1,6 @@
 import "mocha";
 import {expect} from "chai";
 
-import "../main/js/Extensions"
 import {Environment} from "../main/js/Environment";
 import {Globber, InputParser, Tokenizer} from "../main/js/InputParser";
 import {Directory, File, FileSystem, Node, Path} from "../main/js/FileSystem";
