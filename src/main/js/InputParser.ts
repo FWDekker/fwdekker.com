@@ -65,16 +65,16 @@ export class InputParser {
      * @param tokens an array of tokens of which some tokens may describe a redirect target
      */
     private getRedirectTarget(tokens: string[]): InputArgs.RedirectTarget {
-        let redirectTarget: InputArgs.RedirectTarget = ["default"];
-
-        tokens.forEach(token => {
-            if (token.startsWith(`${EscapeCharacters.Escape}>${EscapeCharacters.Escape}>`))
-                redirectTarget = ["append", token.slice(4)];
-            else if (token.startsWith(`${EscapeCharacters.Escape}>`))
-                redirectTarget = ["write", token.slice(2)];
-        });
-
-        return redirectTarget;
+        return tokens
+            .map(token => {
+                if (token.startsWith(`${EscapeCharacters.Escape}>${EscapeCharacters.Escape}>`))
+                    return {type: "append", target: token.slice(4)};
+                else if (token.startsWith(`${EscapeCharacters.Escape}>`))
+                    return {type: "write", target: token.slice(2)};
+            })
+            .filter(it => it !== undefined)
+            .map(it => <InputArgs.RedirectTarget> it)
+            .pop() ?? {type: "default"};
     }
 
     /**

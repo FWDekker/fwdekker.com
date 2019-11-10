@@ -181,62 +181,64 @@ describe("input parser", () => {
 
     describe("output redirection", () => {
         it("should have the default redirect target by default", () => {
-            expect(parser.parse("command").redirectTarget).to.have.members(["default"]);
+            expect(parser.parse("command").redirectTarget).to.deep.equal({type: "default"});
         });
 
         it("should find the writing redirect target", () => {
-            expect(parser.parse("command > file").redirectTarget).to.have.members(["write", "file"]);
+            expect(parser.parse("command > file").redirectTarget).to.deep.equal({type: "write", target: "file"});
         });
 
         it("should find the appending redirect target", () => {
-            expect(parser.parse("command >> file").redirectTarget).to.have.members(["append", "file"]);
+            expect(parser.parse("command >> file").redirectTarget).to.deep.equal({type: "append", target: "file"});
         });
 
         it("should find the redirect target without a space between the operator and filename", () => {
-            expect(parser.parse("command >file").redirectTarget).to.have.members(["write", "file"]);
+            expect(parser.parse("command >file").redirectTarget).to.deep.equal({type: "write", target: "file"});
         });
 
         it("should find the redirect target with multiple spaces between the operator and filename", () => {
-            expect(parser.parse("command >   file").redirectTarget).to.have.members(["write", "file"]);
+            expect(parser.parse("command >   file").redirectTarget).to.deep.equal({type: "write", target: "file"});
         });
 
         it("should find the redirect target without a space between the previous token and the target", () => {
             const inputArgs = parser.parse("command arg>file");
-            expect(inputArgs.redirectTarget).to.have.members(["write", "file"]);
+            expect(inputArgs.redirectTarget).to.deep.equal({type: "write", target: "file"});
             expect(inputArgs.args).to.have.members(["arg"]);
         });
 
         it("should choose the last redirect target if multiple are present", () => {
-            expect(parser.parse("command > file1 >> file2").redirectTarget).to.have.members(["append", "file2"]);
-            expect(parser.parse("command >> file1 > file2").redirectTarget).to.have.members(["write", "file2"]);
+            expect(parser.parse("command > file1 >> file2").redirectTarget)
+                .to.deep.equal({type: "append", target: "file2"});
+            expect(parser.parse("command >> file1 > file2").redirectTarget)
+                .to.deep.equal({type: "write", target: "file2"});
         });
 
         it("should find the writing redirect target if placed at the end", () => {
             const inputArgs = parser.parse("command -o=p arg1 > file");
             expect(inputArgs.options).to.deep.equal({"-o": "p"});
             expect(inputArgs.args).to.have.members(["arg1"]);
-            expect(inputArgs.redirectTarget).to.have.members(["write", "file"]);
+            expect(inputArgs.redirectTarget).to.deep.equal({type: "write", target: "file"});
         });
 
         it("should find the redirect target if placed in between arguments", () => {
             const inputArgs = parser.parse("command arg1 > file arg2");
-            expect(inputArgs.redirectTarget).to.have.members(["write", "file"]);
-            expect(inputArgs.args).to.have.members(["arg1", "arg2"]);
+            expect(inputArgs.redirectTarget).to.deep.equal({type: "write", target: "file"});
+            expect(inputArgs.args).to.deep.equal(["arg1", "arg2"]);
         });
 
         it("should find the redirect target if placed in between options", () => {
             const inputArgs = parser.parse("command -o=p >> file --ba=ba arg2");
-            expect(inputArgs.redirectTarget).to.have.members(["append", "file"]);
+            expect(inputArgs.redirectTarget).to.deep.equal({type: "append", target: "file"});
             expect(inputArgs.options).to.deep.equal({"-o": "p", "--ba": "ba"});
         });
 
         it("should ignore the redirect target if inside quotation marks", () => {
-            expect(parser.parse("command '> file'").redirectTarget).to.have.members(["default"]);
+            expect(parser.parse("command '> file'").redirectTarget).to.deep.equal({type: "default"});
         });
 
         it("should ignore the redirect target if the operator is escaped", () => {
             const inputArgs = parser.parse("command \\> file");
-            expect(inputArgs.redirectTarget).to.have.members(["default"]);
+            expect(inputArgs.redirectTarget).to.deep.equal({type: "default"});
             expect(inputArgs.args).to.have.members([">", "file"]);
         });
     });

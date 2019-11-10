@@ -7,7 +7,7 @@ import {InputArgs} from "../main/js/Shell";
 
 describe("input validator", () => {
     function input(args: string[]): InputArgs {
-        return new InputArgs("commands", {}, args, ["default"]);
+        return new InputArgs("commands", {}, args, {type: "default"});
     }
 
 

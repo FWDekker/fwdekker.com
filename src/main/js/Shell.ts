@@ -3,7 +3,7 @@ import {Environment} from "./Environment";
 import {Directory, FileSystem, Path} from "./FileSystem";
 import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {asciiHeaderHtml} from "./Shared";
+import {asciiHeaderHtml, IllegalStateError} from "./Shared";
 import {EscapeCharacters, InputHistory} from "./Terminal";
 import {UserList} from "./UserList";
 import {StreamSet} from "./Stream";
@@ -155,11 +155,14 @@ export class Shell {
             return -1;
         }
 
-        if (input.redirectTarget[0] !== "default") {
-            const target = Path.interpret(this.environment.get("cwd"), input.redirectTarget[1]);
+        if (input.redirectTarget.type !== "default") {
+            if (input.redirectTarget.target === undefined)
+                throw new IllegalStateError("Redirect target's target is undefined.");
+
+            const target = Path.interpret(this.environment.get("cwd"), input.redirectTarget.target);
             try {
-                streams.out = this.fileSystem.open(target, input.redirectTarget[0]);
-            } catch(error) {
+                streams.out = this.fileSystem.open(target, input.redirectTarget.type);
+            } catch (error) {
                 streams.err.writeLine(`open: ${error.message}`);
                 this.environment.set("status", "-1");
                 return -1;
@@ -207,7 +210,7 @@ export module InputArgs {
      *     <li>`append` means that the output should be appended to the file in the given string</li>
      * </ul>
      */
-    export type RedirectTarget = ["default"] | ["write" | "append", string];
+    export type RedirectTarget = { type: "default" | "write" | "append", target?: string };
 }
 
 /**
@@ -244,7 +247,7 @@ export class InputArgs {
         this.command = command;
         this._options = Object.assign({}, options);
         this._args = args.slice();
-        this.redirectTarget = <InputArgs.RedirectTarget> redirectTarget.slice();
+        this.redirectTarget = Object.assign({}, redirectTarget);
     }
 
 
