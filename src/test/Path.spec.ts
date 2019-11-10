@@ -35,6 +35,10 @@ describe("paths", () => {
             it("interprets the given path as an absolute path", () => {
                 expect(new Path("dir1/file").toString()).to.equal("/dir1/file");
             });
+
+            it("identifies newline characters as characters", () => {
+                expect(new Path("/dir/\n").toString()).to.equal("/dir/\n");
+            });
         });
 
         describe("parts", () => {

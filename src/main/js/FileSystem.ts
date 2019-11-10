@@ -106,6 +106,9 @@ export class FileSystem {
         if (target.toString() === "/")
             return this.root;
 
+        console.log("---");
+        console.log(target);
+        console.log(target.parent);
         const parent = this.get(target.parent);
         if (!(parent instanceof Directory) || !parent.hasNode(target.fileName))
             return undefined;
@@ -224,7 +227,7 @@ export class Path {
             .replaceAll(/(\/+)([^./]+)(\/+)(\.\.)(\/+)/, "/") // Replace `/x/../` with `/`
             .replaceAll(/\/{2,}/, "/") // Replace `//` with `/`
             .replaceAll(/^\/\.\.\//, "/") // Replace `/../` at start with `/`
-            .replace(/(.)\/$/, "$1"); // Remove trailing `/` if not last character
+            .replace(/(.|\n)\/$/, "$1"); // Remove trailing `/` if not last character
 
         const parts = this.path.split("/");
         this._parent = parts.slice(0, -1).join("/");
