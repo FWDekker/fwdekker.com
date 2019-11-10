@@ -740,7 +740,7 @@ class Command {
 /**
  * Validates the input of a command.
  */
-class InputValidator {
+export class InputValidator {
     /**
      * The minimum number of arguments allowed.
      */
@@ -758,8 +758,12 @@ class InputValidator {
      * @param maxArgs the maximum number of arguments allowed
      */
     constructor({minArgs = 0, maxArgs = Number.MAX_SAFE_INTEGER}: { minArgs?: number, maxArgs?: number } = {}) {
+        if (minArgs < 0)
+            throw new IllegalArgumentError("'minArgs' must be non-negative.");
+        if (maxArgs < 0)
+            throw new IllegalArgumentError("'maxArgs' must be non-negative.");
         if (minArgs > maxArgs)
-            throw new IllegalStateError("'minArgs' must be less than or equal to 'maxArgs'.");
+            throw new IllegalArgumentError("'minArgs' must be less than or equal to 'maxArgs'.");
 
         this.minArgs = minArgs;
         this.maxArgs = maxArgs;
@@ -774,11 +778,11 @@ class InputValidator {
      */
     validate(input: InputArgs): [true] | [false, string] {
         if (this.minArgs === this.maxArgs && input.argc !== this.minArgs)
-            return [false, `Expected ${this.args(this.minArgs)} but got ${input.argc}.`];
+            return [false, `Expected ${this.argString(this.minArgs)} but got ${input.argc}.`];
         if (input.argc < this.minArgs)
-            return [false, `Expected at least ${this.args(this.minArgs)} but got ${input.argc}.`];
+            return [false, `Expected at least ${this.argString(this.minArgs)} but got ${input.argc}.`];
         if (input.argc > this.maxArgs)
-            return [false, `Expected at most ${this.args(this.maxArgs)} but got ${input.argc}.`];
+            return [false, `Expected at most ${this.argString(this.maxArgs)} but got ${input.argc}.`];
 
         return [true];
     }
@@ -788,7 +792,7 @@ class InputValidator {
      *
      * @param amount the amount to check
      */
-    private args(amount: number): string {
+    private argString(amount: number): string {
         return amount === 1 ? `1 argument` : `${amount} arguments`;
     }
 }
