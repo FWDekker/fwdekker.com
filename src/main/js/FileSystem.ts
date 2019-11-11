@@ -457,15 +457,11 @@ export class Directory extends Node {
     }
 
     /**
-     * Returns `true` if and only if this directory contains a node with the given name or the name refers to this
-     * directory.
+     * Returns `true` if and only if this directory contains a node with the given name.
      *
      * @param name the name to check
      */
     hasNode(name: string): boolean {
-        if (name === "." || name === ".." || new Path(`/${name}`).toString() === "/")
-            return true;
-
         return this._nodes.hasOwnProperty(name);
     }
 

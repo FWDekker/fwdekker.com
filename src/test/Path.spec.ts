@@ -170,11 +170,11 @@ describe("paths", () => {
         });
 
         it("throws an exception if it's not a child", () => {
-            expect(() => new Path("/dir1/file").getAncestorsUntil(new Path("/dir2"))).to.throw;
+            expect(() => new Path("/dir1/file").getAncestorsUntil(new Path("/dir2"))).to.throw();
         });
 
         it("throws an exception if the order is the wrong way around", () => {
-            expect(() => new Path("/dir").getAncestorsUntil(new Path("/dir/file"))).to.throw;
+            expect(() => new Path("/dir").getAncestorsUntil(new Path("/dir/file"))).to.throw();
         });
     });
 

@@ -26,11 +26,11 @@ describe("directory", () => {
 
     describe("getNode", () => {
         it("throws an exception if he node does not exist", () => {
-            expect(() => directory.getNode("error")).to.throw;
+            expect(() => directory.getNode("error")).to.throw();
         });
 
         it("does not contain itself", () => {
-            expect(() => directory.getNode(".")).to.throw;
+            expect(() => directory.getNode(".")).to.throw();
         });
 
         it("returns the desired node", () => {
@@ -52,16 +52,16 @@ describe("directory", () => {
             expect(directory.hasNode("file")).to.be.true;
         });
 
-        it("returns true if the node is the reflexive node", () => {
-            expect(directory.hasNode(".")).to.be.true;
+        it("returns false if the node is the reflexive node", () => {
+            expect(directory.hasNode(".")).to.be.false;
         });
 
-        it("returns true if the node is the parent node", () => {
-            expect(directory.hasNode("..")).to.be.true;
+        it("returns false if the node is the parent node", () => {
+            expect(directory.hasNode("..")).to.be.false;
         });
 
-        it("returns true if the node refers to itself", () => {
-            expect(directory.hasNode("")).to.be.true;
+        it("returns false if the node refers to itself", () => {
+            expect(directory.hasNode("")).to.be.false;
         });
     });
 
@@ -80,19 +80,19 @@ describe("directory", () => {
         });
 
         it("refuses to add a node at the reflexive path", () => {
-            expect(() => directory.addNode(".", new File())).to.throw;
+            expect(() => directory.addNode(".", new File())).to.throw();
         });
 
         it("refuses to add a node at the parent path", () => {
-            expect(() => directory.addNode("..", new File())).to.throw;
+            expect(() => directory.addNode("..", new File())).to.throw();
         });
 
         it("refuses to add a node that refers to the directory", () => {
-            expect(() => directory.addNode("", new File())).to.throw;
+            expect(() => directory.addNode("", new File())).to.throw();
         });
 
         it("refuses to add a node with a name containing a slash", () => {
-            expect(() => directory.addNode("a/b", new File())).to.throw;
+            expect(() => directory.addNode("a/b", new File())).to.throw();
         });
     });
 

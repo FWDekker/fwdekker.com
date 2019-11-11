@@ -19,15 +19,15 @@ describe("input validator", () => {
 
         describe("constructor", () => {
             it("throws an error if minArgs is greater than maxArgs", () => {
-                expect(() => validator(3, 2)).to.throw;
+                expect(() => validator(3, 2)).to.throw();
             });
 
             it("throws an error if minArgs is negative", () => {
-                expect(() => validator(-1, 2)).to.throw;
+                expect(() => validator(-1, 2)).to.throw();
             });
 
             it("throws an error if maxArgs is negative", () => {
-                expect(() => validator(2, 3)).to.throw;
+                expect(() => validator(2, -3)).to.throw();
             });
         });
 

@@ -71,7 +71,7 @@ describe("environment", () => {
         });
 
         it("throws an exception if the key is invalid", () => {
-            expect(() => environment.delete("in-valid")).to.throw;
+            expect(() => environment.delete("in-valid")).to.throw();
         });
 
         describe("safe", () => {
@@ -84,7 +84,7 @@ describe("environment", () => {
             });
 
             it("throws an exception if the key is read-only", () => {
-                expect(() => roEnvironment.safeDelete("readonly")).to.throw;
+                expect(() => roEnvironment.safeDelete("readonly")).to.throw();
             });
         });
     });
@@ -110,7 +110,7 @@ describe("environment", () => {
         });
 
         it("throws an exception if the variable does not exist", () => {
-            expect(() => environment.get("invalid")).to.throw;
+            expect(() => environment.get("invalid")).to.throw();
         });
 
         describe("or default", () => {
@@ -193,7 +193,7 @@ describe("environment", () => {
         });
 
         it("throws an error if the key is invalid", () => {
-            expect(() => environment.set("in-valid", "value")).to.throw;
+            expect(() => environment.set("in-valid", "value")).to.throw();
         });
 
         describe("safe", () => {
@@ -204,7 +204,7 @@ describe("environment", () => {
             });
 
             it("throws an error if the key is read-only", () => {
-                expect(() => roEnvironment.safeSet("readonly", "value")).to.throw;
+                expect(() => roEnvironment.safeSet("readonly", "value")).to.throw();
             });
         });
     });

@@ -44,48 +44,48 @@ describe("file system", () => {
         });
 
         it("fails if a node is added as root", () => {
-            expect(() => fileSystem.add(new Path("/"), new File(), false)).to.throw;
+            expect(() => fileSystem.add(new Path("/"), new File(), false)).to.throw();
         });
 
         it("fails if an intermediate directory does not exist", () => {
-            expect(() => fileSystem.add(new Path("/dir1/dir2/file2"), new File(), false)).to.throw;
+            expect(() => fileSystem.add(new Path("/dir1/dir2/file2"), new File(), false)).to.throw();
         });
 
         it("fails if an intermediate directory is not a directory", () => {
             fileSystem.add(new Path("/file1"), new File(), false);
 
-            expect(() => fileSystem.add(new Path("/file1/file2"), new File(), false)).to.throw;
+            expect(() => fileSystem.add(new Path("/file1/file2"), new File(), false)).to.throw();
         });
 
         it("fails if a node already exists at the path", () => {
             fileSystem.add(new Path("/file1"), new File(), false);
 
-            expect(() => fileSystem.add(new Path("/file1"), new File(), false)).to.throw;
+            expect(() => fileSystem.add(new Path("/file1"), new File(), false)).to.throw();
         });
     });
 
     describe("copy", () => {
         it("throws an error if the source does not exist", () => {
-            expect(() => fileSystem.copy(new Path("/src"), new Path("/dst"), false)).to.throw;
+            expect(() => fileSystem.copy(new Path("/src"), new Path("/dst"), false)).to.throw();
         });
 
         it("throws an error if the source is a directory and the recursive options it not given", () => {
             fileSystem.add(new Path("/src"), new Directory(), false);
 
-            expect(() => fileSystem.copy(new Path("/src"), new Path("/dst"), false)).to.throw;
+            expect(() => fileSystem.copy(new Path("/src"), new Path("/dst"), false)).to.throw();
         });
 
         it("throws an error if the target's parent does not exist", () => {
             fileSystem.add(new Path("/src"), new File(), false);
 
-            expect(() => fileSystem.copy(new Path("/src"), new Path("/parent/dst"), false)).to.throw;
+            expect(() => fileSystem.copy(new Path("/src"), new Path("/parent/dst"), false)).to.throw();
         });
 
         it("throws an error if the target's parent is not a directory", () => {
             fileSystem.add(new Path("/src"), new File(), false);
-            fileSystem.add(new Path("/parent"), new Directory(), false);
+            fileSystem.add(new Path("/parent"), new File(), false);
 
-            expect(() => fileSystem.copy(new Path("/src"), new Path("/parent/dst"), false)).to.throw;
+            expect(() => fileSystem.copy(new Path("/src"), new Path("/parent/dst"), false)).to.throw();
         });
 
         it("throws an error if the target already exists", () => {
@@ -93,7 +93,7 @@ describe("file system", () => {
             fileSystem.add(new Path("/parent"), new Directory(), false);
             fileSystem.add(new Path("/parent/dst"), new File(), false);
 
-            expect(() => fileSystem.copy(new Path("/src"), new Path("/parent/dst"), false)).to.throw;
+            expect(() => fileSystem.copy(new Path("/src"), new Path("/parent/dst"), false)).to.throw();
         });
 
         it("copies the source file to the target", () => {
@@ -214,32 +214,32 @@ describe("file system", () => {
             fileSystem.add(new Path("/src"), new File(), false);
             fileSystem.add(new Path("/dst"), new File(), false);
 
-            expect(() => fileSystem.move(new Path("/src"), new Path("/dst"))).to.throw;
+            expect(() => fileSystem.move(new Path("/src"), new Path("/dst"))).to.throw();
         });
 
         it("throws an error if the destination's parent directory does not exist", () => {
             fileSystem.add(new Path("/src"), new File(), false);
 
-            expect(() => fileSystem.move(new Path("/src"), new Path("/dir/dst"))).to.throw;
+            expect(() => fileSystem.move(new Path("/src"), new Path("/dir/dst"))).to.throw();
         });
 
         it("throws an error if the destination's parent is a file", () => {
             fileSystem.add(new Path("/src"), new File(), false);
             fileSystem.add(new Path("/file"), new File(), false);
 
-            expect(() => fileSystem.move(new Path("/src"), new Path("/file/dst"))).to.throw;
+            expect(() => fileSystem.move(new Path("/src"), new Path("/file/dst"))).to.throw();
         });
     });
 
     describe("open", () => {
         it("throws an error if the target's parent does not exist", () => {
-            expect(() => fileSystem.open(new Path("/dir/file"), "read")).to.throw;
+            expect(() => fileSystem.open(new Path("/dir/file"), "read")).to.throw();
         });
 
         it("throws an error if the target is an existing directory", () => {
             fileSystem.add(new Path("/dir"), new Directory(), false);
 
-            expect(() => fileSystem.open(new Path("/dir"), "read")).to.throw;
+            expect(() => fileSystem.open(new Path("/dir"), "read")).to.throw();
         });
 
         it("creates the target if it does not exist yet", () => {

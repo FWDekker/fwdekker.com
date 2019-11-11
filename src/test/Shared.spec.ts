@@ -52,7 +52,7 @@ describe("shared functions", () => {
         });
 
         it("throws an error if the string does not end with 'px'", () => {
-            expect(() => parseCssPixels("12py")).to.throw;
+            expect(() => parseCssPixels("12py")).to.throw();
         });
 
         it("returns 0 if the string does not contain a number", () => {
