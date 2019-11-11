@@ -212,7 +212,7 @@ export class Tokenizer {
                         throw new IllegalArgumentError("Unexpected closing '}' without corresponding '{'.");
                     break;
                 case " ":
-                    if (isInSingleQuotes || isInDoubleQuotes) {
+                    if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces) {
                         token.contents += char;
                     } else if (token.contents !== "") {
                         tokens.push(token);
@@ -283,8 +283,12 @@ export class Tokenizer {
         if (token.contents !== "")
             tokens.push(token);
 
-        if (isInSingleQuotes || isInDoubleQuotes)
-            throw new IllegalArgumentError("Unexpected end of input. Missing closing quotation mark.");
+        if (isInSingleQuotes)
+            throw new IllegalArgumentError("Unexpected end of input. Missing closing '.");
+        if (isInDoubleQuotes)
+            throw new IllegalArgumentError("Unexpected end of input. Missing closing \".");
+        if (isInCurlyBraces)
+            throw new IllegalArgumentError("Unexpected end of input. Missing closing }.");
 
         return tokens;
     }
@@ -483,8 +487,6 @@ export module InputParser {
         readonly type: string = "redirect";
     }
 }
-
-
 
 /**
  * Escapes all occurrences of the input parser's escape character.
