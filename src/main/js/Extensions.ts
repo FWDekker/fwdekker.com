@@ -2,8 +2,6 @@ interface String {
     trimLines(): string;
 
     trimMultiLines(): string;
-
-    replaceAll(regex: RegExp, replacement: string): string;
 }
 
 /**
@@ -22,21 +20,6 @@ String.prototype.trimLines = function(): string {
  */
 String.prototype.trimMultiLines = function(): string {
     return this.trimLines().split("\\").map(it => it.trimStart()).join("");
-};
-
-/**
- * Returns this string with all matches with the given regex replaced with the given replacement.
- *
- * @param regex the regex to find matches with
- * @param replacement the string to replace matches with
- */
-String.prototype.replaceAll = function(regex: RegExp, replacement: string): string {
-    let string = this.toString();
-
-    while (regex.test(string))
-        string = string.replace(regex, replacement);
-
-    return string;
 };
 
 

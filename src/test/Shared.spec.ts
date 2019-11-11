@@ -118,16 +118,6 @@ describe("extension functions", () => {
         });
     });
 
-    describe("replaceAll", () => {
-        it("replaces a single occurrence", () => {
-            expect("text".replaceAll(/x/, "s")).to.equal("test");
-        });
-
-        it("replaces all occurrences", () => {
-            expect("textile".replaceAll(/e/, "i")).to.equal("tixtili");
-        });
-    });
-
     describe("sortAlphabetically", () => {
         it("sorts alphabetically with case sensitivity", () => {
             const array: string[] = ["B", "a", "A", "b"];

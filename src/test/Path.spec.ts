@@ -25,7 +25,13 @@ describe("paths", () => {
             });
 
             it("returns root if the parent of root is given", () => {
+                expect(new Path("/..").toString()).to.equal("/");
                 expect(new Path("/../").toString()).to.equal("/");
+            });
+
+            it("returns root if the reflexive of root is given", () => {
+                expect(new Path("/.").toString()).to.equal("/");
+                expect(new Path("/./").toString()).to.equal("/");
             });
 
             it("ignores parent references at the root", () => {

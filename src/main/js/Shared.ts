@@ -44,10 +44,10 @@ export function addOnLoad(fun: () => void): void {
  */
 export function escapeHtml(string: string): string {
     return string
-        .replaceAll(/</, "&lt;")
-        .replaceAll(/>/, "&gt;")
-        .replaceAll(/"/, "&quot;")
-        .replaceAll(/'/, "&#039;");
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 /**

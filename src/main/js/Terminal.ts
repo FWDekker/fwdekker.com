@@ -96,7 +96,7 @@ export class Terminal {
      * Returns the input the user has entered in the HTML element.
      */
     private get inputText(): string {
-        return this.input.innerText.replaceAll(/<br>/, "");
+        return this.input.innerText.replace(/<br>/g, "");
     }
 
     /**
@@ -271,7 +271,7 @@ export class Terminal {
 
         switch (event.key.toLowerCase()) {
             case "enter":
-                this.processInput(this.inputText.replaceAll(/&nbsp;/, " "));
+                this.processInput(this.inputText.replace(/&nbsp;/g, " "));
                 event.preventDefault();
                 break;
         }

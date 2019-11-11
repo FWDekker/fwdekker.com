@@ -219,14 +219,30 @@ export class Path {
      * @param paths a string that describes the path
      */
     constructor(...paths: string[]) {
-        this.path = `/${paths.join("/")}/`
-            .replaceAll(/\/\.\//, "/") // Replace `/./` with `/`
-            .replaceAll(/(\/+)([^./]+)(\/+)(\.\.)(\/+)/, "/") // Replace `/x/../` with `/`
-            .replaceAll(/\/{2,}/, "/") // Replace `//` with `/`
-            .replaceAll(/^\/\.\.\//, "/") // Replace `/../` at start with `/`
-            .replace(/(.|\n)\/$/, "$1"); // Remove trailing `/` if not last character
+        const path = `/${paths.join("/")}/`;
 
-        const parts = this.path.split("/");
+        const parts = [];
+        let part = "";
+        for (let i = 0; i < path.length; i++) {
+            const char = path[i];
+            if (char !== "/") {
+                part += char;
+                continue;
+            }
+
+            if (part === ".") {
+                // Do nothing
+            } else if (part === "..") {
+                parts.pop();
+            } else if (part !== "") {
+                parts.push(part);
+            }
+            part = "";
+        }
+        if (part !== "")
+            parts.push(part);
+
+        this.path = "/" + parts.join("/");
         this._parent = parts.slice(0, -1).join("/");
         this.fileName = parts.slice(-1).join("");
     }
@@ -321,9 +337,9 @@ export class Path {
             return this.path;
 
         return this.path
-            .replaceAll(/'/, "&#92;&#92;&#92;&#39;")
-            .replaceAll(/"/, "&#92;&#92;&#92;&#34;")
-            .replaceAll(/\s/, "&#92;&#92;&#32;");
+            .replace(/'/g, "&#92;&#92;&#92;&#39;")
+            .replace(/"/g, "&#92;&#92;&#92;&#34;")
+            .replace(/\s/g, "&#92;&#92;&#32;");
     }
 }
 
