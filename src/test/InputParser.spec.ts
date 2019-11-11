@@ -4,11 +4,20 @@ import {expect} from "chai";
 import {Environment} from "../main/js/Environment";
 import {Globber, InputParser, Tokenizer} from "../main/js/InputParser";
 import {Directory, File, FileSystem, Node, Path} from "../main/js/FileSystem";
-import {EscapeCharacters} from "../main/js/Terminal";
 import TextToken = InputParser.TextToken;
 import RedirectToken = InputParser.RedirectToken;
 
 
+/**
+ * Shorthand for the escape character used internally in the input parser.
+ */
+const escape = InputParser.EscapeChar;
+
+/**
+ * Converts the given strings to text tokens.
+ *
+ * @param strings the strings to convert to text token
+ */
 function tokens(...strings: string[]): InputParser.TextToken[] {
     return strings.map(it => new InputParser.TextToken(it));
 }
@@ -71,7 +80,7 @@ describe("input parser", () => {
             });
 
             it("does not assign a value to grouped short options", () => {
-                expect(() => parser.parse("command -opq=arg -r")).to.throw;
+                expect(() => parser.parse("command -opq=arg -r")).to.throw();
             });
 
             it("stops parsing options if a short option name contains a space", () => {
@@ -252,7 +261,6 @@ describe("input parser", () => {
 });
 
 describe("tokenizer", () => {
-    const escape = EscapeCharacters.Escape;
     let tokenizer: Tokenizer;
 
 
@@ -276,7 +284,7 @@ describe("tokenizer", () => {
             });
         });
 
-        describe("escape characters", () => {
+        describe("input escape characters", () => {
             it("includes escaped spaces into the token", () => {
                 expect(tokenizer.tokenize("com\\ mand")).to.have.deep.members(tokens("com mand"));
             });
@@ -296,7 +304,7 @@ describe("tokenizer", () => {
             });
 
             it("throws an error if an escape occurs but no character follows", () => {
-                expect(() => tokenizer.tokenize("\\")).to.throw;
+                expect(() => tokenizer.tokenize("\\")).to.throw();
             });
         });
 
@@ -311,11 +319,11 @@ describe("tokenizer", () => {
                 });
 
                 it("throws an error if single quotes are not closed", () => {
-                    expect(() => tokenizer.tokenize("a'ba")).to.throw;
+                    expect(() => tokenizer.tokenize("a'ba")).to.throw();
                 });
 
                 it("throws an error if double quotes are not closed", () => {
-                    expect(() => tokenizer.tokenize(`a"ba`)).to.throw;
+                    expect(() => tokenizer.tokenize(`a"ba`)).to.throw();
                 });
 
                 it("does not group double quotes within single quotes", () => {
@@ -337,15 +345,15 @@ describe("tokenizer", () => {
                 });
 
                 it("throws an error if curly braces are not closed", () => {
-                    expect(() => tokenizer.tokenize("a{ba")).to.throw;
+                    expect(() => tokenizer.tokenize("a{ba")).to.throw();
                 });
 
                 it("throws an error if curly braces are not opened", () => {
-                    expect(() => tokenizer.tokenize("a}ba")).to.throw;
+                    expect(() => tokenizer.tokenize("a}ba")).to.throw();
                 });
 
                 it("throws an error if nested curly braces are not closed", () => {
-                    expect(() => tokenizer.tokenize("a{{b}a")).to.throw;
+                    expect(() => tokenizer.tokenize("a{{b}a")).to.throw();
                 });
 
                 it("does not group curly braces within single quotes", () => {
@@ -378,7 +386,7 @@ describe("tokenizer", () => {
         });
 
         it("throws an error for nameless environment variables", () => {
-            expect(() => tokenizer.tokenize("$")).to.throw;
+            expect(() => tokenizer.tokenize("$")).to.throw();
         });
 
         it("does not substitute environment variables in the middle of a single-quoted string", () => {
@@ -425,17 +433,26 @@ describe("tokenizer", () => {
         });
     });
 
-    describe("escapes", () => {
-        it("escapes output target characters", () => {
+    describe("internal escape characters", () => {
+        it("puts redirect targets in redirect tokens", () => {
             expect(tokenizer.tokenize("a >b")).to.have.deep.members([new TextToken("a"), new RedirectToken(">b")]);
             expect(tokenizer.tokenize("a >>b")).to.have.deep.members([new TextToken("a"), new RedirectToken(">>b")]);
         });
 
-        it("does not escape escaped target characters", () => {
+        it("does not put escaped redirect targets in redirect tokens", () => {
             expect(tokenizer.tokenize("a \\>b"))
                 .to.have.deep.members([new TextToken("a"), new TextToken(">b")]);
             expect(tokenizer.tokenize("a \\>>b"))
                 .to.have.deep.members([new TextToken("a"), new TextToken(">"), new RedirectToken(">b")]);
+        });
+
+        it("throws an error if a glob character is used in the redirect target", () => {
+            expect(() => tokenizer.tokenize("a >a?")).to.throw();
+            expect(() => tokenizer.tokenize("a >a*")).to.throw();
+        });
+
+        it("retains the escape character in a redirect target", () => {
+            expect(tokenizer.tokenize(`>${escape}`)[0]).to.deep.equal(new RedirectToken(`>${escape}`));
         });
 
         it("escapes glob characters", () => {
@@ -443,17 +460,18 @@ describe("tokenizer", () => {
             expect(tokenizer.tokenize("a b*")).to.have.deep.members(tokens("a", `b${escape}*`));
         });
 
-        it("does not escape escaped glob characters", () => {
+        it("does not escape user-escaped glob characters", () => {
             expect(tokenizer.tokenize("a b\\?")).to.have.deep.members(tokens("a", "b?"));
             expect(tokenizer.tokenize("a b\\*")).to.have.deep.members(tokens("a", "b*"));
+        });
+
+        it("does not escape internally-escaped glob characters", () => {
+            expect(tokenizer.tokenize(`a ${escape}\\?`)).to.have.deep.members(tokens("a", `${escape}?`));
         });
     });
 });
 
 describe("globber", () => {
-    const escape = EscapeCharacters.Escape;
-
-
     const createGlobber = function(nodes: { [path: string]: Node } = {}, cwd: string = "/"): Globber {
         const fs = new FileSystem(new Directory());
         for (const path of Object.getOwnPropertyNames(nodes))
@@ -464,6 +482,13 @@ describe("globber", () => {
 
 
     describe("?", () => {
+        it("does not remove internal escape characters from the output", () => {
+            const globber = createGlobber({[`/${escape}1`]: new File()});
+
+            expect(globber.glob(tokens(`${escape}${escape}${escape}?`)))
+                .to.have.deep.members(tokens(`${escape}${escape}1`));
+        });
+
         it("does not expand unescaped ?s", () => {
             const globber = createGlobber({"/ab": new File()});
 
@@ -544,6 +569,13 @@ describe("globber", () => {
     });
 
     describe("*", () => {
+        it("does not remove internal escape characters from the output", () => {
+            const globber = createGlobber({[`/${escape}1`]: new File()});
+
+            expect(globber.glob(tokens(`${escape}${escape}${escape}*`)))
+                .to.have.deep.members(tokens(`${escape}${escape}1`));
+        });
+
         it("does not process unescaped *s", () => {
             const globber = createGlobber({"/ab": new File()});
 
@@ -637,11 +669,16 @@ describe("globber", () => {
 
     describe("shared edge cases", () => {
         it("throws an error if no matches are found", () => {
-            expect(() => createGlobber().glob(tokens(`x${escape}?`))).to.throw;
+            expect(() => createGlobber().glob(tokens(`x${escape}?`))).to.throw();
         });
 
         it("returns an empty token without change", () => {
             expect(createGlobber().glob(tokens(""))).to.have.deep.members(tokens(""));
+        });
+
+        it("does not remove escape characters from glob-less inputs", () => {
+            expect(createGlobber().glob(tokens(`${escape}${escape}`)))
+                .to.have.deep.members(tokens(`${escape}${escape}`));
         });
 
         it("returns a glob-less token without change", () => {

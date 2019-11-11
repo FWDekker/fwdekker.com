@@ -2,7 +2,6 @@ import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Path} from "./FileSystem";
 import {IllegalArgumentError} from "./Shared";
 import {InputArgs} from "./Shell";
-import {EscapeCharacters} from "./Terminal";
 
 
 /**
@@ -49,9 +48,13 @@ export class InputParser {
      * @param input the string to parse
      */
     parse(input: string): InputArgs {
-        const tokens = this.tokenizer.tokenize(input);
-        const textTokens = this.globber.glob(tokens.filter(it => it instanceof InputParser.TextToken));
-        const redirectTokens = tokens.filter(it => it instanceof InputParser.RedirectToken);
+        const tokens = this.tokenizer.tokenize(escape(input));
+
+        const textTokens = this.globber.glob(tokens.filter(it => it instanceof InputParser.TextToken))
+            .map(it => new InputParser.TextToken(unescape(it.contents)));
+        const redirectTokens = tokens
+            .filter(it => it instanceof InputParser.RedirectToken)
+            .map(it => new InputParser.RedirectToken(unescape(it.contents)));
 
         const command = tokens[0]?.contents ?? "";
         const [options, args] = this.parseOpts(textTokens.slice(1));
@@ -256,10 +259,13 @@ export class Tokenizer {
                     break;
                 case "*":
                 case "?":
+                    if (token instanceof InputParser.RedirectToken)
+                        throw new IllegalArgumentError(`Invalid token '${char}' in redirect target.`);
+
                     if (isInSingleQuotes || isInDoubleQuotes)
                         token.contents += char;
                     else
-                        token.contents += EscapeCharacters.Escape + char;
+                        token.contents += InputParser.EscapeChar + char;
                     break;
                 case "~":
                     if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces || token.contents !== "")
@@ -319,12 +325,20 @@ export class Globber {
         return tokens
             .map(it => it.contents)
             .map(token => {
-                    if (token.startsWith("/"))
-                        return this.glob2("/", token.slice(1), new Path("/"));
-                    else
-                        return this.glob2("", token, this.cwd);
-                }
-            )
+                if (!this.isGlob(token))
+                    return [token];
+
+                let tokens: string[];
+                if (token.startsWith("/"))
+                    tokens = this.glob2("/", token.slice(1), new Path("/"));
+                else
+                    tokens = this.glob2("", token, this.cwd);
+
+                if (tokens.length === 0)
+                    throw new IllegalArgumentError(`Token '${unescape(token)}' does not match any files.`);
+
+                return tokens;
+            })
             .reduce((acc, tokens) => acc.concat(tokens), [])
             .map(it => new InputParser.TextToken(it));
     }
@@ -338,9 +352,6 @@ export class Globber {
      * @param path the current location in the file system
      */
     private glob2(history: string, glob: string, path: Path): string[] {
-        if (!glob.includes(EscapeCharacters.Escape + "?") && !glob.includes(EscapeCharacters.Escape + "*"))
-            return [history + glob];
-
         const dir = this.fileSystem.get(path);
         if (!(dir instanceof Directory))
             return [history + glob];
@@ -353,13 +364,9 @@ export class Globber {
         if (nextPart === "..")
             return this.glob2(history + nextPart + "/", remainder, path.parent);
 
-        const pattern = nextPart
-            .replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&") // Escape regex from user input
-            .replaceAll(new RegExp(`${EscapeCharacters.Escape}\\\\\\?`), ".")
-            .replaceAll(new RegExp(`${EscapeCharacters.Escape}\\\\\\*`), "[^/]*");
-
         return Object.keys(dir.nodes)
-            .filter(fileName => fileName.match(new RegExp(`^${pattern}$`)))
+            .filter(it => it.match(this.glob2regex(nextPart)))
+            .map(it => escape(it))
             .map(fileName => {
                 if (dir.nodes[fileName] instanceof File) {
                     // Only match files if there are no more /s to match
@@ -379,6 +386,62 @@ export class Globber {
                     return [history + fileName];
             })
             .reduce((acc, it) => acc.concat(it), []);
+    }
+
+
+    /**
+     * Returns `true` if and only if the given glob string uses any special glob characters.
+     *
+     * @param glob the string to check for globness
+     */
+    private isGlob(glob: string): boolean {
+        for (let i = 0; i < glob.length; i++) {
+            const char = glob[i];
+
+            if (char !== InputParser.EscapeChar)
+                continue;
+
+            i++;
+            const nextChar = glob[i];
+            if (nextChar === "?" || nextChar === "*")
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Converts a glob string to a regular expression.
+     *
+     * @param glob the glob string to convert
+     */
+    private glob2regex(glob: string): RegExp {
+        let regex = "";
+
+        for (let i = 0; i < glob.length; i++) {
+            const char = glob[i];
+            if (char !== InputParser.EscapeChar) {
+                if ("-\/\\^$*+?.()|[\]{}".includes(char))
+                    regex += "\\" + char;
+                else
+                    regex += char;
+                continue;
+            }
+
+            i++;
+            const nextChar = glob[i];
+            if (nextChar === undefined)
+                throw new IllegalArgumentError("Unescaped escape character inside input parser.");
+
+            if (nextChar === "?")
+                regex += ".";
+            else if (nextChar === "*")
+                regex += "[^/]*";
+            else
+                regex += nextChar;
+        }
+
+        return new RegExp(`^${regex}$`);
     }
 }
 
@@ -419,4 +482,24 @@ export module InputParser {
     export class RedirectToken extends Token {
         readonly type: string = "redirect";
     }
+}
+
+
+
+/**
+ * Escapes all occurrences of the input parser's escape character.
+ *
+ * @param string the string to escape in
+ */
+function escape(string: string): string {
+    return string.replace(new RegExp(InputParser.EscapeChar, "g"), InputParser.EscapeChar + InputParser.EscapeChar);
+}
+
+/**
+ * Unescapes all occurrences of the input parser's escape character.
+ *
+ * @param string the string to unescape in
+ */
+function unescape(string: string): string {
+    return string.replace(new RegExp(InputParser.EscapeChar + InputParser.EscapeChar, "g"), InputParser.EscapeChar);
 }
