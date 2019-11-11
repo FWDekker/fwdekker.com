@@ -49,12 +49,15 @@ export class InputParser {
      * @param input the string to parse
      */
     parse(input: string): InputArgs {
-        const tokens = this.globber.glob(this.tokenizer.tokenize(input));
-        const command = tokens[0] ?? "";
-        const [options, args] = this.parseOpts(tokens.slice(1).filter(it => !it.startsWith(EscapeCharacters.Escape)));
-        const redirectTarget = this.getRedirectTarget(tokens.slice(1));
+        const tokens = this.tokenizer.tokenize(input);
+        const textTokens = this.globber.glob(tokens.filter(it => it instanceof InputParser.TextToken));
+        const redirectTokens = tokens.filter(it => it instanceof InputParser.RedirectToken);
 
-        return new InputArgs(command, options, args, redirectTarget);
+        const command = tokens[0]?.contents ?? "";
+        const [options, args] = this.parseOpts(textTokens.slice(1));
+        const redirectTarget = this.getRedirectTarget(redirectTokens);
+
+        return new InputArgs(command, options, args.map(it => it.contents), redirectTarget);
     }
 
 
@@ -64,15 +67,17 @@ export class InputParser {
      *
      * @param tokens an array of tokens of which some tokens may describe a redirect target
      */
-    private getRedirectTarget(tokens: string[]): InputArgs.RedirectTarget {
+    private getRedirectTarget(tokens: InputParser.RedirectToken[]): InputArgs.RedirectTarget {
         return tokens
+            .map(it => it.contents)
             .map(token => {
-                if (token.startsWith(`${EscapeCharacters.Escape}>${EscapeCharacters.Escape}>`))
-                    return {type: "append", target: token.slice(4)};
-                else if (token.startsWith(`${EscapeCharacters.Escape}>`))
-                    return {type: "write", target: token.slice(2)};
+                if (token.startsWith(">>"))
+                    return {type: "append", target: token.slice(2)};
+                else if (token.startsWith(">"))
+                    return {type: "write", target: token.slice(1)};
+                else
+                    throw new IllegalArgumentError("Redirect token must start with '>' or '>>'.");
             })
-            .filter(it => it !== undefined)
             .map(it => <InputArgs.RedirectTarget> it)
             .pop() ?? {type: "default"};
     }
@@ -82,12 +87,12 @@ export class InputParser {
      *
      * @param tokens the tokens that form the options and arguments
      */
-    private parseOpts(tokens: string[]): [InputArgs.Options, string[]] {
+    private parseOpts(tokens: InputParser.TextToken[]): [InputArgs.Options, InputParser.TextToken[]] {
         const options: { [key: string]: string | null } = {};
 
         let i;
         for (i = 0; i < tokens.length; i++) {
-            const arg = tokens[i];
+            const arg = tokens[i].contents;
 
             if (!arg.startsWith("-") || arg === "--")
                 break;
@@ -152,10 +157,10 @@ export class Tokenizer {
      *
      * @param input the string to tokenize
      */
-    tokenize(input: string): string[] {
-        const tokens: string[] = [];
+    tokenize(input: string): InputParser.Token[] {
+        const tokens: InputParser.Token[] = [];
 
-        let token = "";
+        let token = new InputParser.TextToken();
         let isInSingleQuotes = false;
         let isInDoubleQuotes = false;
         let isInCurlyBraces = 0;
@@ -169,34 +174,34 @@ export class Tokenizer {
 
                     const nextChar = input[i + 1];
                     if (isInSingleQuotes || isInDoubleQuotes)
-                        token += "\\" + nextChar;
+                        token.contents += "\\" + nextChar;
                     else if (nextChar === "n")
-                        token += "\n";
+                        token.contents += "\n";
                     else
-                        token += nextChar;
+                        token.contents += nextChar;
                     i++;
                     break;
                 case "'":
                     if (isInDoubleQuotes)
-                        token += char;
+                        token.contents += char;
                     else
                         isInSingleQuotes = !isInSingleQuotes;
                     break;
                 case "\"":
                     if (isInSingleQuotes)
-                        token += char;
+                        token.contents += char;
                     else
                         isInDoubleQuotes = !isInDoubleQuotes;
                     break;
                 case "{":
                     if (isInSingleQuotes || isInDoubleQuotes)
-                        token += char;
+                        token.contents += char;
                     else
                         isInCurlyBraces++;
                     break;
                 case "}":
                     if (isInSingleQuotes || isInDoubleQuotes)
-                        token += char;
+                        token.contents += char;
                     else
                         isInCurlyBraces--;
 
@@ -205,15 +210,15 @@ export class Tokenizer {
                     break;
                 case " ":
                     if (isInSingleQuotes || isInDoubleQuotes) {
-                        token += char;
-                    } else if (token !== "") {
+                        token.contents += char;
+                    } else if (token.contents !== "") {
                         tokens.push(token);
-                        token = "";
+                        token = new InputParser.TextToken();
                     }
                     break;
                 case "$":
                     if (isInSingleQuotes || isInDoubleQuotes) {
-                        token += char;
+                        token.contents += char;
                         break;
                     }
 
@@ -228,22 +233,21 @@ export class Tokenizer {
                     if (key === "")
                         throw new IllegalArgumentError(`Missing variable name after '$'.`);
 
-                    token += this.environment.getOrDefault(key, "");
+                    token.contents += this.environment.getOrDefault(key, "");
                     break;
                 case ">":
                     if (isInSingleQuotes || isInDoubleQuotes) {
-                        token += char;
+                        token.contents += char;
                         break;
                     }
 
-                    if (token !== "") {
+                    if (token.contents !== "")
                         tokens.push(token);
-                        token = "";
-                    }
+                    token = new InputParser.RedirectToken();
 
-                    token += EscapeCharacters.Escape + ">";
+                    token.contents += ">";
                     if (input[i + 1] === ">") {
-                        token += EscapeCharacters.Escape + ">";
+                        token.contents += ">";
                         i++;
                     }
                     while (input[i + 1] === " ")
@@ -253,24 +257,24 @@ export class Tokenizer {
                 case "*":
                 case "?":
                     if (isInSingleQuotes || isInDoubleQuotes)
-                        token += char;
+                        token.contents += char;
                     else
-                        token += EscapeCharacters.Escape + char;
+                        token.contents += EscapeCharacters.Escape + char;
                     break;
                 case "~":
-                    if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces || token !== "")
-                        token += char;
+                    if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces || token.contents !== "")
+                        token.contents += char;
                     else if (input[i + 1] === "/" || input[i + 1] === " " || input[i + 1] === undefined)
-                        token += this.environment.get("home");
+                        token.contents += this.environment.get("home");
                     else
-                        token += char;
+                        token.contents += char;
                     break;
                 default:
-                    token += char;
+                    token.contents += char;
                     break;
             }
         }
-        if (token !== "")
+        if (token.contents !== "")
             tokens.push(token);
 
         if (isInSingleQuotes || isInDoubleQuotes)
@@ -311,15 +315,18 @@ export class Globber {
      *
      * @param tokens the tokens to glob
      */
-    glob(tokens: string[]): string[] {
-        let results: string[] = [];
-        tokens.forEach(token => {
-            if (token.startsWith("/"))
-                results = results.concat(this.glob2("/", token.slice(1), new Path("/")));
-            else
-                results = results.concat(this.glob2("", token, this.cwd));
-        });
-        return results;
+    glob(tokens: InputParser.TextToken[]): InputParser.TextToken[] {
+        return tokens
+            .map(it => it.contents)
+            .map(token => {
+                    if (token.startsWith("/"))
+                        return this.glob2("/", token.slice(1), new Path("/"));
+                    else
+                        return this.glob2("", token, this.cwd);
+                }
+            )
+            .reduce((acc, tokens) => acc.concat(tokens), [])
+            .map(it => new InputParser.TextToken(it));
     }
 
     /**
@@ -372,5 +379,44 @@ export class Globber {
                     return [history + fileName];
             })
             .reduce((acc, it) => acc.concat(it), []);
+    }
+}
+
+
+export module InputParser {
+    /**
+     * The token used to internally escape characters in the input parser.
+     */
+    export const EscapeChar = "\u001b";
+
+
+    /**
+     * A token containing text.
+     */
+    export abstract class Token {
+        /**
+         * The type of token; used to distinguish between types when comparing tokens.
+         */
+        abstract readonly type: string;
+        contents: string;
+
+
+        constructor(contents: string = "") {
+            this.contents = contents;
+        }
+    }
+
+    /**
+     * A token without a special meaning.
+     */
+    export class TextToken extends Token {
+        readonly type: string = "text";
+    }
+
+    /**
+     * A token defining a redirect target.
+     */
+    export class RedirectToken extends Token {
+        readonly type: string = "redirect";
     }
 }

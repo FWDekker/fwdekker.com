@@ -5,6 +5,13 @@ import {Environment} from "../main/js/Environment";
 import {Globber, InputParser, Tokenizer} from "../main/js/InputParser";
 import {Directory, File, FileSystem, Node, Path} from "../main/js/FileSystem";
 import {EscapeCharacters} from "../main/js/Terminal";
+import TextToken = InputParser.TextToken;
+import RedirectToken = InputParser.RedirectToken;
+
+
+function tokens(...strings: string[]): InputParser.TextToken[] {
+    return strings.map(it => new InputParser.TextToken(it));
+}
 
 
 describe("input parser", () => {
@@ -18,7 +25,7 @@ describe("input parser", () => {
             }
 
 
-            glob(tokens: string[]): string[] {
+            glob(tokens: InputParser.TextToken[]): InputParser.TextToken[] {
                 return tokens;
             }
         };
@@ -257,35 +264,35 @@ describe("tokenizer", () => {
     describe("tokens", () => {
         describe("whitespace", () => {
             it("ignores unnecessary leading whitespace", () => {
-                expect(tokenizer.tokenize("    token1 token2")).to.have.members(["token1", "token2"]);
+                expect(tokenizer.tokenize("    token1 token2")).to.have.deep.members(tokens("token1", "token2"));
             });
 
             it("ignores unnecessary trailing whitespace", () => {
-                expect(tokenizer.tokenize("token1 token2   ")).to.have.members(["token1", "token2"]);
+                expect(tokenizer.tokenize("token1 token2   ")).to.have.deep.members(tokens("token1", "token2"));
             });
 
             it("ignores unnecessary whitespace in between tokens", () => {
-                expect(tokenizer.tokenize("token1     token2")).to.have.members(["token1", "token2"]);
+                expect(tokenizer.tokenize("token1     token2")).to.have.deep.members(tokens("token1", "token2"));
             });
         });
 
         describe("escape characters", () => {
             it("includes escaped spaces into the token", () => {
-                expect(tokenizer.tokenize("com\\ mand")).to.have.members(["com mand"]);
+                expect(tokenizer.tokenize("com\\ mand")).to.have.deep.members(tokens("com mand"));
             });
 
             it("includes escaped quotation marks in the token", () => {
-                expect(tokenizer.tokenize(`com\\'man\\"d`)).to.have.members([`com'man"d`]);
+                expect(tokenizer.tokenize(`com\\'man\\"d`)).to.have.deep.members(tokens(`com'man"d`));
             });
 
             it("does not escape ordinary characters inside strings", () => {
-                expect(tokenizer.tokenize(`\\p`)).to.have.members(["p"]);
-                expect(tokenizer.tokenize(`'\\p'`)).to.have.members(["\\p"]);
-                expect(tokenizer.tokenize(`"\\p"`)).to.have.members(["\\p"]);
+                expect(tokenizer.tokenize(`\\p`)).to.have.deep.members(tokens("p"));
+                expect(tokenizer.tokenize(`'\\p'`)).to.have.deep.members(tokens("\\p"));
+                expect(tokenizer.tokenize(`"\\p"`)).to.have.deep.members(tokens("\\p"));
             });
 
             it("includes escaped spaces at the very end", () => {
-                expect(tokenizer.tokenize("a b\\ ")).to.have.members(["a", "b "]);
+                expect(tokenizer.tokenize("a b\\ ")).to.have.deep.members(tokens("a", "b "));
             });
 
             it("throws an error if an escape occurs but no character follows", () => {
@@ -296,11 +303,11 @@ describe("tokenizer", () => {
         describe("grouping", () => {
             describe("quotes", () => {
                 it("groups using single quotes", () => {
-                    expect(tokenizer.tokenize("a'b'a")).to.have.members(["aba"]);
+                    expect(tokenizer.tokenize("a'b'a")).to.have.deep.members(tokens("aba"));
                 });
 
                 it("groups using double quotes", () => {
-                    expect(tokenizer.tokenize(`a"b"a`)).to.have.members(["aba"]);
+                    expect(tokenizer.tokenize(`a"b"a`)).to.have.deep.members(tokens("aba"));
                 });
 
                 it("throws an error if single quotes are not closed", () => {
@@ -312,21 +319,21 @@ describe("tokenizer", () => {
                 });
 
                 it("does not group double quotes within single quotes", () => {
-                    expect(tokenizer.tokenize(`a'b"b'a`)).to.have.members([`ab"ba`]);
+                    expect(tokenizer.tokenize(`a'b"b'a`)).to.have.deep.members(tokens(`ab"ba`));
                 });
 
                 it("does not group single quotes within double quotes", () => {
-                    expect(tokenizer.tokenize(`a"b'b"a`)).to.have.members(["ab'ba"]);
+                    expect(tokenizer.tokenize(`a"b'b"a`)).to.have.deep.members(tokens("ab'ba"));
                 });
             });
 
             describe("curly braces", () => {
                 it("groups using curly braces", () => {
-                    expect(tokenizer.tokenize("a{b}a")).to.have.members(["aba"]);
+                    expect(tokenizer.tokenize("a{b}a")).to.have.deep.members(tokens("aba"));
                 });
 
                 it("groups using nested curly braces", () => {
-                    expect(tokenizer.tokenize("a{{b}{b}}a")).to.have.members(["abba"]);
+                    expect(tokenizer.tokenize("a{{b}{b}}a")).to.have.deep.members(tokens("abba"));
                 });
 
                 it("throws an error if curly braces are not closed", () => {
@@ -342,11 +349,11 @@ describe("tokenizer", () => {
                 });
 
                 it("does not group curly braces within single quotes", () => {
-                    expect(tokenizer.tokenize(`a'b{b'a`)).to.have.members(["ab{ba"]);
+                    expect(tokenizer.tokenize(`a'b{b'a`)).to.have.deep.members(tokens("ab{ba"));
                 });
 
                 it("does not group curly braces within double quotes", () => {
-                    expect(tokenizer.tokenize(`a"b{b"a`)).to.have.members(["ab{ba"]);
+                    expect(tokenizer.tokenize(`a"b{b"a`)).to.have.deep.members(tokens("ab{ba"));
                 });
             });
         });
@@ -359,15 +366,15 @@ describe("tokenizer", () => {
 
 
         it("substitutes a known environment variable with its value", () => {
-            expect(tokenizer.tokenize("$a")).to.have.members(["b"]);
+            expect(tokenizer.tokenize("$a")).to.have.deep.members(tokens("b"));
         });
 
         it("substitutes an unknown environment variable with nothing", () => {
-            expect(tokenizer.tokenize("a$b")).to.have.members(["a"]);
+            expect(tokenizer.tokenize("a$b")).to.have.deep.members(tokens("a"));
         });
 
         it("substitutes consecutive known environment variables with their value", () => {
-            expect(tokenizer.tokenize("$a$aa$a")).to.have.members(["bcb"]);
+            expect(tokenizer.tokenize("$a$aa$a")).to.have.deep.members(tokens("bcb"));
         });
 
         it("throws an error for nameless environment variables", () => {
@@ -375,15 +382,15 @@ describe("tokenizer", () => {
         });
 
         it("does not substitute environment variables in the middle of a single-quoted string", () => {
-            expect(tokenizer.tokenize("a'$a'c")).to.have.members(["a$ac"]);
+            expect(tokenizer.tokenize("a'$a'c")).to.have.deep.members(tokens("a$ac"));
         });
 
         it("does not substitute environment variables in the middle of a double-quoted string", () => {
-            expect(tokenizer.tokenize(`a"$a"c`)).to.have.members(["a$ac"]);
+            expect(tokenizer.tokenize(`a"$a"c`)).to.have.deep.members(tokens("a$ac"));
         });
 
         it("substitutes environment variables in the middle of curly braces", () => {
-            expect(tokenizer.tokenize("a{$a}c")).to.have.members(["abc"]);
+            expect(tokenizer.tokenize("a{$a}c")).to.have.deep.members(tokens("abc"));
         });
     });
 
@@ -394,49 +401,51 @@ describe("tokenizer", () => {
 
 
         it("substitutes the home directory for ~ at the end of the input", () => {
-            expect(tokenizer.tokenize("token ~")).to.have.members(["token", "/home"]);
+            expect(tokenizer.tokenize("token ~")).to.have.deep.members(tokens("token", "/home"));
         });
 
         it("substitutes the home directory for ~ if followed by a /", () => {
-            expect(tokenizer.tokenize("token ~/")).to.have.members(["token", "/home/"]);
+            expect(tokenizer.tokenize("token ~/")).to.have.deep.members(tokens("token", "/home/"));
         });
 
         it("does not substitute the home directory for ~ if followed something else", () => {
-            expect(tokenizer.tokenize("token ~~")).to.have.members(["token", "~~"]);
-            expect(tokenizer.tokenize("token ~a")).to.have.members(["token", "~a"]);
-            expect(tokenizer.tokenize("token ~.")).to.have.members(["token", "~."]);
+            expect(tokenizer.tokenize("token ~~")).to.have.deep.members(tokens("token", "~~"));
+            expect(tokenizer.tokenize("token ~a")).to.have.deep.members(tokens("token", "~a"));
+            expect(tokenizer.tokenize("token ~.")).to.have.deep.members(tokens("token", "~."));
         });
 
         it("does not substitute the home directory in the middle of a token", () => {
-            expect(tokenizer.tokenize("token ab~cd")).to.have.members(["token", "ab~cd"]);
+            expect(tokenizer.tokenize("token ab~cd")).to.have.deep.members(tokens("token", "ab~cd"));
         });
 
         it("does not substitute the home directory for ~ if surrounded by parentheses or braces", () => {
-            expect(tokenizer.tokenize("token '~'")).to.have.members(["token", "~"]);
-            expect(tokenizer.tokenize(`token "~"`)).to.have.members(["token", "~"]);
-            expect(tokenizer.tokenize("token {~}")).to.have.members(["token", "~"]);
+            expect(tokenizer.tokenize("token '~'")).to.have.deep.members(tokens("token", "~"));
+            expect(tokenizer.tokenize(`token "~"`)).to.have.deep.members(tokens("token", "~"));
+            expect(tokenizer.tokenize("token {~}")).to.have.deep.members(tokens("token", "~"));
         });
     });
 
     describe("escapes", () => {
         it("escapes output target characters", () => {
-            expect(tokenizer.tokenize("a >b")).to.have.members(["a", `${escape}>b`]);
-            expect(tokenizer.tokenize("a >>b")).to.have.members(["a", `${escape}>${escape}>b`]);
+            expect(tokenizer.tokenize("a >b")).to.have.deep.members([new TextToken("a"), new RedirectToken(">b")]);
+            expect(tokenizer.tokenize("a >>b")).to.have.deep.members([new TextToken("a"), new RedirectToken(">>b")]);
         });
 
         it("does not escape escaped target characters", () => {
-            expect(tokenizer.tokenize("a \\>b")).to.have.members(["a", ">b"]);
-            expect(tokenizer.tokenize("a \\>>b")).to.have.members(["a", ">", `${escape}>b`]);
+            expect(tokenizer.tokenize("a \\>b"))
+                .to.have.deep.members([new TextToken("a"), new TextToken(">b")]);
+            expect(tokenizer.tokenize("a \\>>b"))
+                .to.have.deep.members([new TextToken("a"), new TextToken(">"), new RedirectToken(">b")]);
         });
 
         it("escapes glob characters", () => {
-            expect(tokenizer.tokenize("a b?")).to.have.members(["a", `b${escape}?`]);
-            expect(tokenizer.tokenize("a b*")).to.have.members(["a", `b${escape}*`]);
+            expect(tokenizer.tokenize("a b?")).to.have.deep.members(tokens("a", `b${escape}?`));
+            expect(tokenizer.tokenize("a b*")).to.have.deep.members(tokens("a", `b${escape}*`));
         });
 
         it("does not escape escaped glob characters", () => {
-            expect(tokenizer.tokenize("a b\\?")).to.have.members(["a", `b?`]);
-            expect(tokenizer.tokenize("a b\\*")).to.have.members(["a", `b*`]);
+            expect(tokenizer.tokenize("a b\\?")).to.have.deep.members(tokens("a", "b?"));
+            expect(tokenizer.tokenize("a b\\*")).to.have.deep.members(tokens("a", "b*"));
         });
     });
 });
@@ -458,79 +467,79 @@ describe("globber", () => {
         it("does not expand unescaped ?s", () => {
             const globber = createGlobber({"/ab": new File()});
 
-            expect(globber.glob(["a?"])).to.have.members(["a?"]);
+            expect(globber.glob(tokens("a?"))).to.have.deep.members(tokens("a?"));
         });
 
         it("expands a single instance", () => {
             const globber = createGlobber({"/a1": new File(), "/a2": new File()});
 
-            expect(globber.glob([`a${escape}?`])).to.have.members(["a1", "a2"]);
+            expect(globber.glob(tokens(`a${escape}?`))).to.have.deep.members(tokens("a1", "a2"));
         });
 
         it("expand multiple consecutive instances", () => {
             const globber = createGlobber({"/a11": new File(), "/a12": new File(), "/a21": new File()});
 
-            expect(globber.glob([`a${escape}?${escape}?`])).to.have.members(["a11", "a12", "a21"]);
+            expect(globber.glob(tokens(`a${escape}?${escape}?`))).to.have.deep.members(tokens("a11", "a12", "a21"));
         });
 
         it("expand multiple non-consecutive instances", () => {
             const globber = createGlobber({"/1a1": new File(), "/1a2": new File(), "/2a1": new File()});
 
-            expect(globber.glob([`${escape}?a${escape}?`])).to.have.members(["1a1", "1a2", "2a1"]);
+            expect(globber.glob(tokens(`${escape}?a${escape}?`))).to.have.deep.members(tokens("1a1", "1a2", "2a1"));
         });
 
         it("does not expand to an empty character", () => {
             const globber = createGlobber({"/a": new File(), "/aa": new File()});
 
-            expect(globber.glob([`a${escape}?`])).to.have.members(["aa"]);
+            expect(globber.glob(tokens(`a${escape}?`))).to.have.deep.members(tokens("aa"));
         });
 
         it("does not expand to multiple characters", () => {
             const globber = createGlobber({"/aa": new File(), "/aaa": new File()});
 
-            expect(globber.glob([`a${escape}?`])).to.have.members(["aa"]);
+            expect(globber.glob(tokens(`a${escape}?`))).to.have.deep.members(tokens("aa"));
         });
 
         it("includes directories when not using a trailing slash", () => {
             const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
 
-            expect(globber.glob([`a${escape}?`])).to.have.members(["a1", "a2"]);
+            expect(globber.glob(tokens(`a${escape}?`))).to.have.deep.members(tokens("a1", "a2"));
         });
 
         it("excludes files when using a trailing slash", () => {
             const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
 
-            expect(globber.glob([`a${escape}?/`])).to.have.members(["a2/"]);
+            expect(globber.glob(tokens(`a${escape}?/`))).to.have.deep.members(tokens("a2/"));
         });
 
         it("expands in a subdirectory", () => {
             const globber = createGlobber({"/a1": new File(), "/dir/a1": new File(), "/dir/a2": new File()});
 
-            expect(globber.glob([`/dir/a${escape}?`])).to.have.members(["/dir/a1", "/dir/a2"]);
+            expect(globber.glob(tokens(`/dir/a${escape}?`))).to.have.deep.members(tokens("/dir/a1", "/dir/a2"));
         });
 
         it("expands in the parent directory", () => {
             const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
 
-            expect(globber.glob([`../a${escape}?`])).to.have.members(["../a2", "../a3"]);
+            expect(globber.glob(tokens(`../a${escape}?`))).to.have.deep.members(tokens("../a2", "../a3"));
         });
 
         it("expands in the reflexive directory", () => {
             const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
 
-            expect(globber.glob([`./a${escape}?`])).to.have.members(["./a1"]);
+            expect(globber.glob(tokens(`./a${escape}?`))).to.have.deep.members(tokens("./a1"));
         });
 
         it("expands in an absolute path to the root", () => {
             const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
 
-            expect(globber.glob([`/a${escape}?`])).to.have.members(["/a2", "/a3"]);
+            expect(globber.glob(tokens(`/a${escape}?`))).to.have.deep.members(tokens("/a2", "/a3"));
         });
 
         it("expands in an absolute path to a sibling", () => {
             const globber = createGlobber({"/d1/a1": new File(), "/d2/a2": new File(), "/d2/a3": new File()}, "/d1");
 
-            expect(globber.glob([`/d2/a${escape}?`])).to.have.members(["/d2/a2", "/d2/a3"]);
+            expect(globber.glob(tokens(`/d2/a${escape}?`))).to.have.deep.members(tokens("/d2/a2", "/d2/a3"));
         });
     });
 
@@ -538,111 +547,111 @@ describe("globber", () => {
         it("does not process unescaped *s", () => {
             const globber = createGlobber({"/ab": new File()});
 
-            expect(globber.glob(["a*"])).to.have.members(["a*"]);
+            expect(globber.glob(tokens("a*"))).to.have.deep.members(tokens("a*"));
         });
 
         it("expands a single instance", () => {
             const globber = createGlobber({"/a1": new File(), "/a2": new File()});
 
-            expect(globber.glob([`a${escape}*`])).to.have.members(["a1", "a2"]);
+            expect(globber.glob(tokens(`a${escape}*`))).to.have.deep.members(tokens("a1", "a2"));
         });
 
         it("expands multiple non-consecutive instances", () => {
             const globber = createGlobber({"/1a1": new File(), "/2a2": new File()});
 
-            expect(globber.glob([`${escape}*a${escape}*`])).to.have.members(["1a1", "2a2"]);
+            expect(globber.glob(tokens(`${escape}*a${escape}*`))).to.have.deep.members(tokens("1a1", "2a2"));
         });
 
         it("expands to match all files in a directory", () => {
             const globber = createGlobber({"/a": new File(), "/b": new File()});
 
-            expect(globber.glob([`${escape}*`])).to.have.members(["a", "b"]);
+            expect(globber.glob(tokens(`${escape}*`))).to.have.deep.members(tokens("a", "b"));
         });
 
         it("expands to an empty character", () => {
             const globber = createGlobber({"/a": new File(), "/aa": new File()});
 
-            expect(globber.glob([`a${escape}*`])).to.have.members(["a", "aa"]);
+            expect(globber.glob(tokens(`a${escape}*`))).to.have.deep.members(tokens("a", "aa"));
         });
 
         it("expands to multiple characters", () => {
             const globber = createGlobber({"/aa": new File(), "/aaa": new File()});
 
-            expect(globber.glob([`a${escape}*`])).to.have.members(["aa", "aaa"]);
+            expect(globber.glob(tokens(`a${escape}*`))).to.have.deep.members(tokens("aa", "aaa"));
         });
 
         it("does not expand to a slash", () => {
             const globber = createGlobber({"/a1/file": new File(), "/a2": new File()});
 
-            expect(globber.glob([`a${escape}*`])).to.have.members(["a1", "a2"]);
+            expect(globber.glob(tokens(`a${escape}*`))).to.have.deep.members(tokens("a1", "a2"));
         });
 
         it("includes directories when not using a trailing slash", () => {
             const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
 
-            expect(globber.glob([`a${escape}*`])).to.have.members(["a1", "a2"]);
+            expect(globber.glob(tokens(`a${escape}*`))).to.have.deep.members(tokens("a1", "a2"));
         });
 
         it("excludes files when using a trailing slash", () => {
             const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
 
-            expect(globber.glob([`a${escape}*/`])).to.have.members(["a2/"]);
+            expect(globber.glob(tokens(`a${escape}*/`))).to.have.deep.members(tokens("a2/"));
         });
 
         it("expands in a subdirectory", () => {
             const globber = createGlobber({"/a1": new File(), "/dir/a1": new File(), "/dir/a2": new File()});
 
-            expect(globber.glob([`/dir/a${escape}*`])).to.have.members(["/dir/a1", "/dir/a2"]);
+            expect(globber.glob(tokens(`/dir/a${escape}*`))).to.have.deep.members(tokens("/dir/a1", "/dir/a2"));
         });
 
         it("expands to no files in a subdirectory", () => {
             const globber = createGlobber({"/dir1/a1": new File(), "/dir2": new Directory()});
 
-            expect(globber.glob([`/${escape}*/${escape}*`])).to.have.members(["/dir1/a1"]);
+            expect(globber.glob(tokens(`/${escape}*/${escape}*`))).to.have.deep.members(tokens("/dir1/a1"));
         });
 
         it("expands in the parent directory", () => {
             const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
 
-            expect(globber.glob([`../a${escape}*`])).to.have.members(["../a2", "../a3"]);
+            expect(globber.glob(tokens(`../a${escape}*`))).to.have.deep.members(tokens("../a2", "../a3"));
         });
 
         it("expands in the reflexive directory", () => {
             const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
 
-            expect(globber.glob([`./a${escape}*`])).to.have.members(["./a1"]);
+            expect(globber.glob(tokens(`./a${escape}*`))).to.have.deep.members(tokens("./a1"));
         });
 
         it("expands in an absolute path to the root", () => {
             const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
 
-            expect(globber.glob([`/a${escape}*`])).to.have.members(["/a2", "/a3"]);
+            expect(globber.glob(tokens(`/a${escape}*`))).to.have.deep.members(tokens("/a2", "/a3"));
         });
 
         it("expands in an absolute path to a sibling", () => {
             const globber = createGlobber({"/d1/a1": new File(), "/d2/a2": new File(), "/d2/a3": new File()}, "/d1");
 
-            expect(globber.glob([`/d2/a${escape}*`])).to.have.members(["/d2/a2", "/d2/a3"]);
+            expect(globber.glob(tokens(`/d2/a${escape}*`))).to.have.deep.members(tokens("/d2/a2", "/d2/a3"));
         });
     });
 
     describe("shared edge cases", () => {
         it("throws an error if no matches are found", () => {
-            expect(() => createGlobber().glob([`x${escape}?`])).to.throw;
+            expect(() => createGlobber().glob(tokens(`x${escape}?`))).to.throw;
         });
 
         it("returns an empty token without change", () => {
-            expect(createGlobber().glob([""])).to.have.members([""]);
+            expect(createGlobber().glob(tokens(""))).to.have.deep.members(tokens(""));
         });
 
         it("returns a glob-less token without change", () => {
-            expect(createGlobber().glob(["abc"])).to.have.members(["abc"]);
+            expect(createGlobber().glob(tokens("abc"))).to.have.deep.members(tokens("abc"));
         });
 
         it("returns any token without change if the cwd does not exist", () => {
             const globber = createGlobber({"/a1": new File()}, "/dir");
 
-            expect(globber.glob([`a${EscapeCharacters.Escape}?`])).to.have.members([`a${EscapeCharacters.Escape}?`]);
+            expect(globber.glob(tokens(`a${escape}?`))).to.have.deep.members(tokens(`a${escape}?`));
         });
     });
 });
