@@ -159,11 +159,11 @@ export class Shell {
             if (input.redirectTarget.target === undefined)
                 throw new IllegalStateError("Redirect target's target is undefined.");
 
-            const target = Path.interpret(this.environment.get("cwd"), input.redirectTarget.target);
             try {
+                const target = Path.interpret(this.environment.get("cwd"), input.redirectTarget.target);
                 streams.out = this.fileSystem.open(target, input.redirectTarget.type);
             } catch (error) {
-                streams.err.writeLine(`open: ${error.message}`);
+                streams.err.writeLine(`Error while redirecting output:\n${error.message}`);
                 this.environment.set("status", "-1");
                 return -1;
             }

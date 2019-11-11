@@ -1,40 +1,5 @@
-/**
- * A buffer that can be written to and read from.
- */
-export class Buffer implements InputStream, OutputStream {
-    protected buffer = "";
+import {IllegalArgumentError} from "./Shared";
 
-
-    has(count: number): boolean {
-        return this.buffer.length >= count;
-    }
-
-    read(count: number | undefined): string {
-        const input = this.peek(count ?? this.buffer.length);
-        this.buffer = this.buffer.slice(input.length);
-        return input;
-    }
-
-    readLine(): string {
-        return this.read(this.buffer.indexOf("\n") + 1);
-    }
-
-    peek(count: number | undefined): string {
-        return this.buffer.slice(0, count ?? this.buffer.length);
-    }
-
-    peekLine(): string {
-        return this.peek(this.buffer.indexOf("\n") + 1);
-    }
-
-    write(string: string): void {
-        this.buffer += string;
-    }
-
-    writeLine(string: string): void {
-        this.write(string + "\n");
-    }
-}
 
 /**
  * Something that can be read from.
@@ -131,5 +96,59 @@ export class StreamSet {
      */
     copy(): StreamSet {
         return new StreamSet(this.ins, this.out, this.err);
+    }
+}
+
+
+/**
+ * A buffer of which the manner in which the buffer's underlying storage can be anything.
+ */
+export abstract class Stream implements InputStream, OutputStream {
+    protected abstract get buffer(): string;
+
+
+    has(count: number): boolean {
+        if (count < 0)
+            throw new IllegalArgumentError("Count must be non-negative.");
+
+        return this.buffer.length >= count;
+    }
+
+    abstract read(count: number | undefined): string;
+
+    readLine(): string {
+        return this.read(this.buffer.indexOf("\n") + 1);
+    }
+
+    peek(count: number | undefined = undefined): string {
+        return this.buffer.slice(0, count ?? this.buffer.length);
+    }
+
+    peekLine(): string {
+        return this.peek(this.buffer.indexOf("\n") + 1);
+    }
+
+    abstract write(string: string): void;
+
+    writeLine(string: string): void {
+        this.write(string + "\n");
+    }
+}
+
+/**
+ * A buffer that can be written to and read from.
+ */
+export class Buffer extends Stream {
+    protected buffer = "";
+
+
+    read(count: number | undefined = undefined): string {
+        const input = this.peek(count ?? this.buffer.length);
+        this.buffer = this.buffer.slice(input.length);
+        return input;
+    }
+
+    write(string: string): void {
+        this.buffer += string;
     }
 }

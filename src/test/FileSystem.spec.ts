@@ -231,6 +231,30 @@ describe("file system", () => {
         });
     });
 
+    describe("open", () => {
+        it("throws an error if the target's parent does not exist", () => {
+            expect(() => fileSystem.open(new Path("/dir/file"), "read")).to.throw;
+        });
+
+        it("throws an error if the target is an existing directory", () => {
+            fileSystem.add(new Path("/dir"), new Directory(), false);
+
+            expect(() => fileSystem.open(new Path("/dir"), "read")).to.throw;
+        });
+
+        it("creates the target if it does not exist yet", () => {
+            fileSystem.open(new Path("/file"), "read");
+
+            expect(fileSystem.has(new Path("/file"))).to.be.true;
+        });
+
+        it("returns a stream containing the target file's contents", () => {
+            fileSystem.add(new Path("/file"), new File("contents"), false);
+
+            expect(fileSystem.open(new Path("/file"), "read").read()).to.equal("contents");
+        });
+    });
+
     describe("remove", () => {
         it("removes a file", () => {
             fileSystem.add(new Path("/file"), new File(), false);

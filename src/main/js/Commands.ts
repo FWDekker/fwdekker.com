@@ -289,11 +289,13 @@ export class Commands {
                     return -1;
                 }
 
-                const contents = input.hasAnyOption("e", "--escape-html") ? escapeHtml(node.contents) : node.contents;
-                if (contents.endsWith("\n"))
-                    streams.out.write(contents);
-                else
-                    streams.out.writeLine(contents);
+                let contents = node.open("read").read();
+                if (input.hasAnyOption("e", "--escape-html"))
+                    contents = escapeHtml(contents);
+                if (!contents.endsWith("\n"))
+                    contents += "\n";
+
+                streams.out.write(contents);
                 return 0;
             })
             .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);

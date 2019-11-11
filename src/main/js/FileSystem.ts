@@ -1,5 +1,5 @@
 import {emptyFunction, getFileExtension, IllegalArgumentError} from "./Shared";
-import {OutputStream} from "./Stream";
+import {Stream} from "./Stream";
 
 
 /**
@@ -150,32 +150,24 @@ export class FileSystem {
     }
 
     /**
-     * Creates a new output stream to write to the node at the given path.
+     * Opens a file stream to the file at the given path.
      *
-     * @param target
-     * @param options
-     * @throws if the target points to a directory
+     * @param target the path to the file to open a stream to
+     * @param mode the mode to open the file with
+     * @throws if the target or its parent does not exist, or if the target is not a file
      */
-    open(target: Path, options: "write" | "append"): OutputStream {
+    open(target: Path, mode: FileMode): FileStream {
+        if (!this.has(target.parent))
+            throw new IllegalArgumentError(`open: Directory '${target.parent}' does not exist.`);
+
         if (!this.has(target))
-            this.add(target, new File(), true);
+            this.add(target, new File(), false);
 
         const targetNode = this.get(target);
         if (!(targetNode instanceof File))
-            throw new IllegalArgumentError(`Cannot open stream to directory '${target}'.`);
+            throw new IllegalArgumentError(`open: Cannot open stream to directory '${target}'.`);
 
-        if (options === "write")
-            targetNode.contents = "";
-
-        return new class implements OutputStream {
-            write(string: string): void {
-                targetNode.contents += string;
-            }
-
-            writeLine(string: string): void {
-                this.write(string + "\n");
-            }
-        };
+        return targetNode.open(mode);
     }
 
     /**
@@ -578,6 +570,24 @@ export class File extends Node {
     }
 
 
+    /**
+     * Opens an in- and output stream to this file.
+     *
+     * @param mode the mode in which to open the file
+     */
+    open(mode: FileMode): FileStream {
+        switch (mode) {
+            case "append":
+                return new FileStream(this, this.contents.length);
+            case "read":
+                return new FileStream(this, 0);
+            case "write":
+                this.contents = "";
+                return new FileStream(this, 0);
+        }
+    }
+
+
     copy(): File {
         return new File(this.contents);
     }
@@ -614,5 +624,57 @@ export class File extends Node {
             throw `Cannot deserialize node of type '${obj["type"]}'.`;
 
         return new File(obj["contents"]);
+    }
+}
+
+
+/**
+ * The mode to open a file in.
+ */
+export type FileMode = "append" | "read" | "write";
+
+/**
+ * An in- and output stream for a file.
+ */
+export class FileStream extends Stream {
+    private readonly file: File;
+    private pointer: number;
+
+
+    /**
+     * A stream to interact with the contents of a file.
+     *
+     * @param file the file to open a stream to
+     * @param pointer the index in the file to start the stream at
+     */
+    constructor(file: File, pointer: number = 0) {
+        if (pointer < 0)
+            throw new IllegalArgumentError("File pointer must be non-negative.");
+        if (pointer > file.contents.length)
+            throw new IllegalArgumentError("File pointer should not exceed file's size.");
+
+        super();
+
+        this.file = file;
+        this.pointer = pointer;
+    }
+
+
+    protected get buffer(): string {
+        return this.file.contents.slice(this.pointer);
+    }
+
+
+    read(count: number | undefined = undefined): string {
+        const input = this.peek(count ?? this.buffer.length);
+        this.pointer += input.length;
+        return input;
+    }
+
+    write(string: string): void {
+        const pre = this.file.contents.slice(0, this.pointer);
+        const post = this.buffer.slice(string.length);
+
+        this.file.contents = pre + string + post;
     }
 }
