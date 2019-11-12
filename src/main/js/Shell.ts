@@ -189,8 +189,9 @@ export class Shell {
      * @see Persistence
      */
     private saveState() {
-        Persistence.setFileSystem(this.fileSystem);
+        Persistence.setHistory(this.inputHistory);
         Persistence.setEnvironment(this.environment);
+        Persistence.setFileSystem(this.fileSystem);
     }
 }
 

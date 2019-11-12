@@ -2,47 +2,13 @@ import * as Cookies from "js-cookie";
 import {Environment} from "./Environment";
 import {Directory, FileSystem, Node} from "./FileSystem";
 import {UserList} from "./UserList";
+import {InputHistory} from "./Terminal";
 
 
 /**
  * Manages persistence of state.
  */
 export class Persistence {
-    /**
-     * Deserializes a file system from persistent storage, or returns the default file system if the deserialization
-     * failed.
-     */
-    static getFileSystem(): FileSystem {
-        const filesString = Cookies.get("files");
-
-        let files: Directory | undefined = undefined;
-        if (filesString !== undefined) {
-            try {
-                const parsedFiles = Node.deserialize(filesString);
-                if (parsedFiles instanceof Directory)
-                    files = parsedFiles;
-                else
-                    console.warn("`files` cookie contains non-directory.");
-            } catch (error) {
-                console.warn("Failed to deserialize `files` cookie.", error);
-            }
-        }
-
-        return new FileSystem(files);
-    }
-
-    /**
-     * Persists the given file system.
-     *
-     * @param fileSystem the file system to persist
-     */
-    static setFileSystem(fileSystem: FileSystem) {
-        Cookies.set("files", fileSystem.root, {
-            "expires": new Date(new Date().setFullYear(new Date().getFullYear() + 25)),
-            "path": "/"
-        });
-    }
-
     /**
      * Deserializes an environment from persistent storage, or returns the default environment if the deserialization
      * failed.
@@ -86,8 +52,62 @@ export class Persistence {
      *
      * @param environment the environment to persist
      */
-    static setEnvironment(environment: Environment) {
+    static setEnvironment(environment: Environment): void {
         Cookies.set("env", environment.variables, {"path": "/"});
+    }
+
+    /**
+     * Deserializes a file system from persistent storage, or returns the default file system if the deserialization
+     * failed.
+     */
+    static getFileSystem(): FileSystem {
+        const filesString = Cookies.get("files");
+        if (filesString !== undefined) {
+            try {
+                const parsedFiles = Node.deserialize(filesString);
+                if (parsedFiles instanceof Directory)
+                    return new FileSystem(parsedFiles);
+                else
+                    console.warn("`files` cookie contains non-directory.");
+            } catch (error) {
+                console.warn("Failed to deserialize `files` cookie.", error);
+            }
+        }
+
+        return new FileSystem();
+    }
+
+    /**
+     * Persists the given file system.
+     *
+     * @param fileSystem the file system to persist
+     */
+    static setFileSystem(fileSystem: FileSystem): void {
+        Cookies.set("files", fileSystem.root, {
+            "expires": new Date(new Date().setFullYear(new Date().getFullYear() + 25)),
+            "path": "/"
+        });
+    }
+
+    /**
+     * Deserializes a history from persistent storage, or returns the default history if the deserialization failed.
+     */
+    static getHistory(): InputHistory {
+        try {
+            return Object.assign(new InputHistory(), JSON.parse(Cookies.get("history") ?? "{}"));
+        } catch (error) {
+            console.warn("Failed to deserialize `history` cookie.", error);
+            return new InputHistory();
+        }
+    }
+
+    /**
+     * Persists the given history.
+     *
+     * @param history the history to persist
+     */
+    static setHistory(history: InputHistory): void {
+        Cookies.set("history", history, {"path": "/"});
     }
 
     /**
@@ -95,7 +115,7 @@ export class Persistence {
      *
      * @param value the value to persist for the "power off" setting
      */
-    static setPoweroff(value: boolean) {
+    static setPoweroff(value: boolean): void {
         Cookies.set("poweroff", `${value}`, {
             "expires": new Date(new Date().setSeconds(new Date().getSeconds() + 30)),
             "path": "/"
@@ -105,9 +125,10 @@ export class Persistence {
     /**
      * Removes all persistent storage.
      */
-    static reset() {
-        Cookies.remove("files");
+    static reset(): void {
         Cookies.remove("env");
+        Cookies.remove("files");
+        Cookies.remove("history");
         Cookies.remove("poweroff");
     }
 }

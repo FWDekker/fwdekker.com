@@ -1,3 +1,4 @@
+import {Persistence} from "./Persistence";
 import {escapeHtml, moveCaretToEndOf, parseCssPixels} from "./Shared";
 import {Shell} from "./Shell";
 import {Buffer, StreamSet} from "./Stream";
@@ -62,7 +63,7 @@ export class Terminal {
         this.output = output;
         this.prefixDiv = prefixDiv;
 
-        this.inputHistory = new InputHistory();
+        this.inputHistory = Persistence.getHistory();
         this.shell = new Shell(this.inputHistory);
 
         document.addEventListener("click", this.onclick.bind(this));
