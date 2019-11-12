@@ -362,7 +362,7 @@ export class InputHistory {
      * @param entry the entry to add
      */
     addEntry(entry: string): void {
-        if (entry.trim() !== "")
+        if (entry.trim() !== "" && entry.trim() !== this.history[this.history.length - 1]?.trim())
             this.history.unshift(entry);
 
         this.index = -1;
