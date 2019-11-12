@@ -94,7 +94,7 @@ export class Persistence {
      */
     static getHistory(): InputHistory {
         try {
-            return Object.assign(new InputHistory(), JSON.parse(Cookies.get("history") ?? "{}"));
+            return new InputHistory(JSON.parse(Cookies.get("history") ?? "[]"));
         } catch (error) {
             console.warn("Failed to deserialize `history` cookie.", error);
             return new InputHistory();
@@ -107,7 +107,7 @@ export class Persistence {
      * @param history the history to persist
      */
     static setHistory(history: InputHistory): void {
-        Cookies.set("history", history, {"path": "/"});
+        Cookies.set("history", history.entries, {"path": "/"});
     }
 
     /**

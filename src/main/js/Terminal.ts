@@ -349,11 +349,30 @@ export class InputHistory {
     /**
      * The list of previous input.
      */
-    private history: string[] = [];
+    private readonly _entries: string[];
     /**
      * The current index that the history is being read from.
      */
-    private index: number = -1;
+    private index: number;
+
+
+    /**
+     * Constructs a new input history.
+     *
+     * @param history the records currently in the history
+     */
+    constructor(history: string[] = []) {
+        this._entries = history;
+        this.index = -1;
+    }
+
+
+    /**
+     * Returns a copy of the entries in this history.
+     */
+    get entries(): string[] {
+        return this._entries.slice();
+    }
 
 
     /**
@@ -362,8 +381,8 @@ export class InputHistory {
      * @param entry the entry to add
      */
     addEntry(entry: string): void {
-        if (entry.trim() !== "" && entry.trim() !== this.history[this.history.length - 1]?.trim())
-            this.history.unshift(entry);
+        if (entry.trim() !== "" && entry.trim() !== this._entries[0]?.trim())
+            this._entries.unshift(entry);
 
         this.index = -1;
     }
@@ -372,7 +391,7 @@ export class InputHistory {
      * Removes all entries from the history and resets the read index.
      */
     clear(): void {
-        this.history = [];
+        this._entries.length = 0;
         this.index = -1;
     }
 
@@ -386,7 +405,7 @@ export class InputHistory {
         if (index === -1)
             return "";
 
-        return this.history[index];
+        return this._entries[index];
     }
 
     /**
@@ -411,8 +430,8 @@ export class InputHistory {
      */
     previousEntry(): string {
         this.index++;
-        if (this.index >= this.history.length)
-            this.index = this.history.length - 1;
+        if (this.index >= this._entries.length)
+            this.index = this._entries.length - 1;
 
         return this.getEntry(this.index);
     }
