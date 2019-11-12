@@ -527,7 +527,7 @@ export class Commands {
             return -1;
         }
 
-        window.open(node.contents, target);
+        window.open(node.open("read").read(), target);
         return 0;
     }
 

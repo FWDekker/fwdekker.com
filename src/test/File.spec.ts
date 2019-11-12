@@ -1,7 +1,7 @@
 import "mocha";
 import {expect} from "chai";
 
-import {File} from "../main/js/FileSystem";
+import {File, NullFile} from "../main/js/FileSystem";
 
 
 describe("file", () => {
@@ -43,5 +43,29 @@ describe("file", () => {
                 expect(file.contents).to.equal("new");
             });
         });
+    });
+});
+
+describe("null file", () => {
+    let file: NullFile;
+
+
+    beforeEach(() => {
+        file = new NullFile();
+    });
+
+
+    it("has empty contents", () => {
+        expect(file.contents).to.equal("");
+    });
+
+    it("is empty after writing to it", () => {
+        file.open("write").write("contents");
+
+        expect(file.contents).to.equal("");
+    });
+
+    it("is empty when reading from a stream", () => {
+        expect(file.open("read").read()).to.equal("");
     });
 });

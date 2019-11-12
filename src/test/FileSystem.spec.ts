@@ -121,9 +121,9 @@ describe("file system", () => {
             fileSystem.add(new Path("/src"), file, false);
 
             fileSystem.copy(new Path("/src"), new Path("/dst"), false);
-            file.contents = "new";
+            file.open("write").write("new");
 
-            expect((<File>fileSystem.get(new Path("/dst"))).contents).to.equal("old");
+            expect((<File>fileSystem.get(new Path("/dst"))).open("read").read()).to.equal("old");
         });
     });
 
@@ -205,9 +205,9 @@ describe("file system", () => {
             fileSystem.add(new Path("/src"), file, false);
 
             fileSystem.move(new Path("/src"), new Path("/dst"));
-            file.contents = "new";
+            file.open("write").write("new");
 
-            expect((<File>fileSystem.get(new Path("/dst"))).contents).to.equal("new");
+            expect((<File>fileSystem.get(new Path("/dst"))).open("read").read()).to.equal("new");
         });
 
         it("throws an error if the destination already exists", () => {

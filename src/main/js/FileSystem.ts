@@ -21,6 +21,9 @@ export class FileSystem {
         if (root === undefined)
             this.root =
                 new Directory({
+                    "dev": new Directory({
+                        "null": new NullFile()
+                    }),
                     "home": new Directory({
                         "felix": new Directory({
                             "personal": new Directory({
@@ -551,18 +554,28 @@ export class File extends Node {
     protected type: string = "File";
 
     /**
-     * The link to the external resource.
+     * The contents of this file. !!Do not use this field directly!!
      */
-    contents: string;
+    _contents: string;
 
 
     /**
      * Constructs a new file.
+     *
+     * @param contents the contents of this file
      */
     constructor(contents: string = "") {
         super();
 
-        this.contents = contents;
+        this._contents = contents;
+    }
+
+
+    /**
+     * Returns the contents of this file.
+     */
+    get contents(): string {
+        return this._contents;
     }
 
 
@@ -578,7 +591,7 @@ export class File extends Node {
             case "read":
                 return new FileStream(this, 0);
             case "write":
-                this.contents = "";
+                this._contents = "";
                 return new FileStream(this, 0);
         }
     }
@@ -620,6 +633,28 @@ export class File extends Node {
             throw `Cannot deserialize node of type '${obj["type"]}'.`;
 
         return new File(obj["contents"]);
+    }
+}
+
+/**
+ * A file that cannot have contents.
+ */
+export class NullFile extends File {
+    open(mode: "append" | "read" | "write"): FileStream {
+        return new class extends FileStream {
+            constructor(file: File, pointer: number) {
+                super(file, pointer);
+            }
+
+
+            read(count: number | undefined = undefined): string {
+                return "";
+            }
+
+            write(string: string): void {
+                // Do nothing
+            }
+        }(this, 0);
     }
 }
 
@@ -671,6 +706,6 @@ export class FileStream extends Stream {
         const pre = this.file.contents.slice(0, this.pointer);
         const post = this.buffer.slice(string.length);
 
-        this.file.contents = pre + string + post;
+        this.file._contents = pre + string + post;
     }
 }

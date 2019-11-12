@@ -130,8 +130,8 @@ describe("directory", () => {
             });
             const copy = directory.copy();
 
-            (<File>directory.getNode("file")).contents = "changed";
-            expect((<File>copy.getNode("file")).contents).to.equal("contents");
+            (<File>directory.getNode("file")).open("write").write("changed");
+            expect((<File>copy.getNode("file")).open("read").read()).to.equal("contents");
 
             (<Directory>directory.getNode("dir")).addNode("file2", new File());
             expect((<Directory>copy.getNode("dir")).nodeCount).to.equal(0);
