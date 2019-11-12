@@ -1,10 +1,11 @@
 import {Commands} from "./Commands";
 import {Environment} from "./Environment";
 import {Directory, FileSystem, Path} from "./FileSystem";
+import {InputHistory} from "./InputHistory";
 import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
 import {asciiHeaderHtml, IllegalStateError} from "./Shared";
-import {EscapeCharacters, InputHistory} from "./Terminal";
+import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
 import {StreamSet} from "./Stream";
 
@@ -144,7 +145,7 @@ export class Shell {
             return 0;
         }
 
-        this.inputHistory.addEntry(inputString);
+        this.inputHistory.add(inputString);
 
         let input;
         try {

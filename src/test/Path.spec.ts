@@ -110,7 +110,7 @@ describe("paths", () => {
 
     describe("ancestors", () => {
         it("returns an empty list for the root path", () => {
-            expect(new Path("/").ancestors.map(it => it.toString())).to.be.empty;
+            expect(new Path("/").ancestors.map(it => it.toString())).to.have.length(0);
         });
 
         it("returns the root path for a path to a subdirectory of root", () => {
@@ -152,11 +152,11 @@ describe("paths", () => {
 
     describe("ancestors until", () => {
         it("returns no ancestors between root and itself", () => {
-            expect(new Path("/").getAncestorsUntil(new Path("/"))).to.be.empty;
+            expect(new Path("/").getAncestorsUntil(new Path("/"))).to.have.length(0);
         });
 
         it("returns no ancestors between a non-root and itself", () => {
-            expect(new Path("/dir/file").getAncestorsUntil(new Path("/dir/file"))).to.be.empty;
+            expect(new Path("/dir/file").getAncestorsUntil(new Path("/dir/file"))).to.have.length(0);
         });
 
         it("returns the root parent if there are no other ancestors in between", () => {

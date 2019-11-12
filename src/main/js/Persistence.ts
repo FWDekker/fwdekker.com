@@ -1,8 +1,8 @@
 import * as Cookies from "js-cookie";
 import {Environment} from "./Environment";
 import {Directory, FileSystem, Node} from "./FileSystem";
+import {InputHistory} from "./InputHistory";
 import {UserList} from "./UserList";
-import {InputHistory} from "./Terminal";
 
 
 /**
