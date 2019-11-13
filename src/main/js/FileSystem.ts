@@ -632,7 +632,7 @@ export class File extends Node {
         if (obj["type"] !== "File")
             throw `Cannot deserialize node of type '${obj["type"]}'.`;
 
-        return new File(obj["contents"]);
+        return new File(obj["_contents"]);
     }
 }
 
