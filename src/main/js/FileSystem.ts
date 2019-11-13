@@ -411,6 +411,8 @@ export abstract class Node {
                     return Directory.parse(json);
                 case "File":
                     return File.parse(json);
+                case "NullFile":
+                    return NullFile.parse(json);
                 default:
                     throw `Unknown node type '${json["type"]}'.`;
             }
@@ -649,6 +651,9 @@ export class File extends Node {
  * A file that cannot have contents.
  */
 export class NullFile extends File {
+    protected type: string = "NullFile";
+
+
     open(mode: "append" | "read" | "write"): FileStream {
         return new class extends FileStream {
             constructor(file: File, pointer: number) {
@@ -664,6 +669,19 @@ export class NullFile extends File {
                 // Do nothing
             }
         }(this, 0);
+    }
+
+
+    /**
+     * Parses the given object into a null file.
+     *
+     * @param obj the object that describes a file
+     */
+    static parse(obj: any): NullFile {
+        if (obj["type"] !== "File")
+            throw `Cannot deserialize node of type '${obj["type"]}'.`;
+
+        return new NullFile();
     }
 }
 
