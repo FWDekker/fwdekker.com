@@ -154,12 +154,12 @@ export class Commands {
             ),
             "open": new Command(
                 this.open,
-                `open web page`,
-                `open [<b>-b</b> | <b>--blank</b>] <u>file</u>`,
-                `Opens the web page linked to by <u>file</u> in this browser window.
-
-                If <b>--blank</b> is set, the web page is opened in a new tab.`.trimMultiLines(),
-                new InputValidator({minArgs: 1, maxArgs: 1})
+                `open web pages`,
+                `open [<b>-b</b> | <b>--blank</b>] <u>file</u> <u>...</u>`,
+                `Opens the web pages linked to by <u>file</u>. The first <u>file</u> is opened in this tab and the \\\
+                subsequent <u>file</u>s are opened in new tabs. If <b>--blank</b> is set, the first <u>file</u> is \\\
+                opened in a new tab as well.`.trimMultiLines(),
+                new InputValidator({minArgs: 1})
             ),
             "poweroff": new Command(
                 this.poweroff,
@@ -514,21 +514,19 @@ export class Commands {
     }
 
     private open(input: InputArgs, streams: StreamSet): number {
-        const path = Path.interpret(this.environment.get("cwd"), input.args[0]);
-        const target = input.hasAnyOption("-b", "--blank") ? "_blank" : "_self";
-
-        const node = this.fileSystem.get(path);
-        if (node === undefined) {
-            streams.err.writeLine(`open: The file '${path}' does not exist.`);
-            return -1;
-        }
-        if (!(node instanceof File)) {
-            streams.err.writeLine(`open: '${path}' is not a file.`);
-            return -1;
-        }
-
-        window.open(node.open("read").read(), target);
-        return 0;
+        return input.args
+            .map(it => Path.interpret(this.environment.get("cwd"), it))
+            .map((path, i) => {
+                try {
+                    const target = i > 0 || input.hasAnyOption("-b", "--blank") ? "_blank" : "_self";
+                    window.open(this.fileSystem.open(path, "read").read(), target);
+                    return 0;
+                } catch (error) {
+                    streams.err.writeLine(`open: ${error.message}`);
+                    return -1;
+                }
+            })
+            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
     }
 
     private poweroff(_: InputArgs, streams: StreamSet): number {
