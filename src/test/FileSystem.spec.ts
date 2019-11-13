@@ -62,6 +62,10 @@ describe("file system", () => {
 
             expect(() => fileSystem.add(new Path("/file1"), new File(), false)).to.throw();
         });
+
+        it("fails if a file is added at a directory path", () => {
+            expect(() => fileSystem.add(new Path("/dir/"), new File(), false)).to.throw();
+        });
     });
 
     describe("copy", () => {
@@ -132,6 +136,42 @@ describe("file system", () => {
             expect(fileSystem.get(new Path("/"))).to.equal(fileSystem.root);
         });
 
+        it("returns the node at the given path", () => {
+            const file = new File();
+            fileSystem.add(new Path("/dir"), new Directory(), false);
+            fileSystem.add(new Path("/dir/file"), file, false);
+
+            expect(fileSystem.get(new Path("/dir/file"))).to.equal(file);
+        });
+
+        it("returns the file at the given file path", () => {
+            const file = new File();
+            fileSystem.add(new Path("/file"), file, false);
+
+            expect(fileSystem.get(new Path("/file"))).to.equal(file);
+        });
+
+        it("returns the directory at the given file path", () => {
+            const directory = new Directory();
+            fileSystem.add(new Path("/dir"), directory, false);
+
+            expect(fileSystem.get(new Path("/dir"))).to.equal(directory);
+        });
+
+        it("returns undefined for a directory path even though a file exists with the same name", () => {
+            const file = new File();
+            fileSystem.add(new Path("/file"), file, false);
+
+            expect(fileSystem.get(new Path("/file/"))).to.be.undefined;
+        });
+
+        it("returns the directory at the given directory path", () => {
+            const directory = new Directory();
+            fileSystem.add(new Path("/dir"), directory, false);
+
+            expect(fileSystem.get(new Path("/dir/"))).to.equal(directory);
+        });
+
         it("returns undefined if the parent is not a directory", () => {
             fileSystem.add(new Path("/file1"), new File(), false);
 
@@ -143,19 +183,35 @@ describe("file system", () => {
 
             expect(fileSystem.get(new Path("/dir/file"))).to.be.undefined;
         });
-
-        it("returns the node at the given path", () => {
-            const file = new File();
-            fileSystem.add(new Path("/dir"), new Directory(), false);
-            fileSystem.add(new Path("/dir/file"), file, false);
-
-            expect(fileSystem.get(new Path("/dir/file"))).to.equal(file);
-        });
     });
 
     describe("has", () => {
         it("returns true for the root path", () => {
             expect(fileSystem.has(new Path("/"))).to.be.true;
+        });
+
+        it("returns true if a file exists at the given file path", () => {
+            fileSystem.add(new Path("/dir"), new File(), false);
+
+            expect(fileSystem.has(new Path("/dir"))).to.be.true;
+        });
+
+        it("returns true if a directory exists at the given file path", () =>{
+            fileSystem.add(new Path("/dir"), new Directory(), false);
+
+            expect(fileSystem.has(new Path("/dir"))).to.be.true;
+        });
+
+        it("returns false if a file with the same name exists but a directory path is given", () => {
+            fileSystem.add(new Path("/dir"), new File(), false);
+
+            expect(fileSystem.has(new Path("/dir/"))).to.be.false;
+        });
+
+        it("returns true if a directory exists at the given directory path", () => {
+            fileSystem.add(new Path("/dir"), new Directory(), false);
+
+            expect(fileSystem.has(new Path("/dir/"))).to.be.true;
         });
 
         it("returns false if the node does not exist", () => {
@@ -242,8 +298,12 @@ describe("file system", () => {
             expect(() => fileSystem.open(new Path("/dir"), "read")).to.throw();
         });
 
-        it("creates the target if it does not exist yet", () => {
-            fileSystem.open(new Path("/file"), "read");
+        it("throws an error in read mode if a directory path is given", () => {
+            expect(() => fileSystem.open(new Path("/dir/"), "read")).to.throw();
+        });
+
+        it("creates the target in write mode if it does not exist yet", () => {
+            fileSystem.open(new Path("/file"), "write");
 
             expect(fileSystem.has(new Path("/file"))).to.be.true;
         });
@@ -258,6 +318,7 @@ describe("file system", () => {
     describe("remove", () => {
         it("removes a file", () => {
             fileSystem.add(new Path("/file"), new File(), false);
+
             fileSystem.remove(new Path("/file"));
 
             expect(fileSystem.has(new Path("/file"))).to.be.false;
@@ -281,6 +342,14 @@ describe("file system", () => {
             fileSystem.remove(new Path("/"));
 
             expect(fileSystem.has(new Path("/dir"))).to.be.false;
+        });
+
+        it("does not remove a file at a directory path", () => {
+            fileSystem.add(new Path("/file"), new File(), false);
+
+            fileSystem.remove(new Path("/file/"));
+
+            expect(fileSystem.has(new Path("/file"))).to.be.true;
         });
     });
 });

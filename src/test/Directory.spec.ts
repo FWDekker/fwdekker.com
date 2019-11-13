@@ -20,103 +20,103 @@ describe("directory", () => {
         });
 
         it("has the given nodes", () => {
-            expect(new Directory({node: new File()}).hasNode("node")).to.be.true;
+            expect(new Directory({node: new File()}).has("node")).to.be.true;
         });
     });
 
-    describe("getNode", () => {
+    describe("get", () => {
         it("throws an exception if he node does not exist", () => {
-            expect(() => directory.getNode("error")).to.throw();
+            expect(directory.get("error")).to.be.undefined;
         });
 
         it("does not contain itself", () => {
-            expect(() => directory.getNode(".")).to.throw();
+            expect(directory.get(".")).to.be.undefined;
         });
 
         it("returns the desired node", () => {
             const file = new File();
-            directory.addNode("file", file);
+            directory.add("file", file);
 
-            expect(directory.getNode("file")).to.equal(file);
+            expect(directory.get("file")).to.equal(file);
         });
     });
 
-    describe("hasNode", () => {
+    describe("has", () => {
         it("returns false if the node does not exist", () => {
-            expect(directory.hasNode("error")).to.be.false;
+            expect(directory.has("error")).to.be.false;
         });
 
         it("returns true if the node exists", () => {
-            directory.addNode("file", new File());
+            directory.add("file", new File());
 
-            expect(directory.hasNode("file")).to.be.true;
+            expect(directory.has("file")).to.be.true;
         });
 
         it("returns false if the node is the reflexive node", () => {
-            expect(directory.hasNode(".")).to.be.false;
+            expect(directory.has(".")).to.be.false;
         });
 
         it("returns false if the node is the parent node", () => {
-            expect(directory.hasNode("..")).to.be.false;
+            expect(directory.has("..")).to.be.false;
         });
 
         it("returns false if the node refers to itself", () => {
-            expect(directory.hasNode("")).to.be.false;
+            expect(directory.has("")).to.be.false;
         });
     });
 
-    describe("addNode", () => {
+    describe("add", () => {
         it("adds the given node", () => {
-            directory.addNode("file", new File());
+            directory.add("file", new File());
 
-            expect(directory.hasNode("file")).to.be.true;
+            expect(directory.has("file")).to.be.true;
         });
 
         it("overwrites an existing node", () => {
-            directory.addNode("file", new File());
-            directory.addNode("file", new Directory());
+            directory.add("file", new File());
+            directory.add("file", new Directory());
 
-            expect(directory.getNode("file")).to.be.instanceOf(Directory);
+            expect(directory.get("file")).to.be.instanceOf(Directory);
         });
 
         it("refuses to add a node at the reflexive path", () => {
-            expect(() => directory.addNode(".", new File())).to.throw();
+            expect(() => directory.add(".", new File())).to.throw();
         });
 
         it("refuses to add a node at the parent path", () => {
-            expect(() => directory.addNode("..", new File())).to.throw();
+            expect(() => directory.add("..", new File())).to.throw();
         });
 
         it("refuses to add a node that refers to the directory", () => {
-            expect(() => directory.addNode("", new File())).to.throw();
+            expect(() => directory.add("", new File())).to.throw();
         });
 
         it("refuses to add a node with a name containing a slash", () => {
-            expect(() => directory.addNode("a/b", new File())).to.throw();
+            expect(() => directory.add("a/b", new File())).to.throw();
         });
     });
 
-    describe("removeNode", () => {
+    describe("remove", () => {
         it("removes the desired node", () => {
-            directory.addNode("file", new File());
+            directory.add("file", new File());
 
-            directory.removeNode("file");
+            directory.remove("file");
 
             expect(directory.nodeCount).to.equal(0);
         });
 
         it("empties the directory if the name is empty", () => {
-            directory.addNode("file", new File());
+            directory.add("file", new File());
 
-            directory.removeNode("");
+            directory.remove("");
 
             expect(directory.nodeCount).to.equal(0);
         });
 
         it("empties the directory if the name is reflexive", () => {
-            directory.addNode("file", new File());
+            directory.add("file", new File());
 
-            directory.removeNode(".");
+            directory.remove(".");
 
             expect(directory.nodeCount).to.equal(0);
         });
@@ -130,13 +130,13 @@ describe("directory", () => {
             });
             const copy = directory.copy();
 
-            (<File>directory.getNode("file")).open("write").write("changed");
-            expect((<File>copy.getNode("file")).open("read").read()).to.equal("contents");
+            (<File>directory.get("file")).open("write").write("changed");
+            expect((<File>copy.get("file")).open("read").read()).to.equal("contents");
 
-            (<Directory>directory.getNode("dir")).addNode("file2", new File());
-            expect((<Directory>copy.getNode("dir")).nodeCount).to.equal(0);
+            (<Directory>directory.get("dir")).add("file2", new File());
+            expect((<Directory>copy.get("dir")).nodeCount).to.equal(0);
 
-            directory.removeNode("file");
+            directory.remove("file");
             expect(copy.nodeCount).to.equal(2);
         });
     });

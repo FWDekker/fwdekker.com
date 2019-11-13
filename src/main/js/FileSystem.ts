@@ -62,6 +62,9 @@ export class FileSystem {
      * or if there already exists a node at the given location
      */
     add(target: Path, node: Node, createParents: boolean): void {
+        if (target.isDirectory && !(node instanceof Directory))
+            throw new IllegalArgumentError(`Cannot add non-directory at '${target}/'.`);
+
         if (!this.has(target.parent)) {
             if (createParents)
                 this.add(target.parent, new Directory(), true);
@@ -72,10 +75,10 @@ export class FileSystem {
         const parent = this.get(target.parent);
         if (!(parent instanceof Directory))
             throw new IllegalArgumentError(`'${target.parent}' is not a directory.`);
-        if (parent.hasNode(target.fileName))
+        if (parent.has(target.fileName))
             throw new IllegalArgumentError(`A file or directory already exists at '${target}'.`);
 
-        parent.addNode(target.fileName, node);
+        parent.add(target.fileName, node);
     }
 
     /**
@@ -110,10 +113,14 @@ export class FileSystem {
             return this.root;
 
         const parent = this.get(target.parent);
-        if (!(parent instanceof Directory) || !parent.hasNode(target.fileName))
+        if (!(parent instanceof Directory))
             return undefined;
 
-        return parent.getNode(target.fileName);
+        const node = parent.get(target.fileName);
+        if (target.isDirectory && !(node instanceof Directory))
+            return undefined;
+
+        return parent.get(target.fileName);
     }
 
     /**
@@ -122,14 +129,7 @@ export class FileSystem {
      * @param target the path to check for node presence
      */
     has(target: Path): boolean {
-        if (target.toString() === "/")
-            return true;
-
-        const parent = this.get(target.parent);
-        if (!(parent instanceof Directory))
-            return false;
-
-        return parent.hasNode(target.fileName);
+        return this.get(target) !== undefined;
     }
 
     /**
@@ -161,14 +161,18 @@ export class FileSystem {
      */
     open(target: Path, mode: FileMode): FileStream {
         if (!this.has(target.parent))
-            throw new IllegalArgumentError(`open: Directory '${target.parent}' does not exist.`);
+            throw new IllegalArgumentError(`Directory '${target.parent}' does not exist.`);
 
-        if (!this.has(target))
-            this.add(target, new File(), false);
+        if (!this.has(target)) {
+            if (mode === "append" || mode === "write")
+                this.add(target, new File(), false);
+            else
+                throw new IllegalArgumentError(`File '${target}' does not exist.`);
+        }
 
         const targetNode = this.get(target);
         if (!(targetNode instanceof File))
-            throw new IllegalArgumentError(`open: Cannot open stream to directory '${target}'.`);
+            throw new IllegalArgumentError(`Cannot open directory '${target}'.`);
 
         return targetNode.open(mode);
     }
@@ -178,14 +182,18 @@ export class FileSystem {
      *
      * If the node in question does not exist, the function will return successfully.
      *
-     * @param targetPath the path to the node to be removed
+     * @param target the path to the node to be removed
      */
-    remove(targetPath: Path): void {
-        const parent = this.get(targetPath.parent);
+    remove(target: Path): void {
+        const parent = this.get(target.parent);
         if (!(parent instanceof Directory))
             return;
 
-        parent.removeNode(targetPath.fileName);
+        const node = this.get(target);
+        if (target.isDirectory && !(node instanceof Directory))
+            return;
+
+        parent.remove(target.fileName);
     }
 }
 
@@ -206,12 +214,16 @@ export class Path {
      * The name of the node described by this path.
      */
     readonly fileName: string;
+    /**
+     * `true` if and only if the path necessarily points to a directory.
+     */
+    readonly isDirectory: boolean;
 
 
     /**
      * Constructs a new path.
      *
-     * @param paths a string that describes the path
+     * @param paths a set of strings that describe the path
      */
     constructor(...paths: string[]) {
         const path = `/${paths.join("/")}/`;
@@ -240,6 +252,7 @@ export class Path {
         this.path = "/" + parts.join("/");
         this._parent = parts.slice(0, -1).join("/");
         this.fileName = parts.slice(-1).join("");
+        this.isDirectory = paths[paths.length - 1].endsWith("/");
     }
 
     /**
@@ -447,15 +460,11 @@ export class Directory extends Node {
 
 
     /**
-     * Returns the node with the given name.
+     * Returns the node with the given name, or `undefined` if there is no such node.
      *
      * @param name the name of the node to return
-     * @throws when there is no node with the given name in this directory
      */
-    getNode(name: string): Node {
-        if (!this.hasNode(name))
-            throw new IllegalArgumentError(`Directory does not have a node with name '${name}'.`);
-
+    get(name: string): Node | undefined {
         return this._nodes[name];
     }
 
@@ -464,7 +473,7 @@ export class Directory extends Node {
      *
      * @param name the name to check
      */
-    hasNode(name: string): boolean {
+    has(name: string): boolean {
         return this._nodes.hasOwnProperty(name);
     }
 
@@ -474,7 +483,7 @@ export class Directory extends Node {
      * @param name the name of the node in this directory
      * @param node the node to add to this directory
      */
-    addNode(name: string, node: Node): void {
+    add(name: string, node: Node): void {
         if (new Path(`/${name}`).toString() === "/" || name.indexOf("/") >= 0)
             throw new IllegalArgumentError(`Cannot add node with name '${name}'.`);
 
@@ -487,9 +496,9 @@ export class Directory extends Node {
      * @param name the name of the node to remove
      * @throws if the given node is not contained in this directory
      */
-    removeNode(name: string): void {
+    remove(name: string): void {
         if (name === "" || name === ".") {
-            Object.keys(this._nodes).forEach(node => this.removeNode(node));
+            Object.keys(this._nodes).forEach(node => this.remove(node));
             return;
         }
 

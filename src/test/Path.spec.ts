@@ -48,6 +48,10 @@ describe("paths", () => {
         });
 
         describe("parts", () => {
+            it("throws an error if no parts are given", () => {
+                expect(() => new Path()).to.throw();
+            });
+
             it("concatenates multiple parts", () => {
                 expect(new Path("/dir1", "/dir2", "/file").toString()).to.equal("/dir1/dir2/file");
             });
@@ -91,6 +95,24 @@ describe("paths", () => {
 
         it("should return an empty string if the path is a complex version of the root path", () => {
             expect(new Path("/dir//./..///").fileName).to.equal("");
+        });
+    });
+
+    describe("directory", () => {
+        it("is a directory path if the last part ends with a slash", () => {
+            expect(new Path("/dir/").isDirectory).to.be.true;
+        });
+
+        it("is a directory if the last part ends with a slash", () => {
+            expect(new Path("/dir1", "dir2/").isDirectory).to.be.true;
+        });
+
+        it("is not a directory path if the last part does not end with a slash", () => {
+            expect(new Path("/dir").isDirectory).to.be.false;
+        });
+
+        it("is not a directory if only the first part ends with a slash", () => {
+            expect(new Path("/dir/", "file").isDirectory).to.be.false;
         });
     });
 
