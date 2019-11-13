@@ -61,17 +61,14 @@ export class Persistence {
      * failed.
      */
     static getFileSystem(): FileSystem {
-        const filesString = Cookies.get("files");
-        if (filesString !== undefined) {
-            try {
-                const parsedFiles = Node.deserialize(filesString);
-                if (parsedFiles instanceof Directory)
-                    return new FileSystem(parsedFiles);
-                else
-                    console.warn("`files` cookie contains non-directory.");
-            } catch (error) {
-                console.warn("Failed to deserialize `files` cookie.", error);
-            }
+        try {
+            const parsedFiles = Node.deserialize(localStorage.getItem("files") ?? "{}");
+            if (parsedFiles instanceof Directory)
+                return new FileSystem(parsedFiles);
+            else
+                console.warn("`files` cookie contains non-directory.");
+        } catch (error) {
+            console.warn("Failed to deserialize `files` cookie.", error);
         }
 
         return new FileSystem();
@@ -83,10 +80,7 @@ export class Persistence {
      * @param fileSystem the file system to persist
      */
     static setFileSystem(fileSystem: FileSystem): void {
-        Cookies.set("files", fileSystem.root, {
-            "expires": new Date(new Date().setFullYear(new Date().getFullYear() + 25)),
-            "path": "/"
-        });
+        localStorage.setItem("files", JSON.stringify(fileSystem.root));
     }
 
     /**
@@ -94,7 +88,7 @@ export class Persistence {
      */
     static getHistory(): InputHistory {
         try {
-            return new InputHistory(JSON.parse(Cookies.get("history") ?? "[]"));
+            return new InputHistory(JSON.parse(localStorage.getItem("history") ?? "[]"));
         } catch (error) {
             console.warn("Failed to deserialize `history` cookie.", error);
             return new InputHistory();
@@ -107,7 +101,7 @@ export class Persistence {
      * @param history the history to persist
      */
     static setHistory(history: InputHistory): void {
-        Cookies.set("history", history.entries, {"path": "/"});
+        localStorage.setItem("history", JSON.stringify(history.entries));
     }
 
     /**
@@ -126,9 +120,8 @@ export class Persistence {
      * Removes all persistent storage.
      */
     static reset(): void {
+        localStorage.clear();
         Cookies.remove("env");
-        Cookies.remove("files");
-        Cookies.remove("history");
         Cookies.remove("poweroff");
     }
 }
