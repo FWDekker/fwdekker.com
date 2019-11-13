@@ -61,6 +61,23 @@ export function getFileExtension(filename: string): string {
 }
 
 /**
+ * Moves the caret to the given position in the given node.
+ *
+ * @param node the node to move the caret in
+ * @param position the position from the left to place the caret at
+ */
+export function moveCaretTo(node: Node, position: number): void {
+    const range = document.createRange();
+    range.setStart(node, position);
+
+    const selection = window.getSelection();
+    if (selection !== null) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+}
+
+/**
  * Moves the caret to the end of the given node.
  *
  * @param node the node in which to move the caret to the end

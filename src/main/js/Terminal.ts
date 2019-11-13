@@ -1,6 +1,6 @@
 import {InputHistory} from "./InputHistory";
 import {Persistence} from "./Persistence";
-import {escapeHtml, moveCaretToEndOf, parseCssPixels} from "./Shared";
+import {escapeHtml, moveCaretTo, moveCaretToEndOf, parseCssPixels} from "./Shared";
 import {Shell} from "./Shell";
 import {Buffer, StreamSet} from "./Stream";
 
@@ -303,6 +303,29 @@ export class Terminal {
                 // Only if focused on the input as to not prevent copying of selected text
                 if (event.ctrlKey && this.input === document.activeElement) {
                     this.ignoreInput();
+                    event.preventDefault();
+                }
+                break;
+            case "w":
+                if (event.ctrlKey) {
+                    let offset = this.inputText.length;
+                    if (this.input === document.activeElement)
+                        offset = document.getSelection()?.anchorOffset ?? offset;
+
+                    const left = this.inputText.slice(0, offset);
+                    const right = this.inputText.slice(offset);
+
+                    const newLeft = left.includes(" ")
+                        ? left.slice(0, left.trimRight().lastIndexOf(" ") + 1)
+                        : "";
+                    const newOffset = offset - (left.length - newLeft.length);
+
+                    this.inputText = newLeft + right;
+
+                    const element = this.input.firstChild;
+                    if (element !== null)
+                        window.setTimeout(() => moveCaretTo(element, newOffset), 0);
+
                     event.preventDefault();
                 }
                 break;
