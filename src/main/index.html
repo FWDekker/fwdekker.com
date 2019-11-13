@@ -25,15 +25,25 @@
             Please check the <a href="https://www.enable-javascript.com/">
             instructions how to enable JavaScript in your web browser</a>.
         </noscript>
+        <div id="ie-warning" style="display:none;">
+            This website does not function with Internet Explorer.
+            Please install a newer browser such as
+            <a href="https://www.microsoft.com/en-us/windows/microsoft-edge">Microsoft Edge</a>.
+        </div>
         <div id="terminalOutput"></div>
         <div id="terminalCurrent">
-            <span id="terminalCurrentPrefix"></span>
-            <span id="terminalCurrentFocusInput" contenteditable="true" autocapitalize="none" spellcheck="false"></span>
+            <span id="terminalCurrentPrefix"></span><!--
+            --><span id="terminalCurrentFocusInput" contenteditable="true" autocapitalize="none"
+                     spellcheck="false"></span>
         </div>
     </div>
 </main>
 
 
+<script>
+    if (/MSIE|Trident/.test(window.navigator.userAgent))
+        document.getElementById("ie-warning").style.display = "block";
+</script>
 <script type="module" src="bundle.js"></script>
 </body>
 </html>

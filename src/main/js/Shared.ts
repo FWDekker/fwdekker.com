@@ -28,7 +28,7 @@ export const emptyFunction = () => {};
  * @param fun the function to run as soon as the page is done loading
  */
 export function addOnLoad(fun: () => void): void {
-    const oldOnLoad = window.onload || emptyFunction;
+    const oldOnLoad = window.onload ?? emptyFunction;
 
     window.onload = () => {
         // @ts-ignore: Call works without parameters as well

@@ -98,7 +98,7 @@ export class Terminal {
      * Returns the input the user has entered in the HTML element.
      */
     private get inputText(): string {
-        return this.input.innerText.replace(/<br>/g, "");
+        return this.input.innerText.replace(/<\/?br>/g, "");
     }
 
     /**
@@ -254,7 +254,7 @@ export class Terminal {
      */
     private onclick(): void {
         // Focus on input unless user has text selected. This allows user to copy text
-        if ((document.getSelection() || "").toString() === "")
+        if ((document.getSelection() ?? "").toString() === "")
             this.input.focus();
     }
 

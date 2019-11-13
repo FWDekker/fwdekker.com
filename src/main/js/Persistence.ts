@@ -61,14 +61,17 @@ export class Persistence {
      * failed.
      */
     static getFileSystem(): FileSystem {
-        try {
-            const parsedFiles = Node.deserialize(localStorage.getItem("files") ?? "{}");
-            if (parsedFiles instanceof Directory)
-                return new FileSystem(parsedFiles);
-            else
-                console.warn("`files` cookie contains non-directory.");
-        } catch (error) {
-            console.warn("Failed to deserialize `files` cookie.", error);
+        const fileString = localStorage.getItem("files");
+        if (fileString !== null) {
+            try {
+                const parsedFiles = Node.deserialize(fileString);
+                if (parsedFiles instanceof Directory)
+                    return new FileSystem(parsedFiles);
+                else
+                    console.warn("`files` cookie contains non-directory.");
+            } catch (error) {
+                console.warn("Failed to deserialize `files` cookie.", error);
+            }
         }
 
         return new FileSystem();

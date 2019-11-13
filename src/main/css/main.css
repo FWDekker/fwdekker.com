@@ -89,6 +89,7 @@ body {
 #terminalCurrentPrefix {
     display: inline-block;
     vertical-align: top;
+    white-space: pre;
 }
 
 #terminalCurrentFocusInput {

@@ -8,7 +8,7 @@ interface String {
  * Returns this string with all leading and trailing whitespace removed from each line.
  */
 String.prototype.trimLines = function(): string {
-    return this.split("\n").map(it => it.trimStart()).join("\n");
+    return this.split("\n").map(it => it.trimLeft()).join("\n");
 };
 
 /**
@@ -19,7 +19,7 @@ String.prototype.trimLines = function(): string {
  * split.
  */
 String.prototype.trimMultiLines = function(): string {
-    return this.trimLines().split("\\").map(it => it.trimStart()).join("");
+    return this.trimLines().split("\\").map(it => it.trimLeft()).join("");
 };
 
 
