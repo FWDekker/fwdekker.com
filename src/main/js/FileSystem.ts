@@ -42,7 +42,8 @@ export class FileSystem {
                                 "stackoverflow.lnk": new File("https://stackoverflow.com/u/3307872"),
                                 "linkedin.lnk": new File("https://www.linkedin.com/in/fwdekker/")
                             }),
-                            "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf")
+                            "pgp.pub": new File("https://static.fwdekker.com/misc/pgp.pub.txt", "lnk"),
+                            "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf", "lnk")
                         })
                     }),
                     "root": new Directory()
@@ -565,6 +566,11 @@ export class File extends Node {
     protected type: string = "File";
 
     /**
+     * The type of file; overrides behavior inferred from the extension.
+     */
+    private readonly mime: string | undefined;
+
+    /**
      * The contents of this file. !!Do not use this field directly!!
      */
     _contents: string;
@@ -574,11 +580,13 @@ export class File extends Node {
      * Constructs a new file.
      *
      * @param contents the contents of this file
+     * @param mime the type of file; overrides behavior inferred from the extension.
      */
-    constructor(contents: string = "") {
+    constructor(contents: string = "", mime: string | undefined = undefined) {
         super();
 
         this._contents = contents;
+        this.mime = mime;
     }
 
 
@@ -613,12 +621,15 @@ export class File extends Node {
     }
 
     nameString(name: string, path: Path): string {
-        const extension = getFileExtension(name);
-        switch (extension) {
-            case "lnk":
-            case "pdf":
+        switch (this.mime ?? getFileExtension(name)) {
+            case "txt": {
+                const script = `execute('cat ${path.toString(true)}')`;
+                return `<a href="#" class="fileLink" onclick="${script}">${name}</a>`;
+            }
+            case "lnk": {
                 const script = `execute('open ${path.toString(true)}'); return false`;
                 return `<a href="${this.contents}" class="fileLink" onclick="${script}">${name}</a>`;
+            }
             default:
                 return name;
         }
@@ -643,7 +654,7 @@ export class File extends Node {
         if (obj["type"] !== "File")
             throw `Cannot deserialize node of type '${obj["type"]}'.`;
 
-        return new File(obj["_contents"]);
+        return new File(obj["_contents"], obj["mime"]);
     }
 }
 
