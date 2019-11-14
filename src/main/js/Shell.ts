@@ -7,7 +7,8 @@ import {Persistence} from "./Persistence";
 import {asciiHeaderHtml, IllegalStateError} from "./Shared";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
-import {StreamSet} from "./Stream";
+import {OutputStream, StreamSet} from "./Stream";
+import {InputArgs} from "./InputArgs";
 
 
 /**
@@ -156,18 +157,13 @@ export class Shell {
             return -1;
         }
 
-        if (input.redirectTarget.type !== "default") {
-            if (input.redirectTarget.target === undefined)
-                throw new IllegalStateError("Redirect target's target is undefined.");
-
-            try {
-                const target = Path.interpret(this.environment.get("cwd"), input.redirectTarget.target);
-                streams.out = this.fileSystem.open(target, input.redirectTarget.type);
-            } catch (error) {
-                streams.err.writeLine(`Error while redirecting output:\n${error.message}`);
-                this.environment.set("status", "-1");
-                return -1;
-            }
+        try {
+            streams.out = this.toStream(input.outTarget) ?? streams.out;
+            streams.err = this.toStream(input.errTarget) ?? streams.err;
+        } catch (error) {
+            streams.err.writeLine(`Error while redirecting output:\n${error.message}`);
+            this.environment.set("status", "-1");
+            return -1;
         }
 
         const output = this.commands.execute(input, streams);
@@ -194,97 +190,20 @@ export class Shell {
         Persistence.setEnvironment(this.environment);
         Persistence.setFileSystem(this.fileSystem);
     }
-}
-
-
-export module InputArgs {
-    /**
-     * The options given to a command.
-     */
-    export type Options = { [key: string]: string | null };
 
     /**
-     * The intended target of the output of a command.
+     * Converts a redirect target to an output stream, or `undefined` if the default stream is used.
      *
-     * <ul>
-     *     <li>`default` means that the output should be written to the standard output</li>
-     *     <li>`write` means that the output should be written to the file in the given string</li>
-     *     <li>`append` means that the output should be appended to the file in the given string</li>
-     * </ul>
+     * @param target the target to convert
+     * @throws if the stream could not be opened
      */
-    export type RedirectTarget = { type: "default" | "write" | "append", target?: string };
-}
+    private toStream(target: InputArgs.RedirectTarget): OutputStream | undefined {
+        if (target.type === "default")
+            return undefined;
 
-/**
- * A set of parsed command-line arguments.
- */
-export class InputArgs {
-    /**
-     * The name of the command, i.e. the first token in the input string.
-     */
-    readonly command: string;
-    /**
-     * The set of options and the corresponding values that the user has given.
-     */
-    private readonly _options: InputArgs.Options;
-    /**
-     * The remaining non-option arguments that the user has given.
-     */
-    private readonly _args: string[];
-    /**
-     * The target of the output stream.
-     */
-    readonly redirectTarget: InputArgs.RedirectTarget;
+        if (target.target === undefined)
+            throw new IllegalStateError("Redirect target's target is undefined.");
 
-
-    /**
-     * Constructs a new set of parsed command-line arguments.
-     *
-     * @param command the name of the command, i.e. the first token in the input string
-     * @param options the set of options and the corresponding values that the user has given
-     * @param args the remaining non-option arguments that the user has given
-     * @param redirectTarget the target of the output stream
-     */
-    constructor(command: string, options: InputArgs.Options, args: string[], redirectTarget: InputArgs.RedirectTarget) {
-        this.command = command;
-        this._options = Object.assign({}, options);
-        this._args = args.slice();
-        this.redirectTarget = Object.assign({}, redirectTarget);
-    }
-
-
-    /**
-     * Returns a copy of the options the user has given.
-     */
-    get options(): InputArgs.Options {
-        return Object.assign({}, this._options);
-    }
-
-    /**
-     * Returns `true` if and only if at least one of the options with the given keys has been set.
-     *
-     * @param keys the keys to check
-     */
-    hasAnyOption(...keys: string[]): boolean {
-        for (let i = 0; i < keys.length; i++)
-            if (this._options.hasOwnProperty(keys[i]))
-                return true;
-
-        return false;
-    }
-
-
-    /**
-     * Returns a copy of the arguments the user has given.
-     */
-    get args(): string[] {
-        return this._args.slice();
-    }
-
-    /**
-     * Returns the number of arguments.
-     */
-    get argc(): number {
-        return this.args.length;
+        return this.fileSystem.open(Path.interpret(this.environment.get("cwd"), target.target), target.type);
     }
 }

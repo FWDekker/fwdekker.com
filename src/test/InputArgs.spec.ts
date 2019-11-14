@@ -1,19 +1,19 @@
 import "mocha";
 import {expect} from "chai";
 
-import {InputArgs} from "../main/js/Shell";
+import {InputArgs} from "../main/js/InputArgs";
 
 
 describe("input args", () => {
     describe("command", () => {
         it("returns the given command", () => {
-            expect(new InputArgs("command", {}, [], {type: "default"}).command).to.equal("command");
+            expect(new InputArgs("command", {}, []).command).to.equal("command");
         });
     });
 
     describe("options", () => {
         function inputOptions(options: InputArgs.Options): InputArgs {
-            return new InputArgs("command", options, [], {type: "default"});
+            return new InputArgs("command", options, []);
         }
 
 
@@ -62,7 +62,7 @@ describe("input args", () => {
 
     describe("args", () => {
         function inputArgs(args: string[]): InputArgs {
-            return new InputArgs("command", {}, args, {type: "default"});
+            return new InputArgs("command", {}, args);
         }
 
 
@@ -93,19 +93,37 @@ describe("input args", () => {
         });
     });
 
-    describe("redirect target", () => {
-        it("returns the given redirect target", () => {
-            const inputArgs = new InputArgs("command", {}, [], {type: "default"});
-            expect(inputArgs.redirectTarget).to.deep.equal({type: "default"});
+    describe("redirection", () => {
+        describe("output", () => {
+            it("returns the given output target", () => {
+                const inputArgs = new InputArgs("command", {}, [], {type: "default"});
+                expect(inputArgs.outTarget).to.deep.equal({type: "default"});
+            });
+
+            it("returns a copy of the given output target", () => {
+                const target: InputArgs.RedirectTarget = {type: "write", target: "old"};
+
+                const inputArgs = new InputArgs("command", {}, [], target);
+                target.target = "new";
+
+                expect(inputArgs.outTarget).to.deep.equal({type: "write", target: "old"});
+            });
         });
 
-        it("returns a copy of the given redirect target", () => {
-            const target: InputArgs.RedirectTarget = {type: "write", target: "old"};
+        describe("error", () => {
+            it("returns the given error target", () => {
+                const inputArgs = new InputArgs("command", {}, [], {type: "default"}, {type: "default"});
+                expect(inputArgs.errTarget).to.deep.equal({type: "default"});
+            });
 
-            const inputArgs = new InputArgs("command", {}, [], target);
-            target.target = "new";
+            it("returns a copy of the given error target", () => {
+                const target: InputArgs.RedirectTarget = {type: "write", target: "old"};
 
-            expect(inputArgs.redirectTarget).to.deep.equal({type: "write", target: "old"});
+                const inputArgs = new InputArgs("command", {}, [], {type: "default"}, target);
+                target.target = "new";
+
+                expect(inputArgs.errTarget).to.deep.equal({type: "write", target: "old"});
+            });
         });
     });
 });

@@ -1,7 +1,7 @@
 import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Path} from "./FileSystem";
+import {InputArgs} from "./InputArgs";
 import {IllegalArgumentError} from "./Shared";
-import {InputArgs} from "./Shell";
 
 
 /**
@@ -58,9 +58,9 @@ export class InputParser {
 
         const command = tokens[0]?.contents ?? "";
         const [options, args] = this.parseOpts(textTokens.slice(1));
-        const redirectTarget = this.getRedirectTarget(redirectTokens);
+        const outTargets = this.getRedirectTargets(redirectTokens);
 
-        return new InputArgs(command, options, args.map(it => it.contents), redirectTarget);
+        return new InputArgs(command, options, args.map(it => it.contents), outTargets[0], outTargets[1]);
     }
 
 
@@ -70,19 +70,22 @@ export class InputParser {
      *
      * @param tokens an array of tokens of which some tokens may describe a redirect target
      */
-    private getRedirectTarget(tokens: InputParser.RedirectToken[]): InputArgs.RedirectTarget {
-        return tokens
+    private getRedirectTargets(tokens: InputParser.RedirectToken[]): InputArgs.RedirectTarget[] {
+        const targets: InputArgs.RedirectTarget[] = [{type: "default"}, {type: "default"}];
+
+        tokens
             .map(it => it.contents)
-            .map(token => {
-                if (token.startsWith(">>"))
-                    return {type: "append", target: token.slice(2)};
-                else if (token.startsWith(">"))
-                    return {type: "write", target: token.slice(1)};
-                else
-                    throw new IllegalArgumentError("Redirect token must start with '>' or '>>'.");
-            })
-            .map(it => <InputArgs.RedirectTarget> it)
-            .pop() ?? {type: "default"};
+            .forEach(token => {
+                const stream = token.startsWith(">") ? 1 : parseInt(token.slice(0, token.indexOf(">")));
+
+                const target = token.slice(token.indexOf(">"));
+                if (target.startsWith(">>"))
+                    targets[stream - 1] = {type: "append", target: target.slice(2)};
+                else if (target.startsWith(">"))
+                    targets[stream - 1] = {type: "write", target: target.slice(1)};
+            });
+
+        return targets;
     }
 
     /**
@@ -170,6 +173,7 @@ export class Tokenizer {
         for (let i = 0; i < input.length; i++) {
             const char = input[i];
             switch (char) {
+                // Escape character
                 case "\\":
                     if (i === input.length - 1)
                         throw new IllegalArgumentError(
@@ -184,6 +188,7 @@ export class Tokenizer {
                         token.contents += nextChar;
                     i++;
                     break;
+                // Grouping
                 case "'":
                     if (isInDoubleQuotes)
                         token.contents += char;
@@ -211,6 +216,7 @@ export class Tokenizer {
                     if (isInCurlyBraces < 0)
                         throw new IllegalArgumentError("Unexpected closing '}' without corresponding '{'.");
                     break;
+                // Separator
                 case " ":
                     if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces) {
                         token.contents += char;
@@ -219,6 +225,7 @@ export class Tokenizer {
                         token = new InputParser.TextToken();
                     }
                     break;
+                // Environment variable
                 case "$":
                     if (isInSingleQuotes || isInDoubleQuotes) {
                         token.contents += char;
@@ -238,15 +245,19 @@ export class Tokenizer {
 
                     token.contents += this.environment.getOrDefault(key, "");
                     break;
+                // Redirection
                 case ">":
                     if (isInSingleQuotes || isInDoubleQuotes) {
                         token.contents += char;
                         break;
                     }
 
-                    if (token.contents !== "")
+                    if (token.contents !== "" && !token.contents.match(/[0-9]+/)) {
                         tokens.push(token);
-                    token = new InputParser.RedirectToken();
+                        token = new InputParser.RedirectToken();
+                    } else {
+                        token = new InputParser.RedirectToken(token.contents);
+                    }
 
                     token.contents += ">";
                     if (input[i + 1] === ">") {
@@ -257,6 +268,7 @@ export class Tokenizer {
                         i++;
 
                     break;
+                // Glob token
                 case "*":
                 case "?":
                     if (token instanceof InputParser.RedirectToken)
@@ -267,6 +279,7 @@ export class Tokenizer {
                     else
                         token.contents += InputParser.EscapeChar + char;
                     break;
+                // Home directory
                 case "~":
                     if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces || token.contents !== "")
                         token.contents += char;

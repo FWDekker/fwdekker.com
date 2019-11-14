@@ -2,12 +2,12 @@ import "mocha";
 import {expect} from "chai";
 
 import {InputValidator} from "../main/js/Commands";
-import {InputArgs} from "../main/js/Shell";
+import {InputArgs} from "../main/js/InputArgs";
 
 
 describe("input validator", () => {
     function input(args: string[]): InputArgs {
-        return new InputArgs("commands", {}, args, {type: "default"});
+        return new InputArgs("commands", {}, args);
     }
 
 
