@@ -678,7 +678,7 @@ export class NullFile extends File {
      * @param obj the object that describes a file
      */
     static parse(obj: any): NullFile {
-        if (obj["type"] !== "File")
+        if (obj["type"] !== "NullFile")
             throw `Cannot deserialize node of type '${obj["type"]}'.`;
 
         return new NullFile();
