@@ -84,8 +84,8 @@ export class Terminal {
             if (Math.abs(diff) < this.lineHeight)
                 return;
 
-            this.scroll -= Math.floor(diff / this.lineHeight); // -= because swipe down => increase scroll
-            scrollStartPosition = newPosition - (newPosition % this.lineHeight);
+            this.scroll -= Math.trunc(diff / this.lineHeight); // -= because swipe down => increase scroll
+            scrollStartPosition = newPosition;
         }, {passive: true});
 
         this.outputText = this.shell.generateHeader();
