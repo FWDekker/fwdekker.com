@@ -83,15 +83,7 @@ export function moveCaretTo(node: Node, position: number): void {
  * @param node the node in which to move the caret to the end
  */
 export function moveCaretToEndOf(node: Node): void {
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    range.collapse(false);
-
-    const selection = window.getSelection();
-    if (selection !== null) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-    }
+    moveCaretTo(node, (node.textContent ?? "").length);
 }
 
 /**

@@ -268,7 +268,10 @@ export class Terminal {
         // If user types anywhere, move caret to end of input, unless user was already focused on input
         if (this.input !== document.activeElement) {
             this.inputText += event.key; // Append to input because event was not executed on input
-            setTimeout(() => moveCaretToEndOf(this.input), 0);
+
+            const inputChild = this.input.firstChild;
+            if (inputChild !== null)
+                setTimeout(() => moveCaretToEndOf(inputChild), 0);
         }
 
         switch (event.key.toLowerCase()) {
@@ -288,14 +291,22 @@ export class Terminal {
         this.scroll = 0;
 
         switch (event.key.toLowerCase()) {
-            case "arrowup":
+            case "arrowup": {
                 this.inputText = this.inputHistory.previous();
-                window.setTimeout(() => moveCaretToEndOf(this.input), 0);
+
+                const inputChild = this.input.firstChild;
+                if (inputChild !== null)
+                    setTimeout(() => moveCaretToEndOf(inputChild), 0);
                 break;
-            case "arrowdown":
+            }
+            case "arrowdown": {
                 this.inputText = this.inputHistory.next();
-                window.setTimeout(() => moveCaretToEndOf(this.input), 0);
+
+                const inputChild = this.input.firstChild;
+                if (inputChild !== null)
+                    setTimeout(() => moveCaretToEndOf(inputChild), 0);
                 break;
+            }
             case "tab":
                 event.preventDefault();
                 break;
