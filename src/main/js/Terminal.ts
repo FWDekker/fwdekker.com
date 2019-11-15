@@ -318,6 +318,7 @@ export class Terminal {
                 }
                 break;
             case "w":
+            case "backspace":
                 if (event.ctrlKey) {
                     let offset = this.inputText.length;
                     if (this.input === document.activeElement)
@@ -326,8 +327,12 @@ export class Terminal {
                     const left = this.inputText.slice(0, offset);
                     const right = this.inputText.slice(offset);
 
-                    const newLeft = left.includes(" ")
-                        ? left.slice(0, left.trimRight().lastIndexOf(" ") + 1)
+                    const delimiterIndex = Math.max(
+                        left.trimRightChar(" ").lastIndexOf(" "),
+                        left.trimRightChar("/").lastIndexOf("/")
+                    );
+                    const newLeft = delimiterIndex >= 0
+                        ? left.slice(0, delimiterIndex + 1)
                         : "";
                     const newOffset = offset - (left.length - newLeft.length);
 

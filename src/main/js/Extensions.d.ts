@@ -1,4 +1,6 @@
 interface String {
+    trimRightChar(needle: string): string;
+
     trimLines(): string;
 
     replaceAll(regex: RegExp, replacement: string): string;

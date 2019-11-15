@@ -1,8 +1,26 @@
 interface String {
+    trimRightChar(needle: string): string;
+
     trimLines(): string;
 
     trimMultiLines(): string;
 }
+
+/**
+ * Iteratively removes the needle from the end of this string until this string no longer ends with the given needle.
+ *
+ * @param needle the needle to trim from the end of this string
+ */
+String.prototype.trimRightChar = function(needle: string): string {
+    if (needle.length === 0)
+        return this.toString();
+
+    let result = this.toString();
+    while (result.endsWith(needle))
+        result = result.slice(0, -needle.length);
+
+    return result;
+};
 
 /**
  * Returns this string with all leading and trailing whitespace removed from each line.

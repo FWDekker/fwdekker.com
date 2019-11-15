@@ -70,6 +70,44 @@ describe("shared functions", () => {
 });
 
 describe("extension functions", () => {
+    describe("trimRightChar", () => {
+        it("does nothing if the needle is empty", () => {
+            expect("abc".trimRightChar("")).to.equal("abc");
+        });
+
+        describe("single-char needle", () => {
+            it("does nothing to an empty string", () => {
+                expect("".trimRightChar("a")).to.equal("");
+            });
+
+            it("does nothing if the string does not end with the needle", () => {
+                expect("abc".trimRightChar("a")).to.equal("abc");
+            });
+
+            it("removes a single occurrence", () => {
+                expect("aba".trimRightChar("a")).to.equal("ab");
+            });
+
+            it("removes multiple occurrences", () => {
+                expect("abaa".trimRightChar("a")).to.equal("ab");
+            });
+        });
+
+        describe("multi-char needle", () => {
+            it("removes a single occurrence", () => {
+                expect("abba".trimRightChar("ba")).to.equal("ab");
+            });
+
+            it("removes multiple occurrences", () => {
+                expect("abbaba".trimRightChar("ba")).to.equal("ab");
+            });
+
+            it("does not remove a partial match", () => {
+                expect("abcab".trimRightChar("abc")).to.equal("abcab");
+            });
+        });
+    });
+
     describe("trimLines", () => {
         it("trims each line", () => {
             expect(`This
