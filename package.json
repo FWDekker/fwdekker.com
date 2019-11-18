@@ -1,6 +1,6 @@
 {
     "name": "fwdekker.com",
-    "version": "0.20.0",
+    "version": "0.20.1",
     "description": "The source code of [my personal website](https://fwdekker.com/).",
     "author": "Felix W. Dekker",
     "repository": {
@@ -33,7 +33,7 @@
         "mocha": "^6.2.2",
         "nyc": "^14.1.1",
         "ts-loader": "^6.2.1",
-        "ts-node": "^8.5.0",
+        "ts-node": "^8.5.2",
         "typescript": "^3.7.2",
         "webpack": "^4.41.2",
         "webpack-cli": "^3.3.10"
