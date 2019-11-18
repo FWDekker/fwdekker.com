@@ -382,7 +382,7 @@ export class Globber {
             return this.glob2(history + nextPart + "/", remainder, path.parent);
 
         return Object.keys(dir.nodes)
-            .filter(it => it.match(this.glob2regex(nextPart)))
+            .filter(it => it.match(this.glob2regex(nextPart)) && (it.startsWith(".") == nextPart.startsWith(".")))
             .map(it => escape(it))
             .map(fileName => {
                 if (dir.nodes[fileName] instanceof File) {

@@ -581,6 +581,12 @@ describe("globber", () => {
 
             expect(globber.glob(tokens(`/d2/a${escape}?`))).to.have.deep.members(tokens("/d2/a2", "/d2/a3"));
         });
+
+        it("does not match the hidden file character", () => {
+            const globber = createGlobber({"/.a": new File(), "/aa": new File()});
+
+            expect(globber.glob(tokens(`/${escape}?a`))).to.have.deep.members(tokens("/aa"));
+        });
     });
 
     describe("*", () => {
@@ -679,6 +685,12 @@ describe("globber", () => {
             const globber = createGlobber({"/d1/a1": new File(), "/d2/a2": new File(), "/d2/a3": new File()}, "/d1");
 
             expect(globber.glob(tokens(`/d2/a${escape}*`))).to.have.deep.members(tokens("/d2/a2", "/d2/a3"));
+        });
+
+        it("does not match the hidden file character", () => {
+            const globber = createGlobber({"/.a": new File(), "/aa": new File()});
+
+            expect(globber.glob(tokens(`/${escape}*a`))).to.have.deep.members(tokens("/aa"));
         });
     });
 
