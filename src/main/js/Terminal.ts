@@ -264,7 +264,6 @@ export class Terminal {
      * @param event the event to handle
      */
     private onkeypress(event: KeyboardEvent): void {
-        this.scroll = 0;
         // If user types anywhere, move caret to end of input, unless user was already focused on input
         if (this.input !== document.activeElement) {
             this.inputText += event.key; // Append to input because event was not executed on input
@@ -288,9 +287,13 @@ export class Terminal {
      * @param event the event to handle
      */
     private onkeydown(event: KeyboardEvent): void {
-        this.scroll = 0;
-
         switch (event.key.toLowerCase()) {
+            case "alt":
+            case "altgraph":
+            case "control":
+            case "meta":
+            case "shift":
+                return; // Return without scrolling to 0
             case "arrowup": {
                 this.inputText = this.inputHistory.previous();
 
@@ -312,7 +315,10 @@ export class Terminal {
                 break;
             case "c":
                 // Only if focused on the input as to not prevent copying of selected text
-                if (event.ctrlKey && this.input === document.activeElement) {
+                if (event.ctrlKey) {
+                    if (this.input !== document.activeElement)
+                        return; // Return without scrolling to 0
+
                     this.ignoreInput();
                     event.preventDefault();
                 }
@@ -346,6 +352,8 @@ export class Terminal {
                 }
                 break;
         }
+
+        this.scroll = 0;
     }
 }
 
