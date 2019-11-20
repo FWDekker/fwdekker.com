@@ -323,6 +323,10 @@ export class Terminal {
                     event.preventDefault();
                 }
                 break;
+            case "l":
+                if (event.ctrlKey)
+                    this.outputText = "";
+                break;
             case "w":
             case "backspace":
                 if (event.ctrlKey) {
