@@ -15,6 +15,9 @@ module.exports = grunt => {
             },
             css: {
                 files: [{expand: true, cwd: "src/main/", src: "**/*.css", dest: "build/"}]
+            },
+            pwa: {
+                files: [{expand: true, cwd: "src/main/", src: ["manifest.json", "sw.js"], dest: "build/"}]
             }
         },
         replace: {
@@ -71,6 +74,7 @@ module.exports = grunt => {
         "copy:images",
         "copy:html",
         "copy:css",
+        "copy:pwa",
         // Compile
         "webpack:dev",
         // Post
@@ -83,6 +87,7 @@ module.exports = grunt => {
         "copy:images",
         "copy:html",
         "copy:css",
+        "copy:pwa",
         // Compile JS
         "webpack:deploy",
         // Post

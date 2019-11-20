@@ -14,6 +14,10 @@
 
     <title>FWDekker</title>
 
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="apple-touch-icon" href="img/icon_ios.png" />
+    <link rel="manifest" href="manifest.json">
+
     <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700" rel="stylesheet" />
     <link href="css/main.css" rel="stylesheet" />
 </head>
@@ -43,6 +47,9 @@
 <script>
     if (/MSIE|Trident/.test(window.navigator.userAgent))
         document.getElementById("ie-warning").style.display = "block";
+
+    if ("serviceWorker" in navigator)
+        window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
 </script>
 <script type="module" src="bundle.js"></script>
 </body>
