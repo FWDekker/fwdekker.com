@@ -66,6 +66,10 @@ describe("shared functions", () => {
         it("returns the number contained in the string even if surrounded with whitespace", () => {
             expect(parseCssPixels(" 17  px")).to.equal(17);
         });
+
+        it("returns a decimal number", () => {
+            expect(parseCssPixels("12.34px")).to.equal(12.34);
+        });
     });
 });
 

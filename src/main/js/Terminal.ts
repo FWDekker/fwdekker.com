@@ -73,7 +73,7 @@ export class Terminal {
 
         let scrollStartPosition: number = 0;
         this.terminal.addEventListener("wheel", (event: WheelEvent) => {
-            this.scroll += -event.deltaY / 100;
+            this.scroll -= event.deltaY / 100;
         }, {passive: true});
         this.terminal.addEventListener("touchstart", (event: TouchEvent) => {
             scrollStartPosition = event.changedTouches[0].clientY;
@@ -81,10 +81,8 @@ export class Terminal {
         this.terminal.addEventListener("touchmove", (event: TouchEvent) => {
             const newPosition = event.changedTouches[0].clientY;
             const diff = scrollStartPosition - newPosition;
-            if (Math.abs(diff) < this.lineHeight)
-                return;
 
-            this.scroll -= Math.trunc(diff / this.lineHeight); // -= because swipe down => increase scroll
+            this.scroll -= diff / this.lineHeight;
             scrollStartPosition = newPosition;
         }, {passive: true});
 
@@ -146,7 +144,7 @@ export class Terminal {
      * Returns how many lines the user has scrolled up in the terminal.
      */
     private get scroll(): number {
-        return -Math.round(parseCssPixels(this.terminal.style.marginBottom) / this.lineHeight);
+        return -parseCssPixels(this.terminal.style.marginBottom) / this.lineHeight;
     }
 
     /**
@@ -155,8 +153,6 @@ export class Terminal {
      * @param lines the absolute number of lines to scroll up in the terminal relative to the bottom of the terminal
      */
     private set scroll(lines: number) {
-        lines = Math.round(lines); // input must be whole number
-
         const screenHeight = document.documentElement.clientHeight
             - 2 * parseCssPixels(getComputedStyle(this.terminal).paddingTop); // top and bottom padding
         const linesFitOnScreen = Math.round(screenHeight / this.lineHeight);
