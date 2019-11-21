@@ -22,7 +22,7 @@ module.exports = grunt => {
         },
         replace: {
             default: {
-                src: "./build/bundle.js",
+                src: ["./build/*.js"],
                 replacements: [
                     {
                         from: "%%VERSION_NUMBER%%",

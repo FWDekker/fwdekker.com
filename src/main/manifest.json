@@ -2,7 +2,7 @@
     "short_name": "FWDekker",
     "name": "FWDekker",
     "start_url": "index.html",
-    "scope": "/index.html",
+    "scope": "/",
     "display": "standalone",
     "orientation": "portrait",
     "theme_color": "#0033cc",
