@@ -4,7 +4,7 @@ import {Directory, FileSystem, Path} from "./FileSystem";
 import {InputHistory} from "./InputHistory";
 import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {asciiHeaderHtml, IllegalStateError} from "./Shared";
+import {asciiHeaderHtml, IllegalStateError, isStandalone} from "./Shared";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
 import {OutputStream, StreamSet} from "./Stream";
@@ -66,10 +66,11 @@ export class Shell {
         if (this.environment.get("user") === "")
             return "";
 
+        const target = isStandalone() ? `target="_blank"` : "";
         return `${asciiHeaderHtml}
 
                Student MSc Computer Science <span class="smallScreenOnly">
-               </span>@ <a href="https://www.tudelft.nl/en/">TU Delft</a>, the Netherlands
+               </span>@ <a href="https://www.tudelft.nl/en/" ${target}>TU Delft</a>, the Netherlands
                <span class="wideScreenOnly">${(new Date()).toISOString()}
                </span>
                Type "<a href="#" onclick="execute('help');">help</a>" for help.

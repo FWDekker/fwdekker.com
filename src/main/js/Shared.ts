@@ -61,6 +61,13 @@ export function getFileExtension(filename: string): string {
 }
 
 /**
+ * Returns `true` if and only if the website is currently running in a standalone app on the user's phone.
+ */
+export function isStandalone(): boolean {
+    return window.matchMedia("(display-mode: standalone)").matches;
+}
+
+/**
  * Moves the caret to the given position in the given node.
  *
  * @param node the node to move the caret in

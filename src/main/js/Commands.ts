@@ -3,7 +3,7 @@ import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Path} from "./FileSystem"
 import {InputArgs} from "./InputArgs";
 import {Persistence} from "./Persistence";
-import {escapeHtml, IllegalArgumentError, IllegalStateError} from "./Shared";
+import {escapeHtml, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
 import {StreamSet} from "./Stream";
@@ -158,7 +158,10 @@ export class Commands {
                 `open [<b>-b</b> | <b>--blank</b>] <u>file</u> <u>...</u>`,
                 `Opens the web pages linked to by <u>file</u>. The first <u>file</u> is opened in this tab and the \\\
                 subsequent <u>file</u>s are opened in new tabs. If <b>--blank</b> is set, the first <u>file</u> is \\\
-                opened in a new tab as well.`.trimMultiLines(),
+                opened in a new tab as well.
+
+                If this command is executed inside of a standalone app instead of a browser, every <u>file</u> is \\\
+                opened in a tab regardless of whether <b>--blank</b> is given.`.trimMultiLines(),
                 new InputValidator({minArgs: 1})
             ),
             "poweroff": new Command(
@@ -402,9 +405,10 @@ export class Commands {
             const commandEntries = commandNames
                 .map((it, i) => `${commandLinks[i]}${this.commands[it].summary}`);
 
+            const target = isStandalone() ? `target="_blank"` : "";
             streams.out.writeLine(
                 `The source code of this website is \\\
-                <a href="https://git.fwdekker.com/FWDekker/fwdekker.com">available on git</a>.
+                <a href="https://git.fwdekker.com/FWDekker/fwdekker.com" ${target}>available on git</a>.
 
                 <b>List of commands</b>
                 ${commandEntries.join("\n")}
@@ -518,7 +522,9 @@ export class Commands {
             .map(it => Path.interpret(this.environment.get("cwd"), it))
             .map((path, i) => {
                 try {
-                    const target = i > 0 || input.hasAnyOption("-b", "--blank") ? "_blank" : "_self";
+                    const target = i > 0 || input.hasAnyOption("-b", "--blank") || isStandalone()
+                        ? "_blank"
+                        : "_self";
                     window.open(this.fileSystem.open(path, "read").read(), target);
                     return 0;
                 } catch (error) {
