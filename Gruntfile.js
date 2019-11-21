@@ -21,7 +21,17 @@ module.exports = grunt => {
             }
         },
         replace: {
-            default: {
+            dev: {
+                src: ["./build/*.js"],
+                replacements: [
+                    {
+                        from: "%%VERSION_NUMBER%%",
+                        to: "<%= pkg.version %>+" + new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "")
+                    }
+                ],
+                overwrite: true
+            },
+            deploy: {
                 src: ["./build/*.js"],
                 replacements: [
                     {
@@ -78,7 +88,7 @@ module.exports = grunt => {
         // Compile
         "webpack:dev",
         // Post
-        "replace"
+        "replace:dev"
     ]);
     grunt.registerTask("deploy", [
         // Pre
@@ -91,7 +101,7 @@ module.exports = grunt => {
         // Compile JS
         "webpack:deploy",
         // Post
-        "replace"
+        "replace:deploy"
     ]);
 
     grunt.registerTask("default", ["dev"]);
