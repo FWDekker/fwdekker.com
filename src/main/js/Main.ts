@@ -1,3 +1,4 @@
+import {Persistence} from "./Persistence";
 import {addOnLoad, q} from "./Shared";
 import {Terminal} from "./Terminal";
 
@@ -19,6 +20,12 @@ declare global {
 
 
 addOnLoad(() => {
+    if (Persistence.getPoweroff()) {
+        q("#terminalOutput").innerText = "Could not connect to fwdekker.com. Retrying in 10 seconds.";
+        setTimeout(() => location.reload(), 10000);
+        return;
+    }
+
     window.terminal = new Terminal(
         q("#terminal"),
         q("#terminalCurrentFocusInput"),

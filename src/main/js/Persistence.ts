@@ -68,9 +68,9 @@ export class Persistence {
                 if (parsedFiles instanceof Directory)
                     return new FileSystem(parsedFiles);
                 else
-                    console.warn("`files` cookie contains non-directory.");
+                    console.warn("'files' cookie contains non-directory.");
             } catch (error) {
-                console.warn("Failed to deserialize `files` cookie.", error);
+                console.warn("Failed to deserialize 'files' cookie.", error);
             }
         }
 
@@ -93,7 +93,7 @@ export class Persistence {
         try {
             return new InputHistory(JSON.parse(localStorage.getItem("history") ?? "[]"));
         } catch (error) {
-            console.warn("Failed to deserialize `history` cookie.", error);
+            console.warn("Failed to deserialize 'history' cookie.", error);
             return new InputHistory();
         }
     }
@@ -108,12 +108,24 @@ export class Persistence {
     }
 
     /**
+     * Returns the persisted "power off" setting.
+     */
+    static getPoweroff(): boolean {
+        try {
+            return JSON.parse(Cookies.get("poweroff") ?? "false");
+        } catch(error) {
+            console.warn("Failed to deserialize 'poweroff' cookie.", error);
+            return false;
+        }
+    }
+
+    /**
      * Persists the "power off" setting.
      *
      * @param value the value to persist for the "power off" setting
      */
     static setPoweroff(value: boolean): void {
-        Cookies.set("poweroff", `${value}`, {
+        Cookies.set("poweroff", "" + value, {
             "expires": new Date(new Date().setSeconds(new Date().getSeconds() + 30)),
             "path": "/"
         });
