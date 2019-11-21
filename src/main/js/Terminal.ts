@@ -1,6 +1,6 @@
 import {InputHistory} from "./InputHistory";
 import {Persistence} from "./Persistence";
-import {escapeHtml, moveCaretTo, moveCaretToEndOf, parseCssPixels} from "./Shared";
+import {escapeHtml, isStandalone, moveCaretTo, moveCaretToEndOf, parseCssPixels} from "./Shared";
 import {Shell} from "./Shell";
 import {Buffer, StreamSet} from "./Stream";
 
@@ -320,8 +320,12 @@ export class Terminal {
                 }
                 break;
             case "l":
-                if (event.ctrlKey)
+                if (event.ctrlKey) {
                     this.outputText = "";
+
+                    if (isStandalone())
+                        event.preventDefault();
+                }
                 break;
             case "w":
             case "backspace":
