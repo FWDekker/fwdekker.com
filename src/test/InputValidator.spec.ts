@@ -7,7 +7,7 @@ import {InputArgs} from "../main/js/InputArgs";
 
 describe("input validator", () => {
     function input(args: string[]): InputArgs {
-        return new InputArgs("commands", {}, args);
+        return new InputArgs("commands", {}, args, []);
     }
 
 

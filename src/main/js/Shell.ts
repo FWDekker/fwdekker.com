@@ -159,8 +159,8 @@ export class Shell {
         }
 
         try {
-            streams.out = this.toStream(input.outTarget) ?? streams.out;
-            streams.err = this.toStream(input.errTarget) ?? streams.err;
+            streams.out = this.toStream(input.redirectTargets[1]) ?? streams.out;
+            streams.err = this.toStream(input.redirectTargets[2]) ?? streams.err;
         } catch (error) {
             streams.err.writeLine(`Error while redirecting output:\n${error.message}`);
             this.environment.set("status", "-1");
@@ -198,8 +198,8 @@ export class Shell {
      * @param target the target to convert
      * @throws if the stream could not be opened
      */
-    private toStream(target: InputArgs.RedirectTarget): OutputStream | undefined {
-        if (target.type === "default")
+    private toStream(target: InputArgs.RedirectTarget | undefined): OutputStream | undefined {
+        if (target === undefined)
             return undefined;
 
         if (target.target === undefined)

@@ -2,25 +2,13 @@ import "mocha";
 import {expect} from "chai";
 
 import {Environment} from "../main/js/Environment";
-import {Globber, InputParser, Tokenizer} from "../main/js/InputParser";
+import {Expander, Globber, InputParser, Tokenizer} from "../main/js/InputParser";
 import {Directory, File, FileSystem, Node, Path} from "../main/js/FileSystem";
-import TextToken = InputParser.TextToken;
-import RedirectToken = InputParser.RedirectToken;
-
 
 /**
  * Shorthand for the escape character used internally in the input parser.
  */
 const escape = InputParser.EscapeChar;
-
-/**
- * Converts the given strings to text tokens.
- *
- * @param strings the strings to convert to text token
- */
-function tokens(...strings: string[]): InputParser.TextToken[] {
-    return strings.map(it => new InputParser.TextToken(it));
-}
 
 
 describe("input parser", () => {
@@ -28,18 +16,46 @@ describe("input parser", () => {
 
 
     beforeEach(() => {
+        /**
+         * A dummy implementation of the tokenizer that simply splits the given string by unescaped whitespaces.
+         *
+         * Note that escaped escape symbols are not recognized by this simple tokenizer.
+         */
+        const dummyTokenizer = new class extends Tokenizer {
+            tokenize(input: string): string[] {
+                return input.split(/(?<!\\)\s/);
+            }
+        };
+
+        /**
+         * A dummy implementation of the globber that simply returns the given token.
+         */
         const dummyGlobber = new class extends Globber {
             constructor() {
                 super(new FileSystem(), "");
             }
 
 
-            glob(tokens: InputParser.TextToken[]): InputParser.TextToken[] {
-                return tokens;
+            glob(token: string): string[] {
+                return [token];
             }
         };
 
-        parser = new InputParser(new Tokenizer(new Environment()), dummyGlobber);
+        /**
+         * A dummy implementation of the expander that simply returns the given token.
+         */
+        const dummyExpander = new class extends Expander {
+            constructor() {
+                super(new Environment(), dummyGlobber);
+            }
+
+
+            glob(token: string): string[] {
+                return [token];
+            }
+        };
+
+        parser = new InputParser(dummyTokenizer, dummyExpander);
     });
 
 
@@ -51,55 +67,59 @@ describe("input parser", () => {
 
     describe("options", () => {
         describe("short options", () => {
-            it("assigns null to a parameter-less short option", () => {
-                expect(parser.parse("command -o").options).to.have.own.property("-o", null);
+            describe("simple cases", () => {
+                it("assigns the given value to a short option", () => {
+                    expect(parser.parse("command -o=value").options).to.have.own.property("-o", "value");
+                });
+
+                it("assigns an empty string to a short option", () => {
+                    expect(parser.parse("command -o= -p").options).to.have.own.property("-o", "");
+                });
+
+                it("throws an error if a value is assigned to a group of short options", () => {
+                    expect(() => parser.parse("command -opq=arg -r")).to.throw();
+                });
             });
 
-            it("assigns null to each parameter-less short option", () => {
-                const options = parser.parse("command -o -p").options;
-                expect(options).to.have.own.property("-o", null);
-                expect(options).to.have.own.property("-p", null);
+            describe("value-less", () => {
+                it("assigns null to a value-less short option", () => {
+                    expect(parser.parse("command -o").options).to.have.own.property("-o", null);
+                });
+
+                it("assigns null to each value-less short option", () => {
+                    const options = parser.parse("command -o -p").options;
+                    expect(options).to.have.own.property("-o", null);
+                    expect(options).to.have.own.property("-p", null);
+                });
+
+                it("assigns null to each value-less short option in a group", () => {
+                    const options = parser.parse("command -op").options;
+                    expect(options).to.have.own.property("-o", null);
+                    expect(options).to.have.own.property("-p", null);
+                });
             });
 
-            it("assigns null to each parameter-less short option in a group", () => {
-                const options = parser.parse("command -op").options;
-                expect(options).to.have.own.property("-o", null);
-                expect(options).to.have.own.property("-p", null);
+            describe("numbers", () => {
+                it("stops parsing options if a short option-like negative number is given", () => {
+                    expect(parser.parse(`command -2 -p`).options).to.not.have.own.property("-p");
+                });
+
+                it("continues parsing options if the value of a short option is a number", () => {
+                    expect(parser.parse(`command -a=2 -p`).options).to.have.own.property("-a", "2");
+                });
             });
 
-            it("assigns the given value to a short option", () => {
-                expect(parser.parse("command -o=value").options).to.have.own.property("-o", "value");
+            describe("invalid names", () => {
+                it("stops parsing options if a short option name contains a space", () => {
+                    expect(parser.parse(`command -opt\\ ion -p`).options).to.not.have.own.property("-p");
+                });
+
+                it("considers an assignment to an empty short option to be an argument", () => {
+                    expect(parser.parse("command -=value -p").options).to.not.have.own.property("-p");
+                });
             });
 
-            it("assigns the given value containing a space to a short option", () => {
-                expect(parser.parse(`command -o="val ue"`).options).to.have.own.property("-o", "val ue");
-            });
-
-            it("assigns an empty string to a short option", () => {
-                expect(parser.parse("command -o= -p").options).to.have.own.property("-o", "");
-            });
-
-            it("does not assign a value to grouped short options", () => {
-                expect(() => parser.parse("command -opq=arg -r")).to.throw();
-            });
-
-            it("stops parsing options if a short option name contains a space", () => {
-                expect(parser.parse(`command "-opt ion" -p`).options).to.not.have.own.property("-p");
-            });
-
-            it("stops parsing options if a short option-like negative number is given", () => {
-                expect(parser.parse(`command -2 -p`).options).to.not.have.own.property("-p");
-            });
-
-            it("continues parsing options if the value of a short option is a number", () => {
-                expect(parser.parse(`command -a=2 -p`).options).to.have.own.property("-a", "2");
-            });
-
-            it("considers an assignment to an empty short option to be an argument", () => {
-                expect(parser.parse("command -=value -p").options).to.not.have.own.property("-p");
-            });
-
-            it("considers a short option surrounded by quotes as any other option", () => {
+            it("considers a short option surrounded by quotes as just any other option", () => {
                 const options = parser.parse(`command -o "-p"`).options;
                 expect(options).to.have.own.property("-o", null);
                 expect(options).to.have.own.property("-p", null);
@@ -107,39 +127,51 @@ describe("input parser", () => {
         });
 
         describe("long options", () => {
-            it("assigns null to a parameter-less long option", () => {
-                expect(parser.parse("command --option").options).to.have.own.property("--option", null);
+            describe("simple", () => {
+                it("assigns the given value to a long option", () => {
+                    expect(parser.parse("command --option=value").options).to.have.own.property("--option", "value");
+                });
+
+                it("assigns the given value containing a space to a long option", () => {
+                    expect(parser.parse(`command --option=val\\ ue`).options).to.have.own.property("--option", "val ue");
+                });
             });
 
-            it("assigns null to each parameter-less long option", () => {
-                const options = parser.parse("command --optionA --optionB").options;
-                expect(options).to.have.own.property("--optionA", null);
-                expect(options).to.have.own.property("--optionB", null);
+            describe("value-less", () => {
+                it("assigns null to a value-less long option", () => {
+                    expect(parser.parse("command --option").options).to.have.own.property("--option", null);
+                });
+
+                it("assigns null to each value-less long option", () => {
+                    const options = parser.parse("command --optionA --optionB").options;
+                    expect(options).to.have.own.property("--optionA", null);
+                    expect(options).to.have.own.property("--optionB", null);
+                });
             });
 
-            it("assigns the given value to a long option", () => {
-                expect(parser.parse("command --option=value").options).to.have.own.property("--option", "value");
+            describe("numbers", () => {
+                it("stops parsing options if a long option-like double negative number is given", () => {
+                    expect(parser.parse(`command --23 -p`).options).to.not.have.own.property("-p");
+                });
+
+                it("continues parsing options if the value of a long option is a number", () => {
+                    expect(parser.parse(`command --a=2 -p`).options).to.have.own.property("--a", "2");
+                });
             });
 
-            it("assigns the given value containing a space to a long option", () => {
-                expect(parser.parse(`command --option="val ue"`).options).to.have.own.property("--option", "val ue");
-            });
+            describe("invalid names", () => {
+                it("stops parsing options if a long option name contains a space", () => {
+                    expect(parser.parse(`command "--opt ion" -p`).options).to.not.have.own.property("-p");
+                });
 
-            it("stops parsing options if a long option name contains a space", () => {
-                expect(parser.parse(`command "--opt ion" -p`).options).to.not.have.own.property("-p");
-            });
+                it("stops parsing options if a long option-like negative number is given", () => {
+                    expect(parser.parse(`command --2 -p`).options).to.not.have.own.property("-p");
+                });
 
-            it("stops parsing options if a long option-like negative number is given", () => {
-                expect(parser.parse(`command --2 -p`).options).to.not.have.own.property("-p");
-            });
-
-            it("continues parsing options if the value of a long option is a number", () => {
-                expect(parser.parse(`command --a=2 -p`).options).to.have.own.property("--a", "2");
-            });
-
-            it("considers an assignment to an empty long option to be an argument", () => {
-                const options = parser.parse("command --=value -p").options;
-                expect(options).to.not.have.own.property("-p");
+                it("considers an assignment to an empty long option to be an argument", () => {
+                    const options = parser.parse("command --=value -p").options;
+                    expect(options).to.not.have.own.property("-p");
+                });
             });
 
             it("considers a long option surrounded by quotes as any other option", () => {
@@ -149,24 +181,30 @@ describe("input parser", () => {
             });
         });
 
-        it("distinguishes between short and long options", () => {
-            const options = parser.parse("command -s --long").options;
+        describe("shared cases", () => {
+            it("distinguishes between short and long options", () => {
+                const options = parser.parse("command -s --long").options;
 
-            expect(options).to.not.have.own.property("s", null);
-            expect(options).to.have.own.property("-s", null);
-            expect(options).to.not.have.own.property("--s", null);
+                expect(options).to.not.have.own.property("s", null);
+                expect(options).to.have.own.property("-s", null);
+                expect(options).to.not.have.own.property("--s", null);
 
-            expect(options).to.not.have.own.property("long", null);
-            expect(options).to.not.have.own.property("-long", null);
-            expect(options).to.have.own.property("--long", null);
-        });
+                expect(options).to.not.have.own.property("long", null);
+                expect(options).to.not.have.own.property("-long", null);
+                expect(options).to.have.own.property("--long", null);
+            });
 
-        it("stops parsing options after the first non-option", () => {
-            expect(parser.parse("command -o=value arg -p").options).to.not.have.own.property("-p");
-        });
+            it("stops parsing options after the first non-option", () => {
+                expect(parser.parse("command -o=value arg -p").options).to.not.have.own.property("-p");
+            });
 
-        it("stops parsing options after --", () => {
-            expect(parser.parse("command -- -p").options).to.not.have.own.property("-p");
+            it("stops parsing options after --", () => {
+                expect(parser.parse("command -- -p").options).to.not.have.own.property("-p");
+            });
+
+            it("throws an error if multiple equals signs occur", () => {
+                expect(() => parser.parse("command -a=b=c")).to.throw();
+            });
         });
     });
 
@@ -180,91 +218,40 @@ describe("input parser", () => {
         });
 
         it("has all simple arguments", () => {
-            const args = parser.parse("command a b c").args;
-            expect(args).to.include("a");
-            expect(args).to.include("b");
-            expect(args).to.include("c");
+            expect(parser.parse("command a b c").args).to.have.members(["a", "b", "c"]);
         });
 
         it("has arguments containing spaces", () => {
-            expect(parser.parse(`command "a b c"`).args).to.include("a b c");
+            expect(parser.parse(`command a\\ b\\ c`).args).to.have.members(["a b c"]);
         });
 
         it("has arguments containing dashes", () => {
-            expect(parser.parse("command -o -- -p").args).to.include("-p");
+            expect(parser.parse("command -o -- -p").args).to.have.members(["-p"]);
+        });
+
+        it("interprets options as arguments after --", () => {
+            expect(parser.parse("command -o -- -p").args).to.have.members(["-p"]);
         });
     });
 
-    describe("redirection", () => {
-        it("should have the default redirect target by default", () => {
-            expect(parser.parse("command").outTarget).to.deep.equal({type: "default"});
-            expect(parser.parse("command").errTarget).to.deep.equal({type: "default"});
+    describe("redirect targets", () => {
+        it("assigns a number-less target to index 1", () => {
+            expect(parser.parse("command >file").redirectTargets[1]).to.deep.equal({type: "write", target: "file"});
+            expect(parser.parse("command >>file").redirectTargets[1]).to.deep.equal({type: "append", target: "file"});
         });
 
-        it("should find the writing redirect target", () => {
-            expect(parser.parse("command > file").outTarget).to.deep.equal({type: "write", target: "file"});
+        it("assigns the target to the preceding number", () => {
+            expect(parser.parse("command 3>file").redirectTargets[3]).to.deep.equal({type: "write", target: "file"});
+            expect(parser.parse("command 3>>file").redirectTargets[3]).to.deep.equal({type: "append", target: "file"});
         });
 
-        it("should find the appending redirect target", () => {
-            expect(parser.parse("command >> file").outTarget).to.deep.equal({type: "append", target: "file"});
+        it("uses the last target that is defined", () => {
+            expect(parser.parse("command 3>old 3>>new").redirectTargets[3])
+                .to.deep.equal({type: "append", target: "new"});
         });
 
-        it("should interpret the first stream as the output stream", () => {
-            expect(parser.parse("command 1> file").outTarget).to.deep.equal({type: "write", target: "file"});
-        });
-
-        it("should interpret the second stream as the error stream", () => {
-            expect(parser.parse("command 2> file").errTarget).to.deep.equal({type: "write", target: "file"});
-        });
-
-        it("should find the redirect target without a space between the operator and filename", () => {
-            expect(parser.parse("command >file").outTarget).to.deep.equal({type: "write", target: "file"});
-        });
-
-        it("should find the redirect target with multiple spaces between the operator and filename", () => {
-            expect(parser.parse("command >   file").outTarget).to.deep.equal({type: "write", target: "file"});
-        });
-
-        it("should find the redirect target without a space between the previous token and the target", () => {
-            const inputArgs = parser.parse("command arg>file");
-            expect(inputArgs.outTarget).to.deep.equal({type: "write", target: "file"});
-            expect(inputArgs.args).to.have.members(["arg"]);
-        });
-
-        it("should choose the last redirect target if multiple are present", () => {
-            expect(parser.parse("command > file1 >> file2").outTarget)
-                .to.deep.equal({type: "append", target: "file2"});
-            expect(parser.parse("command >> file1 > file2").outTarget)
-                .to.deep.equal({type: "write", target: "file2"});
-        });
-
-        it("should find the writing redirect target if placed at the end", () => {
-            const inputArgs = parser.parse("command -o=p arg1 > file");
-            expect(inputArgs.options).to.deep.equal({"-o": "p"});
-            expect(inputArgs.args).to.have.members(["arg1"]);
-            expect(inputArgs.outTarget).to.deep.equal({type: "write", target: "file"});
-        });
-
-        it("should find the redirect target if placed in between arguments", () => {
-            const inputArgs = parser.parse("command arg1 > file arg2");
-            expect(inputArgs.outTarget).to.deep.equal({type: "write", target: "file"});
-            expect(inputArgs.args).to.deep.equal(["arg1", "arg2"]);
-        });
-
-        it("should find the redirect target if placed in between options", () => {
-            const inputArgs = parser.parse("command -o=p >> file --ba=ba arg2");
-            expect(inputArgs.outTarget).to.deep.equal({type: "append", target: "file"});
-            expect(inputArgs.options).to.deep.equal({"-o": "p", "--ba": "ba"});
-        });
-
-        it("should ignore the redirect target if inside quotation marks", () => {
-            expect(parser.parse("command '> file'").outTarget).to.deep.equal({type: "default"});
-        });
-
-        it("should ignore the redirect target if the operator is escaped", () => {
-            const inputArgs = parser.parse("command \\> file");
-            expect(inputArgs.outTarget).to.deep.equal({type: "default"});
-            expect(inputArgs.args).to.have.members([">", "file"]);
+        it("does not include redirect targets in the arguments", () => {
+            expect(parser.parse("command arg1 3>file arg2").args).to.have.members(["arg1", "arg2"]);
         });
     });
 });
@@ -274,214 +261,349 @@ describe("tokenizer", () => {
 
 
     beforeEach(() => {
-        tokenizer = new Tokenizer(new Environment());
+        tokenizer = new Tokenizer();
     });
 
 
-    describe("tokens", () => {
-        describe("whitespace", () => {
+    describe("whitespace", () => {
+        // See "backslash" for tests about escaped whitespace
+
+        // See "grouping" for tests about whitespace inside of groups
+
+        describe("unnecessary whitespace", () => {
             it("ignores unnecessary leading whitespace", () => {
-                expect(tokenizer.tokenize("    token1 token2")).to.have.deep.members(tokens("token1", "token2"));
+                expect(tokenizer.tokenize("    token1 token2")).to.have.deep.members(["token1", "token2"]);
             });
 
             it("ignores unnecessary trailing whitespace", () => {
-                expect(tokenizer.tokenize("token1 token2   ")).to.have.deep.members(tokens("token1", "token2"));
+                expect(tokenizer.tokenize("token1 token2   ")).to.have.deep.members(["token1", "token2"]);
             });
 
             it("ignores unnecessary whitespace in between tokens", () => {
-                expect(tokenizer.tokenize("token1     token2")).to.have.deep.members(tokens("token1", "token2"));
-            });
-        });
-
-        describe("input escape characters", () => {
-            it("includes escaped spaces into the token", () => {
-                expect(tokenizer.tokenize("com\\ mand")).to.have.deep.members(tokens("com mand"));
-            });
-
-            it("includes escaped quotation marks in the token", () => {
-                expect(tokenizer.tokenize(`com\\'man\\"d`)).to.have.deep.members(tokens(`com'man"d`));
-            });
-
-            it("does not escape ordinary characters inside strings", () => {
-                expect(tokenizer.tokenize(`\\p`)).to.have.deep.members(tokens("p"));
-                expect(tokenizer.tokenize(`'\\p'`)).to.have.deep.members(tokens("\\p"));
-                expect(tokenizer.tokenize(`"\\p"`)).to.have.deep.members(tokens("\\p"));
-            });
-
-            it("includes escaped spaces at the very end", () => {
-                expect(tokenizer.tokenize("a b\\ ")).to.have.deep.members(tokens("a", "b "));
-            });
-
-            it("throws an error if an escape occurs but no character follows", () => {
-                expect(() => tokenizer.tokenize("\\")).to.throw();
-            });
-        });
-
-        describe("grouping", () => {
-            describe("quotes", () => {
-                it("groups using single quotes", () => {
-                    expect(tokenizer.tokenize("a'b'a")).to.have.deep.members(tokens("aba"));
-                });
-
-                it("groups using double quotes", () => {
-                    expect(tokenizer.tokenize(`a"b"a`)).to.have.deep.members(tokens("aba"));
-                });
-
-                it("throws an error if single quotes are not closed", () => {
-                    expect(() => tokenizer.tokenize("a'ba")).to.throw();
-                });
-
-                it("throws an error if double quotes are not closed", () => {
-                    expect(() => tokenizer.tokenize(`a"ba`)).to.throw();
-                });
-
-                it("does not group double quotes within single quotes", () => {
-                    expect(tokenizer.tokenize(`a'b"b'a`)).to.have.deep.members(tokens(`ab"ba`));
-                });
-
-                it("does not group single quotes within double quotes", () => {
-                    expect(tokenizer.tokenize(`a"b'b"a`)).to.have.deep.members(tokens("ab'ba"));
-                });
-            });
-
-            describe("curly braces", () => {
-                it("groups using curly braces", () => {
-                    expect(tokenizer.tokenize("a{b}a")).to.have.deep.members(tokens("aba"));
-                });
-
-                it("groups using nested curly braces", () => {
-                    expect(tokenizer.tokenize("a{{b}{b}}a")).to.have.deep.members(tokens("abba"));
-                });
-
-                it("throws an error if curly braces are not closed", () => {
-                    expect(() => tokenizer.tokenize("a{ba")).to.throw();
-                });
-
-                it("throws an error if curly braces are not opened", () => {
-                    expect(() => tokenizer.tokenize("a}ba")).to.throw();
-                });
-
-                it("throws an error if nested curly braces are not closed", () => {
-                    expect(() => tokenizer.tokenize("a{{b}a")).to.throw();
-                });
-
-                it("does not group curly braces within single quotes", () => {
-                    expect(tokenizer.tokenize(`a'b{b'a`)).to.have.deep.members(tokens("ab{ba"));
-                });
-
-                it("does not group curly braces within double quotes", () => {
-                    expect(tokenizer.tokenize(`a"b{b"a`)).to.have.deep.members(tokens("ab{ba"));
-                });
+                expect(tokenizer.tokenize("token1     token2")).to.have.deep.members(["token1", "token2"]);
             });
         });
     });
 
-    describe("environment", () => {
+    describe("grouping", () => {
+        describe("quotes", () => {
+            it("throws an error if quotes are not closed", () => {
+                expect(() => tokenizer.tokenize("a'b")).to.throw();
+                expect(() => tokenizer.tokenize("a\"b")).to.throw();
+            });
+
+            it("does not throw an error if a quote opened inside other quotes is not closed", () => {
+                expect(tokenizer.tokenize(`a"b'c"d`)).to.have.deep.members([`a"b'c"d`]);
+                expect(tokenizer.tokenize(`a'b"c'd`)).to.have.deep.members([`a'b"c'd`]);
+            });
+
+            it("includes whitespace if within quotes", () => {
+                expect(tokenizer.tokenize("a' 'b")).to.have.deep.members(["a' 'b"]);
+                expect(tokenizer.tokenize("a\" \"b")).to.have.deep.members(["a\" \"b"]);
+            });
+
+            it("adds the redirect character literally if inside quotes", () => {
+                expect(tokenizer.tokenize("a'>'b")).to.have.deep.members(["a'>'b"]);
+                expect(tokenizer.tokenize("a\">\"b")).to.have.deep.members(["a\">\"b"]);
+            });
+        });
+
+        describe("curly braces", () => {
+            it("throws an error if curly braces are not closed", () => {
+                expect(() => tokenizer.tokenize("a{ba")).to.throw();
+            });
+
+            it("throws an error if nested curly braces are not closed", () => {
+                expect(() => tokenizer.tokenize("a{{b}a")).to.throw();
+            });
+
+            it("throws an error if curly braces are not opened", () => {
+                expect(() => tokenizer.tokenize("a}ba")).to.throw();
+            });
+
+            it("does not throw an error if a curly brace opened inside quotes is not closed", () => {
+                expect(tokenizer.tokenize(`a'{'b`)).to.have.deep.members([`a'{'b`]);
+                expect(tokenizer.tokenize(`a"{"b`)).to.have.deep.members([`a"{"b`]);
+            });
+
+            it("throws an error if curly braces are closed inside quotes", () => {
+                expect(() => tokenizer.tokenize(`a{'}'b`)).to.throw();
+                expect(() => tokenizer.tokenize(`a{"}"b`)).to.throw();
+            });
+
+            it("includes whitespace if within curly braces", () => {
+                expect(tokenizer.tokenize("a{ }b")).to.have.deep.members(["a{ }b"]);
+            });
+
+            it("adds the redirect character literally if inside curly braces", () => {
+                expect(tokenizer.tokenize("a{>}b")).to.have.deep.members(["a{>}b"]);
+            });
+        });
+    });
+
+    describe("redirection", () => {
+        describe("delimiter detection", () => {
+            it("includes a single redirect symbol in a single token", () => {
+                expect(tokenizer.tokenize("a>b")).to.have.deep.members(["a", ">b"]);
+                expect(tokenizer.tokenize("a> b")).to.have.deep.members(["a", ">b"]);
+                expect(tokenizer.tokenize("a >b")).to.have.deep.members(["a", ">b"]);
+                expect(tokenizer.tokenize("a > b")).to.have.deep.members(["a", ">b"]);
+            });
+
+            it("includes two redirect symbols in a single token", () => {
+                expect(tokenizer.tokenize("a>>b")).to.have.deep.members(["a", ">>b"]);
+                expect(tokenizer.tokenize("a>> b")).to.have.deep.members(["a", ">>b"]);
+                expect(tokenizer.tokenize("a >>b")).to.have.deep.members(["a", ">>b"]);
+                expect(tokenizer.tokenize("a >> b")).to.have.deep.members(["a", ">>b"]);
+            });
+
+            it("creates two tokens if three redirect symbols are given without a space", () => {
+                expect(tokenizer.tokenize("a>>>b")).to.have.deep.members(["a", ">>", ">b"]);
+                expect(tokenizer.tokenize("a>>> b")).to.have.deep.members(["a", ">>", ">b"]);
+                expect(tokenizer.tokenize("a >>>b")).to.have.deep.members(["a", ">>", ">b"]);
+                expect(tokenizer.tokenize("a >>> b")).to.have.deep.members(["a", ">>", ">b"]);
+            });
+
+            it("creates two tokens for two redirect symbols separated by a space", () => {
+                expect(tokenizer.tokenize("a> >b")).to.have.deep.members(["a", ">", ">b"]);
+                expect(tokenizer.tokenize("a> > b")).to.have.deep.members(["a", ">", ">b"]);
+                expect(tokenizer.tokenize("a > >b")).to.have.deep.members(["a", ">", ">b"]);
+                expect(tokenizer.tokenize("a > > b")).to.have.deep.members(["a", ">", ">b"]);
+            });
+        });
+
+        describe("stream identifiers", () => {
+            it("includes the preceding identifier", () => {
+                expect(tokenizer.tokenize("a 42>b")).to.have.deep.members(["a", "42>b"]);
+                expect(tokenizer.tokenize("a 42> b")).to.have.deep.members(["a", "42>b"]);
+
+                expect(tokenizer.tokenize("a 42>>b")).to.have.deep.members(["a", "42>>b"]);
+                expect(tokenizer.tokenize("a 42>> b")).to.have.deep.members(["a", "42>>b"]);
+            });
+
+            it("does not include the identifier if it is followed by a space", () => {
+                expect(tokenizer.tokenize("a 42 >b")).to.have.deep.members(["a", "42", ">b"]);
+                expect(tokenizer.tokenize("a 42 > b")).to.have.deep.members(["a", "42", ">b"]);
+
+                expect(tokenizer.tokenize("a 42 >>b")).to.have.deep.members(["a", "42", ">>b"]);
+                expect(tokenizer.tokenize("a 42 >> b")).to.have.deep.members(["a", "42", ">>b"]);
+            });
+
+            it("does not include the identifier if it is not preceded by a space", () => {
+                expect(tokenizer.tokenize("a42>b")).to.have.deep.members(["a42", ">b"]);
+                expect(tokenizer.tokenize("a42> b")).to.have.deep.members(["a42", ">b"]);
+
+                expect(tokenizer.tokenize("a42>>b")).to.have.deep.members(["a42", ">>b"]);
+                expect(tokenizer.tokenize("a42>> b")).to.have.deep.members(["a42", ">>b"]);
+            });
+        });
+    });
+
+    describe("backslash", () => {
+        it("includes any escaped character in the token", () => {
+            expect(tokenizer.tokenize(`'\\p'"\\""\\ `)).to.have.deep.members([`'\\p'"\\""\\ `]);
+        });
+
+        it("does not separate at an escaped whitespace", () => {
+            expect(tokenizer.tokenize("a\\ b")).to.have.deep.members(["a\\ b"]);
+        });
+
+        it("retains an escaped trailing whitespace", () => {
+            expect(tokenizer.tokenize("ab\\ ")).to.have.deep.members(["ab\\ "]);
+        });
+
+        it("throws an error if an escape occurs but no character follows", () => {
+            expect(() => tokenizer.tokenize("ab\\")).to.throw();
+        });
+    });
+});
+
+describe("expander", () => {
+    let environment: Environment;
+    let expander: Expander;
+
+
+    beforeEach(() => {
+        /**
+         * A dummy implementation of the globber that simply returns the given token.
+         */
+        const dummyGlobber = new class extends Globber {
+            constructor() {
+                super(new FileSystem(), "");
+            }
+
+
+            glob(token: string): string[] {
+                return [token];
+            }
+        };
+
+        environment = new Environment();
+        expander = new Expander(environment, dummyGlobber);
+    });
+
+
+    describe("backslash", () => {
+        describe("outside quotes", () => {
+            it("escapes the escape character", () => {
+                expect(expander.expand("\\\\")).to.have.deep.members(["\\"]);
+            });
+
+            it("escapes whitespace", () => {
+                expect(expander.expand("\\ ")).to.have.deep.members([" "]);
+            });
+
+            it("escapes the home directory character", ()=> {
+                expect(expander.expand("\\~")).to.have.deep.members(["~"]);
+            });
+
+            it("escape the environment variable character", () => {
+                expect(expander.expand("\\$")).to.have.deep.members(["$"]);
+            });
+
+            it("escapes redirection characters", () => {
+                expect(expander.expand("\\>")).to.have.deep.members([">"]);
+            });
+
+            it("escapes glob characters", () => {
+                expect(expander.expand("\\?")).to.have.deep.members(["?"]);
+                expect(expander.expand("\\*")).to.have.deep.members(["*"]);
+            });
+
+            it("escapes grouping characters", () => {
+                expect(expander.expand("\\'")).to.have.deep.members(["'"]);
+                expect(expander.expand("\\\"")).to.have.deep.members(["\""]);
+                expect(expander.expand("\\{")).to.have.deep.members(["{"]);
+                expect(expander.expand("\\}")).to.have.deep.members(["}"]);
+            });
+
+            it("escapes differently-represented characters", () => {
+                expect(expander.expand("\\n")).to.have.deep.members(["\n"]);
+            });
+
+            it("does not escape other characters", () => {
+                expect(expander.expand("\\a\\b\\_")).to.have.deep.members(["\\a\\b\\_"]);
+            });
+        });
+
+        describe("inside quotes", () => {
+            it("does not retain the backslash if the current quote style is escaped", () => {
+                expect(expander.expand(`'\\''`)).to.have.deep.members([`'`]);
+                expect(expander.expand(`"\\""`)).to.have.deep.members([`"`]);
+            });
+
+            it("retains the backslash for any other character", () => {
+                expect(expander.expand(`'\\a\\n\\$\\"'`)).to.have.deep.members([`\\a\\n\\$\\"`]);
+                expect(expander.expand(`"\\a\\n\\$\\'"`)).to.have.deep.members([`\\a\\n\\$\\'`]);
+            });
+        });
+    });
+
+    describe("grouping", () => {
+        it("retains quotes placed inside the other quote", () => {
+            expect(expander.expand(`"'"`)).to.have.deep.members([`'`]);
+            expect(expander.expand(`'"'`)).to.have.deep.members([`"`]);
+        });
+
+        it("retains curly braces in quotes", () => {
+            expect(expander.expand(`'{}'`)).to.have.deep.members(["{}"]);
+            expect(expander.expand(`"{}"`)).to.have.deep.members(["{}"]);
+        });
+
+        it("removes curly braces outside of quotes", () => {
+            expect(expander.expand(`{'{'}`)).to.have.deep.members(["{"]);
+            expect(expander.expand(`{"{"}`)).to.have.deep.members(["{"]);
+        });
+
+        it("removes nested curly braces outside of quotes", () => {
+            expect(expander.expand(`{''{'{'}}`)).to.have.deep.members(["{"]);
+            expect(expander.expand(`{""{"{"}}`)).to.have.deep.members(["{"]);
+        });
+    });
+
+    describe("environment variables", () => {
         beforeEach(() => {
-            tokenizer = new Tokenizer(new Environment([], {a: "b", aa: "c", r: ">", cwd: "/"}));
+            environment.set("a", "b");
+            environment.set("aa", "c");
+            environment.set("r", ">");
+            environment.set("cwd", "/");
         });
 
 
         it("substitutes a known environment variable with its value", () => {
-            expect(tokenizer.tokenize("$a")).to.have.deep.members(tokens("b"));
+            expect(expander.expand("$a")).to.have.deep.members(["b"]);
         });
 
         it("substitutes an unknown environment variable with nothing", () => {
-            expect(tokenizer.tokenize("a$b")).to.have.deep.members(tokens("a"));
+            expect(expander.expand("a$b")).to.have.deep.members(["a"]);
         });
 
-        it("substitutes consecutive known environment variables with their value", () => {
-            expect(tokenizer.tokenize("$a$aa$a")).to.have.deep.members(tokens("bcb"));
+        it("substitutes consecutive known environment variables with their values", () => {
+            expect(expander.expand("$a$aa$a")).to.have.deep.members(["bcb"]);
         });
 
         it("throws an error for nameless environment variables", () => {
-            expect(() => tokenizer.tokenize("$")).to.throw();
+            expect(() => expander.expand("$")).to.throw();
         });
 
         it("does not substitute environment variables in the middle of a single-quoted string", () => {
-            expect(tokenizer.tokenize("a'$a'c")).to.have.deep.members(tokens("a$ac"));
+            expect(expander.expand("a'$a'c")).to.have.deep.members(["a$ac"]);
         });
 
-        it("does not substitute environment variables in the middle of a double-quoted string", () => {
-            expect(tokenizer.tokenize(`a"$a"c`)).to.have.deep.members(tokens("a$ac"));
+        it("substitutes environment variables in the middle of a double-quoted string", () => {
+            expect(expander.expand(`a"$a"c`)).to.have.deep.members(["abc"]);
         });
 
         it("substitutes environment variables in the middle of curly braces", () => {
-            expect(tokenizer.tokenize("a{$a}c")).to.have.deep.members(tokens("abc"));
+            expect(expander.expand("a{$a}c")).to.have.deep.members(["abc"]);
+        });
+    });
+
+    describe("glob characters", () => {
+        it("escapes glob characters", () => {
+            expect(expander.expand("b?")).to.have.deep.members([`b${escape}?`]);
+            expect(expander.expand("b*")).to.have.deep.members([`b${escape}*`]);
+        });
+
+        it("does not escape user-escaped glob characters", () => {
+            expect(expander.expand("b\\?")).to.have.deep.members(["b?"]);
+            expect(expander.expand("b\\*")).to.have.deep.members(["b*"]);
+        });
+
+        it("does not escape glob characters inside quotes", () => {
+            expect(expander.expand("'b?'")).to.have.deep.members(["b?"]);
+            expect(expander.expand("\"b*\"")).to.have.deep.members(["b*"]);
         });
     });
 
     describe("home directory", () => {
         beforeEach(() => {
-            tokenizer = new Tokenizer(new Environment([], {home: "/home"}));
+            environment.set("home", "/home");
         });
 
 
         it("substitutes the home directory for ~ at the end of the input", () => {
-            expect(tokenizer.tokenize("token ~")).to.have.deep.members(tokens("token", "/home"));
+            expect(expander.expand("~")).to.have.deep.members(["/home"]);
         });
 
         it("substitutes the home directory for ~ if followed by a /", () => {
-            expect(tokenizer.tokenize("token ~/")).to.have.deep.members(tokens("token", "/home/"));
+            expect(expander.expand("~/")).to.have.deep.members(["/home/"]);
         });
 
-        it("does not substitute the home directory for ~ if followed something else", () => {
-            expect(tokenizer.tokenize("token ~~")).to.have.deep.members(tokens("token", "~~"));
-            expect(tokenizer.tokenize("token ~a")).to.have.deep.members(tokens("token", "~a"));
-            expect(tokenizer.tokenize("token ~.")).to.have.deep.members(tokens("token", "~."));
+        it("does not substitute the home directory for ~ if followed by something else", () => {
+            expect(expander.expand("~~")).to.have.deep.members(["~~"]);
+            expect(expander.expand("~a")).to.have.deep.members(["~a"]);
+            expect(expander.expand("~.")).to.have.deep.members(["~."]);
         });
 
         it("does not substitute the home directory in the middle of a token", () => {
-            expect(tokenizer.tokenize("token ab~cd")).to.have.deep.members(tokens("token", "ab~cd"));
+            expect(expander.expand("ab~cd")).to.have.deep.members(["ab~cd"]);
         });
 
         it("does not substitute the home directory for ~ if surrounded by parentheses or braces", () => {
-            expect(tokenizer.tokenize("token '~'")).to.have.deep.members(tokens("token", "~"));
-            expect(tokenizer.tokenize(`token "~"`)).to.have.deep.members(tokens("token", "~"));
-            expect(tokenizer.tokenize("token {~}")).to.have.deep.members(tokens("token", "~"));
-        });
-    });
-
-    describe("redirection", () => {
-        it("puts redirect targets in redirect tokens", () => {
-            expect(tokenizer.tokenize("a >b")).to.have.deep.members([new TextToken("a"), new RedirectToken(">b")]);
-            expect(tokenizer.tokenize("a >>b")).to.have.deep.members([new TextToken("a"), new RedirectToken(">>b")]);
-        });
-
-        it("puts numbered redirect targets in redirect tokens", () => {
-            expect(tokenizer.tokenize("a 2>b")).to.have.deep.members([new TextToken("a"), new RedirectToken("2>b")]);
-        });
-
-        it("does not put escaped redirect targets in redirect tokens", () => {
-            expect(tokenizer.tokenize("a \\>b"))
-                .to.have.deep.members([new TextToken("a"), new TextToken(">b")]);
-            expect(tokenizer.tokenize("a \\>>b"))
-                .to.have.deep.members([new TextToken("a"), new TextToken(">"), new RedirectToken(">b")]);
-        });
-
-        it("retains the escape character in a redirect target", () => {
-            expect(tokenizer.tokenize(`>${escape}`)[0]).to.deep.equal(new RedirectToken(`>${escape}`));
-        });
-
-        it("throws an error if a glob character is used in a redirect target", () => {
-            expect(() => tokenizer.tokenize("a >a?")).to.throw();
-            expect(() => tokenizer.tokenize("a 3>a*")).to.throw();
-        });
-    });
-
-    describe("internal escape characters", () => {
-        it("escapes glob characters", () => {
-            expect(tokenizer.tokenize("a b?")).to.have.deep.members(tokens("a", `b${escape}?`));
-            expect(tokenizer.tokenize("a b*")).to.have.deep.members(tokens("a", `b${escape}*`));
-        });
-
-        it("does not escape user-escaped glob characters", () => {
-            expect(tokenizer.tokenize("a b\\?")).to.have.deep.members(tokens("a", "b?"));
-            expect(tokenizer.tokenize("a b\\*")).to.have.deep.members(tokens("a", "b*"));
-        });
-
-        it("does not escape internally-escaped glob characters", () => {
-            expect(tokenizer.tokenize(`a ${escape}\\?`)).to.have.deep.members(tokens("a", `${escape}?`));
+            expect(expander.expand("'~'")).to.have.deep.members(["~"]);
+            expect(expander.expand(`"~"`)).to.have.deep.members(["~"]);
+            expect(expander.expand("{~}")).to.have.deep.members(["~"]);
         });
     });
 });
@@ -497,225 +619,271 @@ describe("globber", () => {
 
 
     describe("?", () => {
-        it("does not remove internal escape characters from the output", () => {
-            const globber = createGlobber({[`/${escape}1`]: new File()});
+        describe("escape characters", () => {
+            it("does not remove internal escape characters from the output", () => {
+                const globber = createGlobber({[`/${escape}1`]: new File()});
 
-            expect(globber.glob(tokens(`${escape}${escape}${escape}?`)))
-                .to.have.deep.members(tokens(`${escape}${escape}1`));
+                expect(globber.glob(`${escape}${escape}${escape}?`))
+                    .to.have.deep.members([`${escape}${escape}1`]);
+            });
+
+            it("does not expand unescaped ?s", () => {
+                const globber = createGlobber({"/ab": new File()});
+
+                expect(globber.glob("a?")).to.have.deep.members(["a?"]);
+            });
         });
 
-        it("does not expand unescaped ?s", () => {
-            const globber = createGlobber({"/ab": new File()});
+        describe("expansion length", () => {
+            it("expands a single instance", () => {
+                const globber = createGlobber({"/a1": new File(), "/a2": new File()});
 
-            expect(globber.glob(tokens("a?"))).to.have.deep.members(tokens("a?"));
+                expect(globber.glob(`a${escape}?`)).to.have.deep.members(["a1", "a2"]);
+            });
+
+            it("expand multiple consecutive instances", () => {
+                const globber = createGlobber({"/a11": new File(), "/a12": new File(), "/a21": new File()});
+
+                expect(globber.glob(`a${escape}?${escape}?`)).to.have.deep.members(["a11", "a12", "a21"]);
+            });
+
+            it("expand multiple non-consecutive instances", () => {
+                const globber = createGlobber({"/1a1": new File(), "/1a2": new File(), "/2a1": new File()});
+
+                expect(globber.glob(`${escape}?a${escape}?`)).to.have.deep.members(["1a1", "1a2", "2a1"]);
+            });
+
+            it("does not expand to an empty character", () => {
+                const globber = createGlobber({"/a": new File(), "/aa": new File()});
+
+                expect(globber.glob(`a${escape}?`)).to.have.deep.members(["aa"]);
+            });
+
+            it("does not expand to multiple characters", () => {
+                const globber = createGlobber({"/aa": new File(), "/aaa": new File()});
+
+                expect(globber.glob(`a${escape}?`)).to.have.deep.members(["aa"]);
+            });
         });
 
-        it("expands a single instance", () => {
-            const globber = createGlobber({"/a1": new File(), "/a2": new File()});
+        describe("relative directories", () => {
+            it("expands in a subdirectory", () => {
+                const globber = createGlobber({"/a1": new File(), "/dir/a1": new File(), "/dir/a2": new File()});
 
-            expect(globber.glob(tokens(`a${escape}?`))).to.have.deep.members(tokens("a1", "a2"));
+                expect(globber.glob(`/dir/a${escape}?`)).to.have.deep.members(["/dir/a1", "/dir/a2"]);
+            });
+
+            it("expands in the parent directory", () => {
+                const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+                expect(globber.glob(`../a${escape}?`)).to.have.deep.members(["../a2", "../a3"]);
+            });
+
+            it("expands in the reflexive directory", () => {
+                const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+                expect(globber.glob(`./a${escape}?`)).to.have.deep.members(["./a1"]);
+            });
+
+            it("expands in an absolute path to the root", () => {
+                const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+                expect(globber.glob(`/a${escape}?`)).to.have.deep.members(["/a2", "/a3"]);
+            });
+
+            it("expands in an absolute path to a sibling", () => {
+                const globber = createGlobber({
+                    "/d1/a1": new File(),
+                    "/d2/a2": new File(),
+                    "/d2/a3": new File()
+                }, "/d1");
+
+                expect(globber.glob(`/d2/a${escape}?`)).to.have.deep.members(["/d2/a2", "/d2/a3"]);
+            });
         });
 
-        it("expand multiple consecutive instances", () => {
-            const globber = createGlobber({"/a11": new File(), "/a12": new File(), "/a21": new File()});
+        describe("strict matching", () => {
+            it("includes directories when not using a trailing slash", () => {
+                const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
 
-            expect(globber.glob(tokens(`a${escape}?${escape}?`))).to.have.deep.members(tokens("a11", "a12", "a21"));
-        });
+                expect(globber.glob(`a${escape}?`)).to.have.deep.members(["a1", "a2"]);
+            });
 
-        it("expand multiple non-consecutive instances", () => {
-            const globber = createGlobber({"/1a1": new File(), "/1a2": new File(), "/2a1": new File()});
+            it("excludes files when using a trailing slash", () => {
+                const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
 
-            expect(globber.glob(tokens(`${escape}?a${escape}?`))).to.have.deep.members(tokens("1a1", "1a2", "2a1"));
-        });
+                expect(globber.glob(`a${escape}?/`)).to.have.deep.members(["a2/"]);
+            });
 
-        it("does not expand to an empty character", () => {
-            const globber = createGlobber({"/a": new File(), "/aa": new File()});
+            it("does not match the hidden file character", () => {
+                const globber = createGlobber({"/.a": new File(), "/aa": new File()});
 
-            expect(globber.glob(tokens(`a${escape}?`))).to.have.deep.members(tokens("aa"));
-        });
-
-        it("does not expand to multiple characters", () => {
-            const globber = createGlobber({"/aa": new File(), "/aaa": new File()});
-
-            expect(globber.glob(tokens(`a${escape}?`))).to.have.deep.members(tokens("aa"));
-        });
-
-        it("includes directories when not using a trailing slash", () => {
-            const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
-
-            expect(globber.glob(tokens(`a${escape}?`))).to.have.deep.members(tokens("a1", "a2"));
-        });
-
-        it("excludes files when using a trailing slash", () => {
-            const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
-
-            expect(globber.glob(tokens(`a${escape}?/`))).to.have.deep.members(tokens("a2/"));
-        });
-
-        it("expands in a subdirectory", () => {
-            const globber = createGlobber({"/a1": new File(), "/dir/a1": new File(), "/dir/a2": new File()});
-
-            expect(globber.glob(tokens(`/dir/a${escape}?`))).to.have.deep.members(tokens("/dir/a1", "/dir/a2"));
-        });
-
-        it("expands in the parent directory", () => {
-            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
-
-            expect(globber.glob(tokens(`../a${escape}?`))).to.have.deep.members(tokens("../a2", "../a3"));
-        });
-
-        it("expands in the reflexive directory", () => {
-            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
-
-            expect(globber.glob(tokens(`./a${escape}?`))).to.have.deep.members(tokens("./a1"));
-        });
-
-        it("expands in an absolute path to the root", () => {
-            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
-
-            expect(globber.glob(tokens(`/a${escape}?`))).to.have.deep.members(tokens("/a2", "/a3"));
-        });
-
-        it("expands in an absolute path to a sibling", () => {
-            const globber = createGlobber({"/d1/a1": new File(), "/d2/a2": new File(), "/d2/a3": new File()}, "/d1");
-
-            expect(globber.glob(tokens(`/d2/a${escape}?`))).to.have.deep.members(tokens("/d2/a2", "/d2/a3"));
-        });
-
-        it("does not match the hidden file character", () => {
-            const globber = createGlobber({"/.a": new File(), "/aa": new File()});
-
-            expect(globber.glob(tokens(`/${escape}?a`))).to.have.deep.members(tokens("/aa"));
+                expect(globber.glob(`/${escape}?a`)).to.have.deep.members(["/aa"]);
+            });
         });
     });
 
     describe("*", () => {
-        it("does not remove internal escape characters from the output", () => {
-            const globber = createGlobber({[`/${escape}1`]: new File()});
+        describe("escape characters", () => {
+            it("does not remove internal escape characters from the output", () => {
+                const globber = createGlobber({[`/${escape}1`]: new File()});
 
-            expect(globber.glob(tokens(`${escape}${escape}${escape}*`)))
-                .to.have.deep.members(tokens(`${escape}${escape}1`));
+                expect(globber.glob(`${escape}${escape}${escape}*`)).to.have.deep.members([`${escape}${escape}1`]);
+            });
+
+            it("does not process unescaped *s", () => {
+                const globber = createGlobber({"/ab": new File()});
+
+                expect(globber.glob("a*")).to.have.deep.members(["a*"]);
+            });
         });
 
-        it("does not process unescaped *s", () => {
-            const globber = createGlobber({"/ab": new File()});
+        describe("expansion length", () => {
+            it("expands a single instance", () => {
+                const globber = createGlobber({"/a1": new File(), "/a2": new File()});
 
-            expect(globber.glob(tokens("a*"))).to.have.deep.members(tokens("a*"));
+                expect(globber.glob(`a${escape}*`)).to.have.deep.members(["a1", "a2"]);
+            });
+
+            it("expands multiple non-consecutive instances", () => {
+                const globber = createGlobber({"/1a1": new File(), "/2a2": new File()});
+
+                expect(globber.glob(`${escape}*a${escape}*`)).to.have.deep.members(["1a1", "2a2"]);
+            });
+
+            it("expands to match all files in a directory", () => {
+                const globber = createGlobber({"/a": new File(), "/b": new File()});
+
+                expect(globber.glob(`${escape}*`)).to.have.deep.members(["a", "b"]);
+            });
+
+            it("expands to an empty character", () => {
+                const globber = createGlobber({"/a": new File(), "/aa": new File()});
+
+                expect(globber.glob(`a${escape}*`)).to.have.deep.members(["a", "aa"]);
+            });
+
+            it("expands to multiple characters", () => {
+                const globber = createGlobber({"/aa": new File(), "/aaa": new File()});
+
+                expect(globber.glob(`a${escape}*`)).to.have.deep.members(["aa", "aaa"]);
+            });
+
+            it("does not expand to a slash", () => {
+                const globber = createGlobber({"/a1/file": new File(), "/a2": new File()});
+
+                expect(globber.glob(`a${escape}*`)).to.have.deep.members(["a1", "a2"]);
+            });
         });
 
-        it("expands a single instance", () => {
-            const globber = createGlobber({"/a1": new File(), "/a2": new File()});
+        describe("relative directories", () => {
+            it("expands in a subdirectory", () => {
+                const globber = createGlobber({"/a1": new File(), "/dir/a1": new File(), "/dir/a2": new File()});
 
-            expect(globber.glob(tokens(`a${escape}*`))).to.have.deep.members(tokens("a1", "a2"));
+                expect(globber.glob(`/dir/a${escape}*`)).to.have.deep.members(["/dir/a1", "/dir/a2"]);
+            });
+
+            it("expands to no files in a subdirectory", () => {
+                const globber = createGlobber({"/dir1/a1": new File(), "/dir2": new Directory()});
+
+                expect(globber.glob(`/${escape}*/${escape}*`)).to.have.deep.members(["/dir1/a1"]);
+            });
+
+            it("expands in the parent directory", () => {
+                const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+                expect(globber.glob(`../a${escape}*`)).to.have.deep.members(["../a2", "../a3"]);
+            });
+
+            it("expands in the reflexive directory", () => {
+                const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+                expect(globber.glob(`./a${escape}*`)).to.have.deep.members(["./a1"]);
+            });
+
+            it("expands in an absolute path to the root", () => {
+                const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
+
+                expect(globber.glob(`/a${escape}*`)).to.have.deep.members(["/a2", "/a3"]);
+            });
+
+            it("expands in an absolute path to a sibling", () => {
+                const globber = createGlobber({
+                    "/d1/a1": new File(),
+                    "/d2/a2": new File(),
+                    "/d2/a3": new File()
+                }, "/d1");
+
+                expect(globber.glob(`/d2/a${escape}*`)).to.have.deep.members(["/d2/a2", "/d2/a3"]);
+            });
         });
 
-        it("expands multiple non-consecutive instances", () => {
-            const globber = createGlobber({"/1a1": new File(), "/2a2": new File()});
+        describe("strict matching", () => {
+            it("includes directories when not using a trailing slash", () => {
+                const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
 
-            expect(globber.glob(tokens(`${escape}*a${escape}*`))).to.have.deep.members(tokens("1a1", "2a2"));
-        });
+                expect(globber.glob(`a${escape}*`)).to.have.deep.members(["a1", "a2"]);
+            });
 
-        it("expands to match all files in a directory", () => {
-            const globber = createGlobber({"/a": new File(), "/b": new File()});
+            it("excludes files when using a trailing slash", () => {
+                const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
 
-            expect(globber.glob(tokens(`${escape}*`))).to.have.deep.members(tokens("a", "b"));
-        });
+                expect(globber.glob(`a${escape}*/`)).to.have.deep.members(["a2/"]);
+            });
 
-        it("expands to an empty character", () => {
-            const globber = createGlobber({"/a": new File(), "/aa": new File()});
+            it("does not match the hidden file character", () => {
+                const globber = createGlobber({"/.a": new File(), "/aa": new File()});
 
-            expect(globber.glob(tokens(`a${escape}*`))).to.have.deep.members(tokens("a", "aa"));
-        });
-
-        it("expands to multiple characters", () => {
-            const globber = createGlobber({"/aa": new File(), "/aaa": new File()});
-
-            expect(globber.glob(tokens(`a${escape}*`))).to.have.deep.members(tokens("aa", "aaa"));
-        });
-
-        it("does not expand to a slash", () => {
-            const globber = createGlobber({"/a1/file": new File(), "/a2": new File()});
-
-            expect(globber.glob(tokens(`a${escape}*`))).to.have.deep.members(tokens("a1", "a2"));
-        });
-
-        it("includes directories when not using a trailing slash", () => {
-            const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
-
-            expect(globber.glob(tokens(`a${escape}*`))).to.have.deep.members(tokens("a1", "a2"));
-        });
-
-        it("excludes files when using a trailing slash", () => {
-            const globber = createGlobber({"/a1": new File(), "/a2": new Directory()});
-
-            expect(globber.glob(tokens(`a${escape}*/`))).to.have.deep.members(tokens("a2/"));
-        });
-
-        it("expands in a subdirectory", () => {
-            const globber = createGlobber({"/a1": new File(), "/dir/a1": new File(), "/dir/a2": new File()});
-
-            expect(globber.glob(tokens(`/dir/a${escape}*`))).to.have.deep.members(tokens("/dir/a1", "/dir/a2"));
-        });
-
-        it("expands to no files in a subdirectory", () => {
-            const globber = createGlobber({"/dir1/a1": new File(), "/dir2": new Directory()});
-
-            expect(globber.glob(tokens(`/${escape}*/${escape}*`))).to.have.deep.members(tokens("/dir1/a1"));
-        });
-
-        it("expands in the parent directory", () => {
-            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
-
-            expect(globber.glob(tokens(`../a${escape}*`))).to.have.deep.members(tokens("../a2", "../a3"));
-        });
-
-        it("expands in the reflexive directory", () => {
-            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
-
-            expect(globber.glob(tokens(`./a${escape}*`))).to.have.deep.members(tokens("./a1"));
-        });
-
-        it("expands in an absolute path to the root", () => {
-            const globber = createGlobber({"/dir/a1": new File(), "/a2": new File(), "/a3": new File()}, "/dir");
-
-            expect(globber.glob(tokens(`/a${escape}*`))).to.have.deep.members(tokens("/a2", "/a3"));
-        });
-
-        it("expands in an absolute path to a sibling", () => {
-            const globber = createGlobber({"/d1/a1": new File(), "/d2/a2": new File(), "/d2/a3": new File()}, "/d1");
-
-            expect(globber.glob(tokens(`/d2/a${escape}*`))).to.have.deep.members(tokens("/d2/a2", "/d2/a3"));
-        });
-
-        it("does not match the hidden file character", () => {
-            const globber = createGlobber({"/.a": new File(), "/aa": new File()});
-
-            expect(globber.glob(tokens(`/${escape}*a`))).to.have.deep.members(tokens("/aa"));
+                expect(globber.glob(`/${escape}*a`)).to.have.deep.members(["/aa"]);
+            });
         });
     });
 
-    describe("shared edge cases", () => {
-        it("throws an error if no matches are found", () => {
-            expect(() => createGlobber().glob(tokens(`x${escape}?`))).to.throw();
+    describe("shared cases", () => {
+        describe("no matches", () => {
+            it("throws an error if no matches are found", () => {
+                expect(() => createGlobber().glob(`x${escape}?`)).to.throw();
+            });
+
+            it("throws an error if no matches are found because the cwd does not exist", () => {
+                const globber = createGlobber({"/a1": new File()}, "/dir");
+
+                expect(() => globber.glob(`a${escape}?`)).to.throw();
+            });
         });
 
-        it("returns an empty token without change", () => {
-            expect(createGlobber().glob(tokens(""))).to.have.deep.members(tokens(""));
+        describe("glob-less inputs",() => {
+            it("returns an empty token without change", () => {
+                expect(createGlobber().glob("")).to.have.deep.members([""]);
+            });
+
+            it("does not remove escape characters from glob-less inputs", () => {
+                expect(createGlobber().glob(`${escape}${escape}`)).to.have.deep.members([`${escape}${escape}`]);
+            });
+
+            it("returns a glob-less token without change if the cwd does not exist", () => {
+                const globber = createGlobber({}, "/dir");
+
+                expect(globber.glob("ab")).to.have.deep.members(["ab"]);
+            });
+
+            it("returns a glob-less token that doesn't match files without change", () => {
+                expect(createGlobber().glob("abc")).to.have.deep.members(["abc"]);
+            });
         });
 
-        it("does not remove escape characters from glob-less inputs", () => {
-            expect(createGlobber().glob(tokens(`${escape}${escape}`)))
-                .to.have.deep.members(tokens(`${escape}${escape}`));
-        });
+        describe("regex creation", () => {
+            it("escapes regex-like characters from the input", () => {
+                const globber = createGlobber({"a*b": new File()});
 
-        it("returns a glob-less token without change", () => {
-            expect(createGlobber().glob(tokens("abc"))).to.have.deep.members(tokens("abc"));
-        });
+                expect(globber.glob(`${escape}?*b`)).to.have.deep.members(["a*b"]);
+            });
 
-        it("returns any token without change if the cwd does not exist", () => {
-            const globber = createGlobber({"/a1": new File()}, "/dir");
+            it("throws an error if the escape character terminates the string", () => {
+                const globber = createGlobber({"ab": new File()});
 
-            expect(globber.glob(tokens(`a${escape}?`))).to.have.deep.members(tokens(`a${escape}?`));
+                expect(() => globber.glob(`${escape}?${escape}`)).to.throw();
+            });
         });
     });
 });

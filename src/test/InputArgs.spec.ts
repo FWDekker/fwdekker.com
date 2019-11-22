@@ -7,13 +7,13 @@ import {InputArgs} from "../main/js/InputArgs";
 describe("input args", () => {
     describe("command", () => {
         it("returns the given command", () => {
-            expect(new InputArgs("command", {}, []).command).to.equal("command");
+            expect(new InputArgs("command", {}, [], []).command).to.equal("command");
         });
     });
 
     describe("options", () => {
         function inputOptions(options: InputArgs.Options): InputArgs {
-            return new InputArgs("command", options, []);
+            return new InputArgs("command", options, [], []);
         }
 
 
@@ -62,7 +62,7 @@ describe("input args", () => {
 
     describe("args", () => {
         function inputArgs(args: string[]): InputArgs {
-            return new InputArgs("command", {}, args);
+            return new InputArgs("command", {}, args, []);
         }
 
 
@@ -93,37 +93,36 @@ describe("input args", () => {
         });
     });
 
-    describe("redirection", () => {
-        describe("output", () => {
-            it("returns the given output target", () => {
-                const inputArgs = new InputArgs("command", {}, [], {type: "default"});
-                expect(inputArgs.outTarget).to.deep.equal({type: "default"});
-            });
+    describe("redirect targets", () => {
+        it("returns undefined if no output stream is set", () => {
+            const inputArgs = new InputArgs("command", {}, [], []);
 
-            it("returns a copy of the given output target", () => {
-                const target: InputArgs.RedirectTarget = {type: "write", target: "old"};
-
-                const inputArgs = new InputArgs("command", {}, [], target);
-                target.target = "new";
-
-                expect(inputArgs.outTarget).to.deep.equal({type: "write", target: "old"});
-            });
+            expect(inputArgs.redirectTargets[0]).to.deep.equal(undefined);
         });
 
-        describe("error", () => {
-            it("returns the given error target", () => {
-                const inputArgs = new InputArgs("command", {}, [], {type: "default"}, {type: "default"});
-                expect(inputArgs.errTarget).to.deep.equal({type: "default"});
-            });
+        it("returns the given redirect target", () => {
+            const target: InputArgs.RedirectTarget = {type: "write", target: "target"};
+            const inputArgs = new InputArgs("command", {}, [], [target]);
 
-            it("returns a copy of the given error target", () => {
-                const target: InputArgs.RedirectTarget = {type: "write", target: "old"};
+            expect(inputArgs.redirectTargets[0]).to.deep.equal(target);
+        });
 
-                const inputArgs = new InputArgs("command", {}, [], {type: "default"}, target);
-                target.target = "new";
+        it("returns a copy of the array", () => {
+            const targets: InputArgs.RedirectTarget[] = [];
 
-                expect(inputArgs.errTarget).to.deep.equal({type: "write", target: "old"});
-            });
+            const inputArgs = new InputArgs("command", {}, [], targets);
+            targets.push({type: "write", target: "target"});
+
+            expect(inputArgs.redirectTargets).to.have.length(0);
+        });
+
+        it("returns a copy of the given output target", () => {
+            const target: InputArgs.RedirectTarget = {type: "write", target: "old"};
+
+            const inputArgs = new InputArgs("command", {}, [], [target]);
+            target.target = "new";
+
+            expect(inputArgs.redirectTargets[0]).to.deep.equal({type: "write", target: "old"});
         });
     });
 });

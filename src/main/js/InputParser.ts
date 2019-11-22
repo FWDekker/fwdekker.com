@@ -13,9 +13,9 @@ export class InputParser {
      */
     private readonly tokenizer: Tokenizer;
     /**
-     * The globber to glob file paths with.
+     * The expander to expand tokens with.
      */
-    private readonly globber: Globber;
+    private readonly expander: Expander;
 
 
     /**
@@ -24,11 +24,11 @@ export class InputParser {
      * Usually, you'll want to use the static `InputParser#create` method instead.
      *
      * @param tokenizer the tokenizer turn the input into tokens with
-     * @param globber the globber to glob file paths with
+     * @param expander the expander to expand tokens with
      */
-    constructor(tokenizer: Tokenizer, globber: Globber) {
+    constructor(tokenizer: Tokenizer, expander: Expander) {
         this.tokenizer = tokenizer;
-        this.globber = globber;
+        this.expander = expander;
     }
 
     /**
@@ -38,7 +38,10 @@ export class InputParser {
      * @param fileSystem the file system describing the valid paths to glob
      */
     static create(environment: Environment, fileSystem: FileSystem): InputParser {
-        return new InputParser(new Tokenizer(environment), new Globber(fileSystem, environment.get("cwd")));
+        return new InputParser(
+            new Tokenizer(),
+            new Expander(environment, new Globber(fileSystem, environment.get("cwd")))
+        );
     }
 
 
@@ -50,17 +53,16 @@ export class InputParser {
     parse(input: string): InputArgs {
         const tokens = this.tokenizer.tokenize(escape(input));
 
-        const textTokens = this.globber.glob(tokens.filter(it => it instanceof InputParser.TextToken))
-            .map(it => new InputParser.TextToken(unescape(it.contents)));
-        const redirectTokens = tokens
-            .filter(it => it instanceof InputParser.RedirectToken)
-            .map(it => new InputParser.RedirectToken(unescape(it.contents)));
+        const textTokens = tokens.filter(it => !it.match(/^[0-9]*>/))
+            .reduce((acc, it) => acc.concat(this.expander.expand(it)), <string[]> [])
+            .map(it => unescape(it));
+        const redirectTokens = tokens.map(it => unescape(it));
 
-        const command = tokens[0]?.contents ?? "";
+        const command = tokens[0] ?? "";
         const [options, args] = this.parseOpts(textTokens.slice(1));
         const outTargets = this.getRedirectTargets(redirectTokens);
 
-        return new InputArgs(command, options, args.map(it => it.contents), outTargets[0], outTargets[1]);
+        return new InputArgs(command, options, args, outTargets);
     }
 
 
@@ -70,20 +72,18 @@ export class InputParser {
      *
      * @param tokens an array of tokens of which some tokens may describe a redirect target
      */
-    private getRedirectTargets(tokens: InputParser.RedirectToken[]): InputArgs.RedirectTarget[] {
-        const targets: InputArgs.RedirectTarget[] = [{type: "default"}, {type: "default"}];
+    private getRedirectTargets(tokens: string[]): InputArgs.RedirectTarget[] {
+        const targets: InputArgs.RedirectTarget[] = [];
 
-        tokens
-            .map(it => it.contents)
-            .forEach(token => {
-                const stream = token.startsWith(">") ? 1 : parseInt(token.slice(0, token.indexOf(">")));
+        tokens.forEach(token => {
+            const stream = token.startsWith(">") ? 1 : parseInt(token.slice(0, token.indexOf(">")));
 
-                const target = token.slice(token.indexOf(">"));
-                if (target.startsWith(">>"))
-                    targets[stream - 1] = {type: "append", target: target.slice(2)};
-                else if (target.startsWith(">"))
-                    targets[stream - 1] = {type: "write", target: target.slice(1)};
-            });
+            const target = token.slice(token.indexOf(">"));
+            if (target.startsWith(">>"))
+                targets[stream] = {type: "append", target: target.slice(2)};
+            else if (target.startsWith(">"))
+                targets[stream] = {type: "write", target: target.slice(1)};
+        });
 
         return targets;
     }
@@ -93,20 +93,24 @@ export class InputParser {
      *
      * @param tokens the tokens that form the options and arguments
      */
-    private parseOpts(tokens: InputParser.TextToken[]): [InputArgs.Options, InputParser.TextToken[]] {
+    private parseOpts(tokens: string[]): [InputArgs.Options, string[]] {
         const options: { [key: string]: string | null } = {};
 
         let i;
         for (i = 0; i < tokens.length; i++) {
-            const arg = tokens[i].contents;
+            const arg = tokens[i];
 
-            if (!arg.startsWith("-") || arg === "--")
+            if (!arg.startsWith("-"))
                 break;
+            if (arg === "--") {
+                i++;
+                break;
+            }
 
-            const argsParts = arg.split(/=(.*)/, 2);
+            const argsParts = arg.split("=");
             if (argsParts.length === 0 || argsParts.length > 2)
                 throw new IllegalArgumentError("Unexpected number of parts.");
-            if (argsParts[0].includes(' ') || argsParts[0].match(/[0-9]/))
+            if (argsParts[0].includes(" ") || argsParts[0].match(/[0-9]/))
                 break;
 
             const value = argsParts.length === 1 ? null : argsParts[1];
@@ -139,34 +143,22 @@ export class InputParser {
 }
 
 /**
- * Turns an input string into a series of expanded tokens.
+ * Turns an input string into a series of tokens.
  */
 export class Tokenizer {
     /**
-     * The environment containing the variables to substitute.
-     */
-    private readonly environment: Environment;
-
-
-    /**
-     * Constructs a new tokenizer.
+     * Separates the input string into a series of tokens, respecting the semantics of grouping, redirection parameters,
+     * etc.
      *
-     * @param environment the environment containing the variables to substitute
-     */
-    constructor(environment: Environment) {
-        this.environment = environment;
-    }
-
-
-    /**
-     * Tokenizes the input string and expands the tokens.
+     * Joining the returned array with spaces in between will give back the input string, disregarding extra whitespaces
+     * in between tokens. That is, no bytes are added, removed, or escaped in tokens.
      *
      * @param input the string to tokenize
      */
-    tokenize(input: string): InputParser.Token[] {
-        const tokens: InputParser.Token[] = [];
+    tokenize(input: string): string[] {
+        const tokens: string[] = [];
 
-        let token = new InputParser.TextToken();
+        let token = "";
         let isInSingleQuotes = false;
         let isInDoubleQuotes = false;
         let isInCurlyBraces = 0;
@@ -175,135 +167,240 @@ export class Tokenizer {
             switch (char) {
                 // Escape character
                 case "\\":
-                    if (i === input.length - 1)
+                    i++;
+                    const nextChar = input[i];
+                    if (nextChar === undefined)
                         throw new IllegalArgumentError(
                             "Unexpected end of input. '\\' was used but there was nothing to escape.");
 
-                    const nextChar = input[i + 1];
-                    if (isInSingleQuotes || isInDoubleQuotes)
-                        token.contents += "\\" + nextChar;
-                    else if (nextChar === "n")
-                        token.contents += "\n";
-                    else
-                        token.contents += nextChar;
-                    i++;
+                    token += char + nextChar;
                     break;
                 // Grouping
                 case "'":
-                    if (isInDoubleQuotes)
-                        token.contents += char;
-                    else
+                    if (!isInDoubleQuotes)
                         isInSingleQuotes = !isInSingleQuotes;
+
+                    token += char;
                     break;
                 case "\"":
-                    if (isInSingleQuotes)
-                        token.contents += char;
-                    else
+                    if (!isInSingleQuotes)
                         isInDoubleQuotes = !isInDoubleQuotes;
+
+                    token += char;
                     break;
                 case "{":
-                    if (isInSingleQuotes || isInDoubleQuotes)
-                        token.contents += char;
-                    else
+                    if (!isInSingleQuotes && !isInDoubleQuotes)
                         isInCurlyBraces++;
+
+                    token += char;
                     break;
                 case "}":
-                    if (isInSingleQuotes || isInDoubleQuotes)
-                        token.contents += char;
-                    else
+                    if (!isInSingleQuotes && !isInDoubleQuotes) {
                         isInCurlyBraces--;
 
-                    if (isInCurlyBraces < 0)
-                        throw new IllegalArgumentError("Unexpected closing '}' without corresponding '{'.");
+                        if (isInCurlyBraces < 0)
+                            throw new IllegalArgumentError("Unexpected closing '}' without corresponding '{'.");
+                    }
+
+                    token += char;
                     break;
                 // Separator
                 case " ":
-                    if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces) {
-                        token.contents += char;
-                    } else if (token.contents !== "") {
+                    if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces > 0) {
+                        token += char;
+                    } else if (token !== "") {
                         tokens.push(token);
-                        token = new InputParser.TextToken();
+                        token = "";
                     }
-                    break;
-                // Environment variable
-                case "$":
-                    if (isInSingleQuotes || isInDoubleQuotes) {
-                        token.contents += char;
-                        break;
-                    }
-
-                    let key = "";
-                    for (; i + 1 < input.length; i++) {
-                        const nextChar = input[i + 1];
-                        if (nextChar.match(/^[0-9a-z_]+$/i))
-                            key += nextChar;
-                        else
-                            break;
-                    }
-                    if (key === "")
-                        throw new IllegalArgumentError(`Missing variable name after '$'.`);
-
-                    token.contents += this.environment.getOrDefault(key, "");
                     break;
                 // Redirection
                 case ">":
-                    if (isInSingleQuotes || isInDoubleQuotes) {
-                        token.contents += char;
+                    if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces > 0) {
+                        token += char;
                         break;
                     }
 
-                    if (token.contents !== "" && !token.contents.match(/[0-9]+/)) {
+                    if (token !== "" && !token.match(/^[0-9]+$/)) {
                         tokens.push(token);
-                        token = new InputParser.RedirectToken();
-                    } else {
-                        token = new InputParser.RedirectToken(token.contents);
+                        token = "";
                     }
 
-                    token.contents += ">";
+                    token += ">";
                     if (input[i + 1] === ">") {
-                        token.contents += ">";
+                        token += ">";
                         i++;
                     }
                     while (input[i + 1] === " ")
                         i++;
 
                     break;
-                // Glob token
-                case "*":
-                case "?":
-                    if (token instanceof InputParser.RedirectToken)
-                        throw new IllegalArgumentError(`Invalid token '${char}' in redirect target.`);
-
-                    if (isInSingleQuotes || isInDoubleQuotes)
-                        token.contents += char;
-                    else
-                        token.contents += InputParser.EscapeChar + char;
-                    break;
-                // Home directory
-                case "~":
-                    if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces || token.contents !== "")
-                        token.contents += char;
-                    else if (input[i + 1] === "/" || input[i + 1] === " " || input[i + 1] === undefined)
-                        token.contents += this.environment.get("home");
-                    else
-                        token.contents += char;
-                    break;
+                // Miscellaneous character
                 default:
-                    token.contents += char;
+                    token += char;
                     break;
             }
         }
-        if (token.contents !== "")
+        if (token !== "")
             tokens.push(token);
 
         if (isInSingleQuotes)
             throw new IllegalArgumentError("Unexpected end of input. Missing closing '.");
         if (isInDoubleQuotes)
             throw new IllegalArgumentError("Unexpected end of input. Missing closing \".");
-        if (isInCurlyBraces)
+        if (isInCurlyBraces > 0)
             throw new IllegalArgumentError("Unexpected end of input. Missing closing }.");
 
         return tokens;
+    }
+}
+
+/**
+ * Expands individual tokens.
+ */
+export class Expander {
+    /**
+     * The environment containing the variables to substitute.
+     */
+    private readonly environment: Environment;
+    /**
+     * The globber to expand glob patterns with.
+     */
+    private readonly globber: Globber;
+
+
+    /**
+     * Constructs a new tokenizer.
+     *
+     * @param environment the environment containing the variables to substitute
+     * @param globber the globber to expand glob patterns with
+     */
+    constructor(environment: Environment, globber: Globber) {
+        this.environment = environment;
+        this.globber = globber;
+    }
+
+
+    /**
+     * Expands environment variables and glob patterns in the given token.
+     *
+     * It is assumed that the given token is valid; for example, its quotes and brackets should match.
+     *
+     * @param token the valid token to expand
+     */
+    expand(token: string): string[] {
+        let expandedToken = "";
+
+        let isInSingleQuotes = false;
+        let isInDoubleQuotes = false;
+        let isInCurlyBraces = 0;
+        for (let i = 0; i < token.length; i++) {
+            const char = token[i];
+            switch (char) {
+                // Escape character
+                case "\\":
+                    i++;
+                    const nextChar = token[i];
+
+                    if (isInSingleQuotes || isInDoubleQuotes) {
+                        if ((isInSingleQuotes && nextChar === "'") || (isInDoubleQuotes && nextChar === "\""))
+                            expandedToken += nextChar;
+                        else
+                            expandedToken += char + nextChar;
+                        break;
+                    }
+
+                    switch (nextChar) {
+                        case "\\":
+                        case " ":
+                        case "~":
+                        case "$":
+                        case ">":
+                        case "?":
+                        case "*":
+                        case "'":
+                        case "\"":
+                        case "{":
+                        case "}":
+                            expandedToken += nextChar;
+                            break;
+                        case "n":
+                            expandedToken += "\n";
+                            break;
+                        default:
+                            expandedToken += char + nextChar;
+                            break;
+                    }
+                    break;
+                // Grouping
+                case "'":
+                    if (!isInDoubleQuotes)
+                        isInSingleQuotes = !isInSingleQuotes;
+                    else
+                        expandedToken += char;
+                    break;
+                case "\"":
+                    if (!isInSingleQuotes)
+                        isInDoubleQuotes = !isInDoubleQuotes;
+                    else
+                        expandedToken += char;
+                    break;
+                case "{":
+                    if (!isInSingleQuotes && !isInDoubleQuotes)
+                        isInCurlyBraces++;
+                    else
+                        expandedToken += char;
+                    break;
+                case "}":
+                    if (!isInSingleQuotes && !isInDoubleQuotes)
+                        isInCurlyBraces--;
+                    else
+                        expandedToken += char;
+                    break;
+                // Environment variable
+                case "$":
+                    if (isInSingleQuotes) {
+                        expandedToken += char;
+                        break;
+                    }
+
+                    let key = "";
+                    for (; i + 1 < token.length; i++) {
+                        const nextChar = token[i + 1];
+                        if (nextChar.match(/^[0-9a-z_]+$/i))
+                            key += nextChar;
+                        else
+                            break;
+                    }
+                    if (key === "")
+                        throw new IllegalArgumentError("Missing variable name after '$'.");
+
+                    expandedToken += this.environment.getOrDefault(key, "");
+                    break;
+                // Glob characters
+                case "*":
+                case "?":
+                    if (isInSingleQuotes || isInDoubleQuotes)
+                        expandedToken += char;
+                    else
+                        expandedToken += InputParser.EscapeChar + char;
+                    break;
+                // Home directory
+                case "~":
+                    if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces > 0 || expandedToken !== "")
+                        expandedToken += char;
+                    else if (token[i + 1] === undefined || token[i + 1] === "/")
+                        expandedToken += this.environment.get("home");
+                    else
+                        expandedToken += char;
+                    break;
+                // Miscellaneous character
+                default:
+                    expandedToken += char;
+                    break;
+            }
+        }
+
+        return this.globber.glob(expandedToken);
     }
 }
 
@@ -336,29 +433,24 @@ export class Globber {
     /**
      * Returns globbed tokens.
      *
-     * @param tokens the tokens to glob
+     * @param token the token to glob
      */
-    glob(tokens: InputParser.TextToken[]): InputParser.TextToken[] {
-        return tokens
-            .map(it => it.contents)
-            .map(token => {
-                if (!this.isGlob(token))
-                    return [token];
+    glob(token: string): string[] {
+        if (!this.isGlob(token))
+            return [token];
 
-                let tokens: string[];
-                if (token.startsWith("/"))
-                    tokens = this.glob2("/", token.slice(1), new Path("/"));
-                else
-                    tokens = this.glob2("", token, this.cwd);
+        let tokens: string[];
+        if (token.startsWith("/"))
+            tokens = this.glob2("/", token.slice(1), new Path("/"));
+        else
+            tokens = this.glob2("", token, this.cwd);
 
-                if (tokens.length === 0)
-                    throw new IllegalArgumentError(`Token '${unescape(token)}' does not match any files.`);
+        if (tokens.length === 0)
+            throw new IllegalArgumentError(`Token '${unescape(token)}' does not match any files.`);
 
-                return tokens;
-            })
-            .reduce((acc, tokens) => acc.concat(tokens), [])
-            .map(it => new InputParser.TextToken(it));
+        return tokens;
     }
+
 
     /**
      * Recursively traverses the given path according to the glob pattern provided, keeping track of file system
@@ -371,7 +463,7 @@ export class Globber {
     private glob2(history: string, glob: string, path: Path): string[] {
         const dir = this.fileSystem.get(path);
         if (!(dir instanceof Directory))
-            return [history + glob];
+            return [];
 
         const nextPart = glob.includes("/") ? glob.substring(0, glob.indexOf("/")) : glob; // excluding /
         const remainder = glob.includes("/") ? glob.substring(glob.indexOf("/") + 1) : ""; // excluding /
@@ -468,37 +560,6 @@ export module InputParser {
      * The token used to internally escape characters in the input parser.
      */
     export const EscapeChar = "\u001b";
-
-
-    /**
-     * A token containing text.
-     */
-    export abstract class Token {
-        /**
-         * The type of token; used to distinguish between types when comparing tokens.
-         */
-        abstract readonly type: string;
-        contents: string;
-
-
-        constructor(contents: string = "") {
-            this.contents = contents;
-        }
-    }
-
-    /**
-     * A token without a special meaning.
-     */
-    export class TextToken extends Token {
-        readonly type: string = "text";
-    }
-
-    /**
-     * A token defining a redirect target.
-     */
-    export class RedirectToken extends Token {
-        readonly type: string = "redirect";
-    }
 }
 
 /**

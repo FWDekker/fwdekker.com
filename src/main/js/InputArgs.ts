@@ -8,12 +8,12 @@ export module InputArgs {
      * The intended target of the output of a command.
      *
      * <ul>
-     *     <li>`default` means that the output should be written to the standard output</li>
+     *     <li>`undefined` means that the output should be written to the standard output</li>
      *     <li>`write` means that the output should be written to the file in the given string</li>
      *     <li>`append` means that the output should be appended to the file in the given string</li>
      * </ul>
      */
-    export type RedirectTarget = { type: "default" | "write" | "append", target?: string };
+    export type RedirectTarget = undefined | { type: "write" | "append", target?: string };
 }
 
 /**
@@ -33,13 +33,9 @@ export class InputArgs {
      */
     private readonly _args: string[];
     /**
-     * The target of the output stream.
+     * The redirect targets.
      */
-    readonly outTarget: InputArgs.RedirectTarget;
-    /**
-     * The target of the error stream.
-     */
-    readonly errTarget: InputArgs.RedirectTarget;
+    readonly redirectTargets: InputArgs.RedirectTarget[];
 
 
     /**
@@ -48,17 +44,14 @@ export class InputArgs {
      * @param command the name of the command, i.e. the first token in the input string
      * @param options the set of options and the corresponding values that the user has given
      * @param args the remaining non-option arguments that the user has given
-     * @param outTarget the target of the output stream
-     * @param errTarget the target of the error stream
+     * @param redirectTargets the redirect targets
      */
     constructor(command: string, options: InputArgs.Options, args: string[],
-                outTarget: InputArgs.RedirectTarget = {type: "default"},
-                errTarget: InputArgs.RedirectTarget = {type: "default"}) {
+                redirectTargets: InputArgs.RedirectTarget[]) {
         this.command = command;
         this._options = Object.assign({}, options);
         this._args = args.slice();
-        this.outTarget = Object.assign({}, outTarget);
-        this.errTarget = Object.assign({}, errTarget);
+        this.redirectTargets = redirectTargets.map(it => Object.assign({}, it));
     }
 
 
