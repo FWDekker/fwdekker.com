@@ -2,6 +2,7 @@ import "./Extensions"
 import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Path} from "./FileSystem"
 import {InputArgs} from "./InputArgs";
+import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
 import {escapeHtml, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
 import {EscapeCharacters} from "./Terminal";
@@ -43,6 +44,17 @@ export class Commands {
         this.userSession = userSession;
         this.fileSystem = fileSystem;
         this.commands = {
+            "and": new Command(
+                this.and,
+                `execute command if previous command did not fail`,
+                `and <u>command</u>`,
+                `Executes <u>command</u> with its associated options and arguments if and only if the status code of \\\
+                the previously-executed command is 0.
+
+                The exit code is retained if it was non-zero, and is changed to that of <u>command</u> otherwise.\\\
+                `.trimMultiLines(),
+                new InputValidator({minArgs: 1})
+            ),
             "cat": new Command(
                 this.cat,
                 `concatenate and print files`,
@@ -51,7 +63,7 @@ export class Commands {
                 
                 If the file contains valid HTML, it will be displayed as such by default. If the <b>--html</b> \\\
                 option is given, special HTML characters are escaped and the raw text contents can be inspected.\\\
-                `.trimLines(),
+                `.trimMultiLines(),
                 new InputValidator({minArgs: 1})
             ),
             "clear": new Command(
@@ -152,6 +164,14 @@ export class Commands {
                 pre-existing directory. The file names of the <u>source</u> files are retained.`.trimMultiLines(),
                 new InputValidator({minArgs: 2})
             ),
+            "not": new Command(
+                this.not,
+                `execute command and invert status code`,
+                `not <u>command</u>`,
+                `Executes <u>command</u> with its associated options and arguments and inverts its exit code. More \\\
+                precisely, the exit code is set to 0 if it was non-zero, and is set to 1 otherwise.`.trimMultiLines(),
+                new InputValidator({minArgs: 1})
+            ),
             "open": new Command(
                 this.open,
                 `open web pages`,
@@ -162,6 +182,17 @@ export class Commands {
 
                 If this command is executed inside of a standalone app instead of a browser, every <u>file</u> is \\\
                 opened in a tab regardless of whether <b>--blank</b> is given.`.trimMultiLines(),
+                new InputValidator({minArgs: 1})
+            ),
+            "or": new Command(
+                this.or,
+                `execute command if previous command failed`,
+                `or <u>command</u>`,
+                `Executes <u>command</u> with its associated options and arguments if and only if the status code of \\\
+                the previously-executed command is not 0.
+
+                The exit code is retained if it was zero, and is changed to that of <u>command</u> otherwise.\\\
+                `.trimMultiLines(),
                 new InputValidator({minArgs: 1})
             ),
             "poweroff": new Command(
@@ -276,6 +307,17 @@ export class Commands {
                ${command.usage}`.trimLines();
     }
 
+
+    private and(input: InputArgs, streams: StreamSet): number {
+        const previousStatus = Number(this.environment.getOrDefault("status", "0"));
+        if (previousStatus !== 0)
+            return previousStatus;
+
+        return this.execute(
+            InputParser.create(this.environment, this.fileSystem).parse(input.args.join(" ")),
+            streams
+        );
+    }
 
     private cat(input: InputArgs, streams: StreamSet): number {
         return input.args
@@ -517,6 +559,13 @@ export class Commands {
             .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
     }
 
+    private not(input: InputArgs, streams: StreamSet): number {
+        return Number(!this.execute(
+            InputParser.create(this.environment, this.fileSystem).parse(input.args.join(" ")),
+            streams
+        ));
+    }
+
     private open(input: InputArgs, streams: StreamSet): number {
         return input.args
             .map(it => Path.interpret(this.environment.get("cwd"), it))
@@ -533,6 +582,17 @@ export class Commands {
                 }
             })
             .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+    }
+
+    private or(input: InputArgs, streams: StreamSet): number {
+        const previousStatus = Number(this.environment.getOrDefault("status", "0"));
+        if (previousStatus === 0)
+            return previousStatus;
+
+        return this.execute(
+            InputParser.create(this.environment, this.fileSystem).parse(input.args.join(" ")),
+            streams
+        );
     }
 
     private poweroff(_: InputArgs, streams: StreamSet): number {
