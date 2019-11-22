@@ -71,6 +71,16 @@ describe("file stream", () => {
             expect(file.contents).to.equal("old_new");
         });
 
+        it("writes multiple times", () => {
+            const file = new File("");
+            const stream = new FileStream(file, 0);
+
+            stream.write("old");
+            stream.write("_new");
+
+            expect(file.contents).to.equal("old_new");
+        });
+
         it("overwrites in the middle of the string", () => {
             const file = new File("old");
 

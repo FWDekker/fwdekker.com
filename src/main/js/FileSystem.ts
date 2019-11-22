@@ -745,5 +745,6 @@ export class FileStream extends Stream {
         const post = this.buffer.slice(string.length);
 
         this.file._contents = pre + string + post;
+        this.pointer += string.length;
     }
 }
