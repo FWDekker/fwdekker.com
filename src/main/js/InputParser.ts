@@ -46,23 +46,34 @@ export class InputParser {
 
 
     /**
-     * Parses the given input string to a set of command-line arguments.
+     * Parses the given input string to an array of input arguments to execute.
      *
      * @param input the string to parse
      */
-    parse(input: string): InputArgs {
-        const tokens = this.tokenizer.tokenize(escape(input));
+    parse(input: string): InputArgs[] {
+        return this.tokenizer
+            .tokenize(escape(input))
+            .reduce((acc, token) => {
+                if (token === ";")
+                    acc.push([]);
+                else
+                    acc[acc.length - 1].push(token);
 
-        const textTokens = tokens.filter(it => !it.match(/^[0-9]*>/))
-            .reduce((acc, it) => acc.concat(this.expander.expand(it)), <string[]> [])
-            .map(it => unescape(it));
-        const redirectTokens = tokens.map(it => unescape(it));
+                return acc;
+            }, <string[][]> [[]])
+            .filter(tokens => tokens.length !== 0)
+            .map(tokens => {
+                const textTokens = tokens.filter(it => !it.match(/^[0-9]*>/))
+                    .reduce((acc, it) => acc.concat(this.expander.expand(it)), <string[]> [])
+                    .map(it => unescape(it));
+                const redirectTokens = tokens.map(it => unescape(it));
 
-        const command = tokens[0] ?? "";
-        const [options, args] = this.parseOpts(textTokens.slice(1));
-        const outTargets = this.getRedirectTargets(redirectTokens);
+                const command = tokens[0] ?? "";
+                const [options, args] = this.parseOpts(textTokens.slice(1));
+                const outTargets = this.getRedirectTargets(redirectTokens);
 
-        return new InputArgs(command, options, args, outTargets);
+                return new InputArgs(command, options, args, outTargets);
+            });
     }
 
 
@@ -204,12 +215,27 @@ export class Tokenizer {
 
                     token += char;
                     break;
-                // Separator
+                // Separators
                 case " ":
                     if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces > 0) {
                         token += char;
-                    } else if (token !== "") {
-                        tokens.push(token);
+                    } else {
+                        if (token !== "")
+                            tokens.push(token);
+
+                        token = "";
+                    }
+                    break;
+                case ";":
+                    if (isInSingleQuotes || isInDoubleQuotes || isInCurlyBraces > 0) {
+                        token += char;
+                    } else {
+                        if (token !== "")
+                            tokens.push(token);
+
+                        if (tokens.length !== 0 && tokens[tokens.length - 1] !== ";")
+                            tokens.push(char);
+
                         token = "";
                     }
                     break;

@@ -45,12 +45,13 @@ describe("file stream", () => {
         });
 
         it("does not exceed the file's pointer", () => {
-            const stream = new FileStream(new File("contents"), 5);
+            const file = new File("contents");
+            const stream = new FileStream(file, 5);
 
             stream.read(10);
-            stream.write("new");
+            stream.write("_new");
 
-            expect(stream.read()).to.equal("new");
+            expect(file.contents).to.equal("contents_new");
         });
     });
 

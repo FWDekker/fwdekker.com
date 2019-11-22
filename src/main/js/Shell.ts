@@ -119,7 +119,7 @@ export class Shell {
      *
      * @param streams the standard streams
      */
-    execute(streams: StreamSet): number {
+    execute(streams: StreamSet): void {
         const inputString = streams.ins.readLine().replace("\n", "");
 
         if (this.environment.get("user") === "") {
@@ -144,40 +144,39 @@ export class Shell {
                 this.attemptUser = undefined;
             }
             this.saveState();
-            return 0;
         }
 
         this.inputHistory.add(inputString);
 
-        let input;
+        let inputs;
         try {
-            input = InputParser.create(this.environment, this.fileSystem).parse(inputString);
+            inputs = InputParser.create(this.environment, this.fileSystem).parse(inputString);
         } catch (error) {
             streams.err.writeLine(`Could not parse input: ${error.message}`);
             this.environment.set("status", "-1");
-            return -1;
+            return;
         }
 
-        try {
-            streams.out = this.toStream(input.redirectTargets[1]) ?? streams.out;
-            streams.err = this.toStream(input.redirectTargets[2]) ?? streams.err;
-        } catch (error) {
-            streams.err.writeLine(`Error while redirecting output:\n${error.message}`);
-            this.environment.set("status", "-1");
-            return -1;
-        }
+        inputs.forEach(input => {
+            try {
+                streams.out = this.toStream(input.redirectTargets[1]) ?? streams.out;
+                streams.err = this.toStream(input.redirectTargets[2]) ?? streams.err;
+            } catch (error) {
+                streams.err.writeLine(`Error while redirecting output:\n${error.message}`);
+                this.environment.set("status", "-1");
+                return;
+            }
 
-        const output = this.commands.execute(input, streams);
-        this.environment.set("status", "" + output);
+            const output = this.commands.execute(input, streams);
+            this.environment.set("status", "" + output);
 
-        if (this.environment.get("user") === "") {
-            this.inputHistory.clear();
-            this.environment.clear();
-            this.environment.set("user", "");
-        }
-        this.saveState();
-
-        return output;
+            if (this.environment.get("user") === "") {
+                this.inputHistory.clear();
+                this.environment.clear();
+                this.environment.set("user", "");
+            }
+            this.saveState();
+        });
     }
 
 

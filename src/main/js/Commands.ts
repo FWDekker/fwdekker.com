@@ -314,7 +314,7 @@ export class Commands {
             return previousStatus;
 
         return this.execute(
-            InputParser.create(this.environment, this.fileSystem).parse(input.args.join(" ")),
+            InputParser.create(this.environment, this.fileSystem).parse(input.args.join(" "))[0],
             streams
         );
     }
@@ -561,7 +561,7 @@ export class Commands {
 
     private not(input: InputArgs, streams: StreamSet): number {
         return Number(!this.execute(
-            InputParser.create(this.environment, this.fileSystem).parse(input.args.join(" ")),
+            InputParser.create(this.environment, this.fileSystem).parse(input.args.join(" "))[0],
             streams
         ));
     }
@@ -590,7 +590,7 @@ export class Commands {
             return previousStatus;
 
         return this.execute(
-            InputParser.create(this.environment, this.fileSystem).parse(input.args.join(" ")),
+            InputParser.create(this.environment, this.fileSystem).parse(input.args.join(" "))[0],
             streams
         );
     }

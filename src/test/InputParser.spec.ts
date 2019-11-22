@@ -61,7 +61,16 @@ describe("input parser", () => {
 
     describe("command", () => {
         it("returns the first token as the command", () => {
-            expect(parser.parse("command arg1 arg2").command).to.equal("command");
+            expect(parser.parse("command arg1 arg2")[0].command).to.equal("command");
+        });
+
+        describe("multiple commands", () => {
+            it("returns the respective commands", () => {
+                const inputArgs = parser.parse("a ; b");
+
+                expect(inputArgs[0].command).to.equal("a");
+                expect(inputArgs[1].command).to.equal("b");
+            });
         });
     });
 
@@ -69,31 +78,31 @@ describe("input parser", () => {
         describe("short options", () => {
             describe("simple cases", () => {
                 it("assigns the given value to a short option", () => {
-                    expect(parser.parse("command -o=value").options).to.have.own.property("-o", "value");
+                    expect(parser.parse("command -o=value")[0].options).to.have.own.property("-o", "value");
                 });
 
                 it("assigns an empty string to a short option", () => {
-                    expect(parser.parse("command -o= -p").options).to.have.own.property("-o", "");
+                    expect(parser.parse("command -o= -p")[0].options).to.have.own.property("-o", "");
                 });
 
                 it("throws an error if a value is assigned to a group of short options", () => {
-                    expect(() => parser.parse("command -opq=arg -r")).to.throw();
+                    expect(() => parser.parse("command -opq=arg -r")[0]).to.throw();
                 });
             });
 
             describe("value-less", () => {
                 it("assigns null to a value-less short option", () => {
-                    expect(parser.parse("command -o").options).to.have.own.property("-o", null);
+                    expect(parser.parse("command -o")[0].options).to.have.own.property("-o", null);
                 });
 
                 it("assigns null to each value-less short option", () => {
-                    const options = parser.parse("command -o -p").options;
+                    const options = parser.parse("command -o -p")[0].options;
                     expect(options).to.have.own.property("-o", null);
                     expect(options).to.have.own.property("-p", null);
                 });
 
                 it("assigns null to each value-less short option in a group", () => {
-                    const options = parser.parse("command -op").options;
+                    const options = parser.parse("command -op")[0].options;
                     expect(options).to.have.own.property("-o", null);
                     expect(options).to.have.own.property("-p", null);
                 });
@@ -101,26 +110,26 @@ describe("input parser", () => {
 
             describe("numbers", () => {
                 it("stops parsing options if a short option-like negative number is given", () => {
-                    expect(parser.parse(`command -2 -p`).options).to.not.have.own.property("-p");
+                    expect(parser.parse(`command -2 -p`)[0].options).to.not.have.own.property("-p");
                 });
 
                 it("continues parsing options if the value of a short option is a number", () => {
-                    expect(parser.parse(`command -a=2 -p`).options).to.have.own.property("-a", "2");
+                    expect(parser.parse(`command -a=2 -p`)[0].options).to.have.own.property("-a", "2");
                 });
             });
 
             describe("invalid names", () => {
                 it("stops parsing options if a short option name contains a space", () => {
-                    expect(parser.parse(`command -opt\\ ion -p`).options).to.not.have.own.property("-p");
+                    expect(parser.parse(`command -opt\\ ion -p`)[0].options).to.not.have.own.property("-p");
                 });
 
                 it("considers an assignment to an empty short option to be an argument", () => {
-                    expect(parser.parse("command -=value -p").options).to.not.have.own.property("-p");
+                    expect(parser.parse("command -=value -p")[0].options).to.not.have.own.property("-p");
                 });
             });
 
             it("considers a short option surrounded by quotes as just any other option", () => {
-                const options = parser.parse(`command -o "-p"`).options;
+                const options = parser.parse(`command -o "-p"`)[0].options;
                 expect(options).to.have.own.property("-o", null);
                 expect(options).to.have.own.property("-p", null);
             });
@@ -129,21 +138,21 @@ describe("input parser", () => {
         describe("long options", () => {
             describe("simple", () => {
                 it("assigns the given value to a long option", () => {
-                    expect(parser.parse("command --option=value").options).to.have.own.property("--option", "value");
+                    expect(parser.parse("command --option=value")[0].options).to.have.own.property("--option", "value");
                 });
 
                 it("assigns the given value containing a space to a long option", () => {
-                    expect(parser.parse(`command --option=val\\ ue`).options).to.have.own.property("--option", "val ue");
+                    expect(parser.parse(`command --option=val\\ ue`)[0].options).to.have.own.property("--option", "val ue");
                 });
             });
 
             describe("value-less", () => {
                 it("assigns null to a value-less long option", () => {
-                    expect(parser.parse("command --option").options).to.have.own.property("--option", null);
+                    expect(parser.parse("command --option")[0].options).to.have.own.property("--option", null);
                 });
 
                 it("assigns null to each value-less long option", () => {
-                    const options = parser.parse("command --optionA --optionB").options;
+                    const options = parser.parse("command --optionA --optionB")[0].options;
                     expect(options).to.have.own.property("--optionA", null);
                     expect(options).to.have.own.property("--optionB", null);
                 });
@@ -151,31 +160,31 @@ describe("input parser", () => {
 
             describe("numbers", () => {
                 it("stops parsing options if a long option-like double negative number is given", () => {
-                    expect(parser.parse(`command --23 -p`).options).to.not.have.own.property("-p");
+                    expect(parser.parse(`command --23 -p`)[0].options).to.not.have.own.property("-p");
                 });
 
                 it("continues parsing options if the value of a long option is a number", () => {
-                    expect(parser.parse(`command --a=2 -p`).options).to.have.own.property("--a", "2");
+                    expect(parser.parse(`command --a=2 -p`)[0].options).to.have.own.property("--a", "2");
                 });
             });
 
             describe("invalid names", () => {
                 it("stops parsing options if a long option name contains a space", () => {
-                    expect(parser.parse(`command "--opt ion" -p`).options).to.not.have.own.property("-p");
+                    expect(parser.parse(`command "--opt ion" -p`)[0].options).to.not.have.own.property("-p");
                 });
 
                 it("stops parsing options if a long option-like negative number is given", () => {
-                    expect(parser.parse(`command --2 -p`).options).to.not.have.own.property("-p");
+                    expect(parser.parse(`command --2 -p`)[0].options).to.not.have.own.property("-p");
                 });
 
                 it("considers an assignment to an empty long option to be an argument", () => {
-                    const options = parser.parse("command --=value -p").options;
+                    const options = parser.parse("command --=value -p")[0].options;
                     expect(options).to.not.have.own.property("-p");
                 });
             });
 
             it("considers a long option surrounded by quotes as any other option", () => {
-                const options = parser.parse(`command -o "--p"`).options;
+                const options = parser.parse(`command -o "--p"`)[0].options;
                 expect(options).to.have.own.property("-o", null);
                 expect(options).to.have.own.property("--p", null);
             });
@@ -183,7 +192,7 @@ describe("input parser", () => {
 
         describe("shared cases", () => {
             it("distinguishes between short and long options", () => {
-                const options = parser.parse("command -s --long").options;
+                const options = parser.parse("command -s --long")[0].options;
 
                 expect(options).to.not.have.own.property("s", null);
                 expect(options).to.have.own.property("-s", null);
@@ -195,63 +204,107 @@ describe("input parser", () => {
             });
 
             it("stops parsing options after the first non-option", () => {
-                expect(parser.parse("command -o=value arg -p").options).to.not.have.own.property("-p");
+                expect(parser.parse("command -o=value arg -p")[0].options).to.not.have.own.property("-p");
             });
 
             it("stops parsing options after --", () => {
-                expect(parser.parse("command -- -p").options).to.not.have.own.property("-p");
+                expect(parser.parse("command -- -p")[0].options).to.not.have.own.property("-p");
             });
 
             it("throws an error if multiple equals signs occur", () => {
-                expect(() => parser.parse("command -a=b=c")).to.throw();
+                expect(() => parser.parse("command -a=b=c")[0]).to.throw();
+            });
+        });
+
+        describe("multiple commands", () => {
+            it("keeps the commands' options separate", () => {
+                const inputArgs = parser.parse("a --abc -- -e ; b -e --d=f");
+
+                expect(inputArgs[0].options).to.have.own.property("--abc", null);
+                expect(inputArgs[0].options).to.not.have.own.property("-e", null);
+                expect(inputArgs[1].options).to.have.own.property("-e", null);
+                expect(inputArgs[1].options).to.have.own.property("--d", "f");
             });
         });
     });
 
     describe("args", () => {
         it("has no arguments if only the command is given", () => {
-            expect(parser.parse("command").args).to.have.length(0);
+            expect(parser.parse("command")[0].args).to.have.length(0);
         });
 
         it("has no arguments if only options are given", () => {
-            expect(parser.parse("command -o=value -p").args).to.have.length(0);
+            expect(parser.parse("command -o=value -p")[0].args).to.have.length(0);
         });
 
         it("has all simple arguments", () => {
-            expect(parser.parse("command a b c").args).to.have.members(["a", "b", "c"]);
+            expect(parser.parse("command a b c")[0].args).to.have.members(["a", "b", "c"]);
         });
 
         it("has arguments containing spaces", () => {
-            expect(parser.parse(`command a\\ b\\ c`).args).to.have.members(["a b c"]);
+            expect(parser.parse(`command a\\ b\\ c`)[0].args).to.have.members(["a b c"]);
         });
 
         it("has arguments containing dashes", () => {
-            expect(parser.parse("command -o -- -p").args).to.have.members(["-p"]);
+            expect(parser.parse("command -o -- -p")[0].args).to.have.members(["-p"]);
         });
 
         it("interprets options as arguments after --", () => {
-            expect(parser.parse("command -o -- -p").args).to.have.members(["-p"]);
+            expect(parser.parse("command -o -- -p")[0].args).to.have.members(["-p"]);
+        });
+
+        describe("multiple commands", () => {
+            it("keeps the commands' arguments separate", () => {
+                const inputArgs = parser.parse("command a b ; command d e f");
+
+                expect(inputArgs[0].args).to.have.deep.members(["a", "b"]);
+                expect(inputArgs[1].args).to.have.deep.members(["d", "e", "f"]);
+            });
         });
     });
 
     describe("redirect targets", () => {
         it("assigns a number-less target to index 1", () => {
-            expect(parser.parse("command >file").redirectTargets[1]).to.deep.equal({type: "write", target: "file"});
-            expect(parser.parse("command >>file").redirectTargets[1]).to.deep.equal({type: "append", target: "file"});
+            expect(parser.parse("command >file")[0].redirectTargets[1]).to.deep.equal({type: "write", target: "file"});
+            expect(parser.parse("command >>file")[0].redirectTargets[1]).to.deep.equal({
+                type: "append",
+                target: "file"
+            });
         });
 
         it("assigns the target to the preceding number", () => {
-            expect(parser.parse("command 3>file").redirectTargets[3]).to.deep.equal({type: "write", target: "file"});
-            expect(parser.parse("command 3>>file").redirectTargets[3]).to.deep.equal({type: "append", target: "file"});
+            expect(parser.parse("command 3>file")[0].redirectTargets[3]).to.deep.equal({type: "write", target: "file"});
+            expect(parser.parse("command 3>>file")[0].redirectTargets[3]).to.deep.equal({
+                type: "append",
+                target: "file"
+            });
         });
 
         it("uses the last target that is defined", () => {
-            expect(parser.parse("command 3>old 3>>new").redirectTargets[3])
+            expect(parser.parse("command 3>old 3>>new")[0].redirectTargets[3])
                 .to.deep.equal({type: "append", target: "new"});
         });
 
         it("does not include redirect targets in the arguments", () => {
-            expect(parser.parse("command arg1 3>file arg2").args).to.have.members(["arg1", "arg2"]);
+            expect(parser.parse("command arg1 3>file arg2")[0].args).to.have.members(["arg1", "arg2"]);
+        });
+
+        describe("multiple commands", () => {
+            it("keeps the commands' redirect targets separate", () => {
+                const inputArgs = parser.parse("command a b >out 2>>err ; command 3>magic");
+
+                expect(inputArgs[0].redirectTargets).to.deep.equal([
+                    undefined,
+                    {type: "write", target: "out"},
+                    {type: "append", target: "err"}
+                ]);
+                expect(inputArgs[1].redirectTargets).to.deep.equal([
+                    undefined,
+                    undefined,
+                    undefined,
+                    {type: "write", target: "magic"}
+                ]);
+            });
         });
     });
 });
@@ -265,7 +318,7 @@ describe("tokenizer", () => {
     });
 
 
-    describe("whitespace", () => {
+    describe("separator", () => {
         // See "backslash" for tests about escaped whitespace
 
         // See "grouping" for tests about whitespace inside of groups
@@ -281,6 +334,25 @@ describe("tokenizer", () => {
 
             it("ignores unnecessary whitespace in between tokens", () => {
                 expect(tokenizer.tokenize("token1     token2")).to.have.deep.members(["token1", "token2"]);
+            });
+        });
+
+        describe("semicolon", () => {
+            it("separates tokens and adds a new token containing only the semicolon", () => {
+                expect(tokenizer.tokenize("a;b")).to.have.deep.members(["a", ";", "b"]);
+                expect(tokenizer.tokenize("a; b")).to.have.deep.members(["a", ";", "b"]);
+                expect(tokenizer.tokenize("a ;b")).to.have.deep.members(["a", ";", "b"]);
+                expect(tokenizer.tokenize("a ; b")).to.have.deep.members(["a", ";", "b"]);
+            });
+
+            it("does not separate tokens inside groups", () => {
+                expect(tokenizer.tokenize(`a';'b`)).to.have.deep.members([`a';'b`]);
+                expect(tokenizer.tokenize(`a";"b`)).to.have.deep.members([`a";"b`]);
+                expect(tokenizer.tokenize(`a{;}b`)).to.have.deep.members([`a{;}b`]);
+            });
+
+            it("does not push empty tokens in between consecutive semicolons", () => {
+                expect(tokenizer.tokenize(";ab;;;;;c")).to.have.deep.members(["ab", ";", "c"]);
             });
         });
     });
@@ -453,7 +525,7 @@ describe("expander", () => {
                 expect(expander.expand("\\ ")).to.have.deep.members([" "]);
             });
 
-            it("escapes the home directory character", ()=> {
+            it("escapes the home directory character", () => {
                 expect(expander.expand("\\~")).to.have.deep.members(["~"]);
             });
 
@@ -852,7 +924,7 @@ describe("globber", () => {
             });
         });
 
-        describe("glob-less inputs",() => {
+        describe("glob-less inputs", () => {
             it("returns an empty token without change", () => {
                 expect(createGlobber().glob("")).to.have.deep.members([""]);
             });
