@@ -524,7 +524,7 @@ export class Directory extends Node {
      * @param path the path to this node
      */
     nameString(name: string, path: Path): string {
-        return `<a href="#" class="dirLink" onclick="execute('cd ${path.toString(true)}');execute('ls')">${name}</a>`;
+        return `<a href="#" class="dirLink" onclick="execute('cd ${path.toString(true)}; and ls')">${name}</a>`;
     }
 
     visit(path: string,
