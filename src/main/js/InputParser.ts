@@ -431,7 +431,11 @@ export class Expander {
             }
         }
 
-        return this.globber.glob(expandedToken);
+        const tokens = this.globber.glob(expandedToken);
+        if (tokens.length === 0)
+            throw new IllegalArgumentError(`Token '${unescape(expandedToken)}' does not match any files.`);
+
+        return tokens;
     }
 }
 
@@ -470,16 +474,9 @@ export class Globber {
         if (!this.isGlob(token))
             return [token];
 
-        let tokens: string[];
-        if (token.startsWith("/"))
-            tokens = this.glob2("/", token.slice(1), new Path("/"));
-        else
-            tokens = this.glob2("", token, this.cwd);
-
-        if (tokens.length === 0)
-            throw new IllegalArgumentError(`Token '${unescape(token)}' does not match any files.`);
-
-        return tokens;
+        return token.startsWith("/")
+            ? this.glob2("/", token.slice(1), new Path("/"))
+            : this.glob2("", token, this.cwd);
     }
 
 

@@ -643,6 +643,22 @@ describe("expander", () => {
             expect(expander.expand("'b?'")).to.have.deep.members(["b?"]);
             expect(expander.expand("\"b*\"")).to.have.deep.members(["b*"]);
         });
+
+        it("throws an error if the globber returns an empty array", () => {
+            const globber = new class extends Globber {
+                constructor() {
+                    super(new FileSystem(), "");
+                }
+
+
+                glob(): string[] {
+                    return [];
+                }
+            };
+            expander = new Expander(new Environment(), globber);
+
+            expect(() => expander.expand("arg")).to.throw();
+        });
     });
 
     describe("home directory", () => {
@@ -910,14 +926,14 @@ describe("globber", () => {
 
     describe("shared cases", () => {
         describe("no matches", () => {
-            it("throws an error if no matches are found", () => {
-                expect(() => createGlobber().glob(`x${escape}?`)).to.throw();
+            it("returns an empty array if no matches are found", () => {
+                expect(createGlobber().glob(`x${escape}?`)).to.have.deep.members([]);
             });
 
-            it("throws an error if no matches are found because the cwd does not exist", () => {
+            it("returns an empty array if no matches are found because the cwd does not exist", () => {
                 const globber = createGlobber({"/a1": new File()}, "/dir");
 
-                expect(() => globber.glob(`a${escape}?`)).to.throw();
+                expect(globber.glob(`a${escape}?`)).to.have.deep.members([]);
             });
         });
 
