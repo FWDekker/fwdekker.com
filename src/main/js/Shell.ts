@@ -150,7 +150,7 @@ export class Shell {
 
         let inputs;
         try {
-            inputs = InputParser.create(this.environment, this.fileSystem).parse(inputString);
+            inputs = InputParser.create(this.environment, this.fileSystem).parseCommands(inputString);
         } catch (error) {
             streams.err.writeLine(`Could not parse input: ${error.message}`);
             this.environment.set("status", "-1");

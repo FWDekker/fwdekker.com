@@ -50,7 +50,7 @@ export class InputParser {
      *
      * @param input the string to parse
      */
-    parse(input: string): InputArgs[] {
+    parseCommands(input: string): InputArgs[] {
         return this.tokenizer
             .tokenize(escape(input))
             .reduce((acc, token) => {
@@ -62,18 +62,25 @@ export class InputParser {
                 return acc;
             }, <string[][]> [[]])
             .filter(tokens => tokens.length !== 0)
-            .map(tokens => {
-                const textTokens = tokens.filter(it => !it.match(/^[0-9]*>/))
-                    .reduce((acc, it) => acc.concat(this.expander.expand(it)), <string[]> [])
-                    .map(it => unescape(it));
-                const redirectTokens = tokens.map(it => unescape(it));
+            .map(tokens => this.parseCommand(tokens));
+    }
 
-                const command = tokens[0] ?? "";
-                const [options, args] = this.parseOpts(textTokens.slice(1));
-                const outTargets = this.getRedirectTargets(redirectTokens);
+    /**
+     * Turns a set of tokens into input arguments to execute.
+     *
+     * @param tokens the tokens to interpret as a command
+     */
+    parseCommand(tokens: string[]): InputArgs {
+        const textTokens = tokens.filter(it => !it.match(/^[0-9]*>/))
+            .reduce((acc, it) => acc.concat(this.expander.expand(it)), <string[]> [])
+            .map(it => unescape(it));
+        const redirectTokens = tokens.map(it => unescape(it));
 
-                return new InputArgs(command, options, args, outTargets);
-            });
+        const command = tokens[0] ?? "";
+        const [options, args] = this.parseOpts(textTokens.slice(1));
+        const outTargets = this.getRedirectTargets(redirectTokens);
+
+        return new InputArgs(command, options, args, outTargets);
     }
 
 
