@@ -338,6 +338,7 @@ export class Expander {
                     switch (nextChar) {
                         case "\\":
                         case " ":
+                        case ";":
                         case "~":
                         case "$":
                         case ">":
@@ -348,9 +349,6 @@ export class Expander {
                         case "{":
                         case "}":
                             expandedToken += nextChar;
-                            break;
-                        case "n":
-                            expandedToken += "\n";
                             break;
                         default:
                             expandedToken += char + nextChar;

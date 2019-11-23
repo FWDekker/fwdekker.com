@@ -521,8 +521,9 @@ describe("expander", () => {
                 expect(expander.expand("\\\\")).to.have.deep.members(["\\"]);
             });
 
-            it("escapes whitespace", () => {
+            it("escapes separators", () => {
                 expect(expander.expand("\\ ")).to.have.deep.members([" "]);
+                expect(expander.expand("\\;")).to.have.deep.members([";"]);
             });
 
             it("escapes the home directory character", () => {
@@ -547,10 +548,6 @@ describe("expander", () => {
                 expect(expander.expand("\\\"")).to.have.deep.members(["\""]);
                 expect(expander.expand("\\{")).to.have.deep.members(["{"]);
                 expect(expander.expand("\\}")).to.have.deep.members(["}"]);
-            });
-
-            it("escapes differently-represented characters", () => {
-                expect(expander.expand("\\n")).to.have.deep.members(["\n"]);
             });
 
             it("does not escape other characters", () => {
