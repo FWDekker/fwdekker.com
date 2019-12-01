@@ -130,6 +130,18 @@ export function q(query: string): HTMLElement {
 
 
 /**
+ * Indicates that the application will exit under normal circumstances.
+ *
+ * That is, this is not actually an error. This "error" is thrown when the normal flow of execution should be
+ * interrupted right away so that the application can exit.
+ */
+export class ExpectedGoodbyeError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+/**
  * Indicates that an argument is given to a function that should not have been given.
  *
  * The user should not be able to reach this state because user input should have been sanitized.

@@ -1,6 +1,7 @@
 import {Persistence} from "./Persistence";
-import {addOnLoad, q} from "./Shared";
+import {addOnLoad, ExpectedGoodbyeError, q} from "./Shared";
 import {Terminal} from "./Terminal";
+import * as semver from "semver";
 
 
 declare global {
@@ -19,13 +20,45 @@ declare global {
 }
 
 
+/**
+ * Compares version numbers to ensure no compatibility errors ensure.
+ */
+addOnLoad(() => {
+    const userVersion = Persistence.getVersion();
+    const latestVersion = "%%VERSION_NUMBER%%";
+
+    if (semver.lt(userVersion, latestVersion)) {
+        Persistence.reset();
+        Persistence.setWasUpdated(true); // Message is displayed after reload
+        location.reload();
+        throw new ExpectedGoodbyeError("Goodbye");
+    }
+
+    if (Persistence.getWasUpdated()) {
+        q("#terminalOutput").innerHTML = "" +
+            "<span style=\"color:red\">This website has been updated. To prevent unexpected errors, all previous " +
+            "user changes have been reset.</span>\n\n";
+        Persistence.setWasUpdated(false);
+    }
+
+    Persistence.setVersion(latestVersion);
+});
+
+/**
+ * Exist the application if the server is "shut down".
+ */
 addOnLoad(() => {
     if (Persistence.getPoweroff()) {
         q("#terminalOutput").innerText = "Could not connect to fwdekker.com. Retrying in 10 seconds.";
         setTimeout(() => location.reload(), 10000);
-        return;
+        throw new ExpectedGoodbyeError("Goodbye");
     }
+});
 
+/**
+ * Initializes the application.
+ */
+addOnLoad(() => {
     window.terminal = new Terminal(
         q("#terminal"),
         q("#terminalCurrentFocusInput"),

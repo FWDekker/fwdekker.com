@@ -86,8 +86,8 @@ export class Terminal {
             scrollStartPosition = newPosition;
         }, {passive: true});
 
-        this.outputText = this.shell.generateHeader();
-        this.prefixText = this.shell.generatePrefix();
+        this.outputText += this.shell.generateHeader();
+        this.prefixText += this.shell.generatePrefix();
         this.input.focus();
     }
 

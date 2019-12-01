@@ -10,51 +10,19 @@ import {UserList} from "./UserList";
  */
 export class Persistence {
     /**
-     * Deserializes an environment from persistent storage, or returns the default environment if the deserialization
-     * failed.
-     *
-     * @param userList the list of users used to validate the `user` environment variable
+     * Removes all persistent storage.
      */
-    static getEnvironment(userList: UserList): Environment {
-        const environmentString = Cookies.get("env") ?? "{}";
-
-        let environment: Environment;
-        try {
-            environment = new Environment(["cwd", "home", "user", "status"], JSON.parse(environmentString));
-        } catch (error) {
-            console.warn("Failed to set environment from cookie.");
-            environment = new Environment(["cwd", "home", "user", "status"]);
-        }
-
-        // Check user in environment
-        if (!environment.has("user")) {
-            environment.set("user", "felix");
-        } else if (environment.get("user") !== "" && !userList.has(environment.get("user"))) {
-            console.warn(`Invalid user '${environment.get("user")}' in environment.`);
-            environment.set("user", "felix");
-        }
-
-        // Set home directory
-        environment.set("home", userList.get(environment.get("user"))?.home ?? "/");
-
-        // Check cwd in environment
-        if (!environment.has("cwd"))
-            environment.set("cwd", environment.get("home"));
-
-        // Set status
-        environment.set("status", "0");
-
-        return environment;
+    static reset(): void {
+        sessionStorage.clear();
+        localStorage.clear();
+        Cookies.remove("env");
+        Cookies.remove("poweroff");
     }
 
-    /**
-     * Persists the given environment.
-     *
-     * @param environment the environment to persist
-     */
-    static setEnvironment(environment: Environment): void {
-        Cookies.set("env", environment.variables, {"path": "/"});
-    }
+
+    ///
+    /// Long-term storage
+    ///
 
     /**
      * Deserializes a file system from persistent storage, or returns the default file system if the deserialization
@@ -108,21 +76,89 @@ export class Persistence {
     }
 
     /**
-     * Returns the persisted "power off" setting.
+     * Deserializes an environment from persistent storage, or returns the default environment if the deserialization
+     * failed.
+     *
+     * @param userList the list of users used to validate the `user` environment variable
+     */
+    static getEnvironment(userList: UserList): Environment {
+        const environmentString = Cookies.get("env") ?? "{}";
+
+        let environment: Environment;
+        try {
+            environment = new Environment(["cwd", "home", "user", "status"], JSON.parse(environmentString));
+        } catch (error) {
+            console.warn("Failed to set environment from cookie.");
+            environment = new Environment(["cwd", "home", "user", "status"]);
+        }
+
+        // Check user in environment
+        if (!environment.has("user")) {
+            environment.set("user", "felix");
+        } else if (environment.get("user") !== "" && !userList.has(environment.get("user"))) {
+            console.warn(`Invalid user '${environment.get("user")}' in environment.`);
+            environment.set("user", "felix");
+        }
+
+        // Set home directory
+        environment.set("home", userList.get(environment.get("user"))?.home ?? "/");
+
+        // Check cwd in environment
+        if (!environment.has("cwd"))
+            environment.set("cwd", environment.get("home"));
+
+        // Set status
+        environment.set("status", "0");
+
+        return environment;
+    }
+
+    /**
+     * Persists the given environment.
+     *
+     * @param environment the environment to persist
+     */
+    static setEnvironment(environment: Environment): void {
+        Cookies.set("env", environment.variables, {"path": "/"});
+    }
+
+    /**
+     * Returns the version of the scripts that were used the last time the user visited the website.
+     */
+    static getVersion(): string {
+        return localStorage.getItem("version") ?? "%%VERSION_NUMBER%%";
+    }
+
+    /**
+     * Sets the version of the scripts that were used the last time the user visited the website.
+     *
+     * @param version the version of the scripts that were used the last time the user visited the website
+     */
+    static setVersion(version: string) {
+        localStorage.setItem("version", version);
+    }
+
+
+    ///
+    /// Short-term storage
+    ///
+
+    /**
+     * Returns `true` if and only if the server is "turned off".
      */
     static getPoweroff(): boolean {
         try {
             return JSON.parse(Cookies.get("poweroff") ?? "false");
-        } catch(error) {
+        } catch (error) {
             console.warn("Failed to deserialize 'poweroff' cookie.", error);
             return false;
         }
     }
 
     /**
-     * Persists the "power off" setting.
+     * Stores whether the server is "turned off".
      *
-     * @param value the value to persist for the "power off" setting
+     * @param value whether the server is "turned off"
      */
     static setPoweroff(value: boolean): void {
         Cookies.set("poweroff", "" + value, {
@@ -132,11 +168,23 @@ export class Persistence {
     }
 
     /**
-     * Removes all persistent storage.
+     * Returns `true` if and only if the terminal was updated in this session.
      */
-    static reset(): void {
-        localStorage.clear();
-        Cookies.remove("env");
-        Cookies.remove("poweroff");
+    static getWasUpdated(): boolean {
+        try {
+            return JSON.parse(sessionStorage.getItem("has-updated") ?? "false");
+        } catch (error) {
+            console.warn("Failed to deserialize 'poweroff' cookie.", error);
+            return false;
+        }
+    }
+
+    /**
+     * Stores whether the terminal was updated in this session.
+     *
+     * @param value whether the terminal was updated in this session
+     */
+    static setWasUpdated(value: boolean): void {
+        sessionStorage.setItem("has-updated", "" + value);
     }
 }

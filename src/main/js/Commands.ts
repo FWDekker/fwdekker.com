@@ -4,7 +4,7 @@ import {Directory, File, FileSystem, Path} from "./FileSystem"
 import {InputArgs} from "./InputArgs";
 import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {escapeHtml, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
+import {escapeHtml, ExpectedGoodbyeError, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
 import {StreamSet} from "./Stream";
@@ -60,7 +60,7 @@ export class Commands {
                 `concatenate and print files`,
                 `cat [<b>-e</b> | <b>--escape-html</b>] <u>file</u> <u>...</u>`,
                 `Reads files sequentially, writing them to the standard output.
-                
+
                 If the file contains valid HTML, it will be displayed as such by default. If the <b>--html</b> \\\
                 option is given, special HTML characters are escaped and the raw text contents can be inspected.\\\
                 `.trimMultiLines(),
@@ -270,7 +270,7 @@ export class Commands {
         if (input.command === "factory-reset") {
             Persistence.reset();
             location.reload();
-            throw new Error("Goodbye");
+            throw new ExpectedGoodbyeError("Goodbye");
         }
 
         if (input.command === "")
