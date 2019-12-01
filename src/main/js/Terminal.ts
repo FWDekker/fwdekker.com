@@ -248,10 +248,17 @@ export class Terminal {
     /**
      * Handles click events.
      */
-    private onclick(): void {
-        // Focus on input unless user has text selected. This allows user to copy text
-        if ((document.getSelection() ?? "").toString() === "")
-            this.input.focus();
+    private onclick(event: MouseEvent): void {
+        // Do not focus on input if user clicked a link
+        const target = event.target;
+        if (target instanceof HTMLElement && target.nodeName.toLowerCase() === "a")
+            return;
+
+        // Do not focus on input if user has text selected; this allows user to copy text
+        if ((document.getSelection() ?? "").toString() !== "")
+            return;
+
+        this.input.focus();
     }
 
     /**
