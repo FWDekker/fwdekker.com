@@ -1,6 +1,6 @@
 {
     "name": "fwdekker.com",
-    "version": "0.25.1",
+    "version": "0.25.2",
     "description": "The source code of [my personal website](https://fwdekker.com/).",
     "author": "Felix W. Dekker",
     "repository": {
@@ -17,11 +17,11 @@
     },
     "dependencies": {
         "js-cookie": "^2.2.1",
-        "semver": "^6.3.0"
+        "semver": "^7.1.0"
     },
     "devDependencies": {
         "@istanbuljs/nyc-config-typescript": "^0.1.3",
-        "@types/chai": "^4.2.5",
+        "@types/chai": "^4.2.7",
         "@types/js-cookie": "^2.2.4",
         "@types/mocha": "^5.2.7",
         "@types/semver": "^6.2.0",
@@ -36,8 +36,8 @@
         "nyc": "^14.1.1",
         "ts-loader": "^6.2.1",
         "ts-node": "^8.5.4",
-        "typescript": "^3.7.2",
-        "webpack": "^4.41.2",
+        "typescript": "^3.7.3",
+        "webpack": "^4.41.3",
         "webpack-cli": "^3.3.10"
     }
 }
