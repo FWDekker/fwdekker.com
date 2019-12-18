@@ -73,7 +73,7 @@ export class Terminal {
 
         let scrollStartPosition: number = 0;
         this.terminal.addEventListener("wheel", (event: WheelEvent) => {
-            this.scroll -= event.deltaY / 100;
+            this.scroll -= Math.sign(event.deltaY);
         }, {passive: true});
         this.terminal.addEventListener("touchstart", (event: TouchEvent) => {
             scrollStartPosition = event.changedTouches[0].clientY;
