@@ -295,6 +295,7 @@ export class Terminal {
             case "altgraph":
             case "control":
             case "meta":
+            case "os":
             case "shift":
                 return; // Return without scrolling to 0
             case "arrowup": {
