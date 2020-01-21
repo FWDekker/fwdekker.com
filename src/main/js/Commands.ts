@@ -269,7 +269,7 @@ export class Commands {
     execute(input: InputArgs, streams: StreamSet): number {
         if (input.command === "factory-reset") {
             Persistence.reset();
-            location.reload();
+            location.reload(true);
             throw new ExpectedGoodbyeError("Goodbye");
         }
 

@@ -30,7 +30,7 @@ addOnLoad(() => {
     if (semver.lt(userVersion, latestVersion)) {
         Persistence.reset();
         Persistence.setWasUpdated(true); // Message is displayed after reload
-        location.reload();
+        location.reload(true);
         throw new ExpectedGoodbyeError("Goodbye");
     }
 
