@@ -144,6 +144,7 @@ export class Shell {
                 this.attemptUser = undefined;
             }
             this.saveState();
+            return;
         }
 
         this.inputHistory.add(inputString);
