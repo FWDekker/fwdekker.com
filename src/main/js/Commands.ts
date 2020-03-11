@@ -1,6 +1,6 @@
-import "./Extensions"
+import "./Extensions";
 import {Environment} from "./Environment";
-import {Directory, File, FileSystem, Path} from "./FileSystem"
+import {Directory, File, FileSystem, Path} from "./FileSystem";
 import {InputArgs} from "./InputArgs";
 import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
@@ -120,6 +120,18 @@ export class Commands {
 
                 If no commands are given, a list of all commands is shown.`.trimMultiLines(),
                 new InputValidator()
+            ),
+            "hier": new DocOnlyCommand(
+                `description of the filesystem hierarchy`,
+                `A typical josh system has, among others, the following directories:
+
+                <u>/</u>      This is the root directory. This is where the whole tree starts.
+
+                <u>/dev</u>   Contains special files and device files that refer to physical devices.
+
+                <u>/home</u>  Contains directories for users to store personal files in.
+
+                <u>/root</u>  The home directory of the root user.`.trimMultiLines()
             ),
             "ls": new Command(
                 this.ls,
@@ -272,15 +284,15 @@ export class Commands {
             location.reload(true);
             throw new ExpectedGoodbyeError("Goodbye");
         }
-
         if (input.command === "")
             return 0;
-        if (!this.commands.hasOwnProperty(input.command)) {
+
+        const command = this.commands[input.command];
+        if (command === undefined || command instanceof DocOnlyCommand) {
             streams.err.writeLine(`Unknown command '${input.command}'.`);
             return -1;
         }
 
-        const command = this.commands[input.command];
         const validation = command.validator.validate(input);
         if (!validation[0]) {
             streams.err.writeLine(this.createUsageErrorOutput(input.command, validation[1]));
@@ -406,44 +418,39 @@ export class Commands {
     }
 
     private help(input: InputArgs, streams: StreamSet): number {
-        const commandNames = Object.keys(this.commands);
-
         if (input.argc > 0) {
             return input.args
-                .map((it, i) => {
+                .map((commandName, i) => {
                     if (i > 0)
                         streams.out.write("\n\n");
 
-                    if (!this.commands.hasOwnProperty(it)) {
-                        streams.out.writeLine(`Unknown command ${it}.`);
+                    const command = this.commands[commandName];
+                    if (command === undefined) {
+                        streams.out.writeLine(`Unknown command '${commandName}'.`);
                         return -1;
                     }
 
-                    const commandName = it.toLowerCase();
-                    const command = this.commands[commandName];
+                    let helpString = "<b>Name</b>\n" + commandName;
+                    if (command.summary !== null)
+                        helpString += "\n\n<b>Summary</b>\n" + command.summary;
+                    if (command.usage !== null)
+                        helpString += "\n\n<b>Usage</b>\n" + command.usage;
+                    if (command.desc !== null)
+                        helpString += "\n\n<b>Description</b>\n" + command.desc;
 
-                    streams.out.writeLine(
-                        `<b>Name</b>
-                        ${commandName}
-
-                        <b>Summary</b>
-                        ${command.summary}
-
-                        <b>Usage</b>
-                        ${command.usage}
-
-                        <b>Description</b>
-                        ${command.desc}`.trimLines()
-                    );
+                    streams.out.writeLine(helpString);
                     return 0;
                 })
                 .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
         } else {
+            const commandNames = Object.keys(this.commands)
+                .filter(it => !(this.commands[it] instanceof DocOnlyCommand));
+
             const commandWidth = Math.max.apply(null, commandNames.map(it => it.length)) + 4;
             const commandPaddings = commandNames.map(it => commandWidth - it.length);
             const commandLinks = commandNames
                 .map(it => `<a href="#" onclick="execute('help ${it}')">${it}</a>`)
-                .map((it, i) => `${it.padEnd(it.length + commandPaddings[i], ' ')}`);
+                .map((it, i) => `${it.padEnd(it.length + commandPaddings[i], " ")}`);
             const commandEntries = commandNames
                 .map((it, i) => `${commandLinks[i]}${this.commands[it].summary}`);
 
@@ -513,10 +520,6 @@ export class Commands {
         if (input.argc === 0) {
             streams.out.writeLine("What manual page do you want?");
             return 0;
-        }
-        if (!Object.keys(this.commands).includes(input.args[0])) {
-            streams.err.writeLine(`man: No manual entry for '${input.args[0]}'.`);
-            return -1;
         }
 
         return this.help(input, streams);
@@ -774,15 +777,15 @@ class Command {
     /**
      * A short summary of what the command does.
      */
-    readonly summary: string;
+    readonly summary: string | null;
     /**
      * A string describing how the command is to be used.
      */
-    readonly usage: string;
+    readonly usage: string | null;
     /**
      * A longer description of what the command does and how its parameters work.
      */
-    readonly desc: string;
+    readonly desc: string | null;
     /**
      * A function that validates input for this command.
      */
@@ -793,18 +796,37 @@ class Command {
      * Constructs a new command.
      *
      * @param fun the function to execute with the command is executed
-     * @param summary a short summary of what the command does
-     * @param usage a string describing how the command is to be used
-     * @param desc a longer description of what the command does and how its parameters work
+     * @param summary a short summary of what the command does, or `null` if not applicable
+     * @param usage a string describing how the command is to be used, or `null` if not applicable
+     * @param desc a longer description of what the command does and how its parameters work, or `null` if not
+     * applicable
      * @param validator a function that validates input for this command
      */
-    constructor(fun: (args: InputArgs, streams: StreamSet) => number, summary: string, usage: string, desc: string,
-                validator: InputValidator) {
+    constructor(fun: (args: InputArgs, streams: StreamSet) => number, summary: string | null, usage: string | null,
+                desc: string | null, validator: InputValidator) {
         this.fun = fun;
         this.summary = summary;
         this.usage = usage;
         this.desc = desc;
         this.validator = validator;
+    }
+}
+
+/**
+ * A command that cannot be executed, but of which the documentation can be looked up anyway.
+ */
+class DocOnlyCommand extends Command {
+    /**
+     * Constructs a new doc-only command.
+     *
+     * @param summary a short summary of what the command does, or `null` if not applicable
+     * @param desc a longer description of what the command does and how its parameters work, or `null` if not
+     * applicable
+     */
+    constructor(summary: string | null, desc: string | null) {
+        super(() => {
+            throw new IllegalStateError("Cannot execute doc-only command.");
+        }, summary, null, desc, new InputValidator());
     }
 }
 
