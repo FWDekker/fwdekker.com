@@ -27,26 +27,35 @@ export class FileSystem {
                     "home": new Directory({
                         "felix": new Directory({
                             "personal": new Directory({
-                                "steam.lnk": new File("https://steamcommunity.com/id/Waflix"),
-                                "nukapedia.lnk": new File("https://fallout.wikia.com/wiki/User:FDekker"),
                                 "blog.lnk": new File("https://blog.fwdekker.com/"),
+                                "nukapedia.lnk": new File("https://fallout.wikia.com/wiki/User:FDekker"),
+                                "steam.lnk": new File("https://steamcommunity.com/id/Waflix"),
                             }),
                             "projects": new Directory({
+                                "converter.lnk": new File("https://fwdekker.com/tools/converter/"),
+                                "dice.lnk": new File("https://fwdekker.com/tools/dice/"),
+                                "doomsday.lnk": new File("https://fwdekker.com/tools/doomsday/"),
+                                "fo76-dumps.lnk": new File("https://github.com/FWDekker/fo76-dumps"),
+                                "josh.lnk": new File("https://git.fwdekker.com/FWDekker/fwdekker.com"),
+                                "random-fo76.lnk": new File("https://fwdekker.com/tools/random-fo76/"),
                                 "randomness.lnk": new File("https://github.com/FWDekker/intellij-randomness"),
                                 "schaapi.lnk": new File("https://cafejojo.org/schaapi"),
-                                "gitea.lnk": new File("https://git.fwdekker.com/explore/"),
-                                "github.lnk": new File("https://github.com/FWDekker/"),
+                                "simplify-fractions.lnk": new File("https://fwdekker.com/tools/simplify-fractions/"),
                             }),
                             "social": new Directory({
+                                "gitea.lnk": new File("https://git.fwdekker.com/explore/"),
                                 "github.lnk": new File("https://github.com/FWDekker/"),
                                 "stackoverflow.lnk": new File("https://stackoverflow.com/u/3307872"),
-                                "linkedin.lnk": new File("https://www.linkedin.com/in/fwdekker/")
+                                "linkedin.lnk": new File("https://www.linkedin.com/in/fwdekker/"),
                             }),
+                            "me_irl.jpg": new File("https://static.fwdekker.com/img/avatar.jpg", "lnk"),
                             "pgp.pub": new File("https://static.fwdekker.com/misc/pgp.pub.txt", "lnk"),
-                            "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf", "lnk")
+                            "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf", "lnk"),
                         })
                     }),
-                    "root": new Directory()
+                    "root": new Directory({
+                        "password.txt": new File("root: g9PjKu")
+                    })
                 });
         else
             this.root = root;
@@ -348,7 +357,7 @@ export class Path {
         const escapes = [
             ["\\;", "&#92;&#92;&#59;"],
             ["\\'", "&#92;&#92;&#92;&#39;"],
-            ['\\"', "&#92;&#92;&#92;&#34;"],
+            ["\\\"", "&#92;&#92;&#92;&#34;"],
             [" ", "&#92;&#92;&#32;"],
             ["\\\\", "&#92;&#92;&#92;&#92;"],
             ["\\~", "&#92;&#92;&#126;"],

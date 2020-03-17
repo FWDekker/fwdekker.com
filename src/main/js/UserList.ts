@@ -17,7 +17,7 @@ export class UserList {
         if (users === undefined)
             this._users = [
                 new User("felix", "password", "/home/felix", "Why are you logged in on <i>my</i> account?"),
-                new User("root", "root", "/root", "Wait how did you get here?")
+                new User("root", "g9PjKu", "/root", "You're a hacker Harry!")
             ];
         else
             this._users = users;
