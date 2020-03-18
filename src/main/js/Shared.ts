@@ -157,6 +157,28 @@ export function q(query: string): HTMLElement {
     return element;
 }
 
+/**
+ * Returns the longest common prefix of the given strings, or `undefined` if an empty array is given.
+ *
+ * Taken from https://stackoverflow.com/a/1917041/.
+ *
+ * @param strings the string to find the longest common prefix of
+ * @return the longest common prefix of the given strings, or `undefined` if an empty array is given
+ */
+export function findLongestCommonPrefix(strings: string[]): string | undefined {
+    if (strings.length === 0) return undefined;
+
+    const A = strings.concat().sort();
+    const a1 = A[0];
+    const a2 = A[A.length - 1];
+    const L = a1.length;
+
+    let i = 0;
+    while (i < L && a1.charAt(i) === a2.charAt(i)) i++;
+
+    return a1.substring(0, i);
+}
+
 
 /**
  * Indicates that the application will exit under normal circumstances.

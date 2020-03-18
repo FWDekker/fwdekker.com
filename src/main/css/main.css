@@ -82,17 +82,17 @@ body {
     white-space: pre-wrap;
 }
 
-#terminalCurrent {
+#terminalInput {
     max-width: 100%;
 }
 
-#terminalCurrentPrefix {
+#terminalInputPrefix {
     display: inline-block;
     vertical-align: top;
     white-space: pre;
 }
 
-#terminalCurrentFocusInput {
+#terminalInputField {
     display: inline-block;
     margin: 0;
     padding: 0;
@@ -113,11 +113,11 @@ body {
     font-size: inherit;
 }
 
-#terminalCurrentFocusInput br {
+#terminalInputField br {
     display: none;
 }
 
-.terminalCurrentFocusInputHidden {
+.terminalInputFieldHidden {
     max-width: 1px !important;
     overflow: hidden !important;
     overflow-wrap: normal !important;

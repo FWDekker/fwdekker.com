@@ -61,9 +61,10 @@ addOnLoad(() => {
 addOnLoad(() => {
     window.terminal = new Terminal(
         q("#terminal"),
-        q("#terminalCurrentFocusInput"),
+        q("#terminalInputField"),
         q("#terminalOutput"),
-        q("#terminalCurrentPrefix")
+        q("#terminalInputPrefix"),
+        q("#terminalSuggestions")
     );
     window.execute = (command: string) => window.terminal.processInput(command);
 

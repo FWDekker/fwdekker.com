@@ -4,7 +4,7 @@ import {Directory, FileSystem, Path} from "./FileSystem";
 import {InputHistory} from "./InputHistory";
 import {Globber, InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {asciiHeaderHtml, extractWordBefore, IllegalStateError, isStandalone} from "./Shared";
+import {asciiHeaderHtml, IllegalStateError, isStandalone} from "./Shared";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
 import {OutputStream, StreamSet} from "./Stream";
@@ -183,25 +183,16 @@ export class Shell {
     }
 
     /**
-     * Tries to auto-complete the given input string at the indicated offset.
+     * Tries to auto-complete the given parameter.
      *
-     * @param input the input to auto-complete in
-     * @param offset the offset of the caret in the given string at which auto-completion is invoked
-     * @return the new input string and caret position
+     * @param parameter the parameter to complete
+     * @return the suggestions for the given parameter
      */
-    autoComplete(input: string, offset: number): [string, number] {
+    autoComplete(parameter: string): string[] {
         const cwd = this.environment.get("cwd");
-        const globber = new Globber(this.fileSystem, cwd);
-
-        const [left, word, right] = extractWordBefore(input, offset, " ");
-        const options = globber.glob(word + InputParser.EscapeChar + "*");
-        if (options.length !== 1)
-            return [input, offset];
-
-        let replacement = options[0];
-        if (this.fileSystem.get(Path.interpret(cwd, replacement)) instanceof Directory)
-            replacement += "/";
-        return [left + replacement + right, (left + replacement).length];
+        return new Globber(this.fileSystem, cwd)
+            .glob(parameter + InputParser.EscapeChar + "*")
+            .map((it) => this.fileSystem.get(Path.interpret(cwd, it)) instanceof Directory ? it + "/" : it);
     }
 
 
