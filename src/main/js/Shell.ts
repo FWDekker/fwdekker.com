@@ -124,9 +124,11 @@ export class Shell {
 
         if (this.environment.get("user") === "") {
             if (this.attemptUser === undefined) {
-                streams.out.write(EscapeCharacters.Escape + EscapeCharacters.HideInput);
+                if (inputString.trim() !== "") {
+                    streams.out.write(EscapeCharacters.Escape + EscapeCharacters.HideInput);
 
-                this.attemptUser = inputString.trim() ?? undefined; // Leave at undefined if empty string
+                    this.attemptUser = inputString.trim();
+                }
             } else {
                 streams.out.write(EscapeCharacters.Escape + EscapeCharacters.ShowInput);
 
