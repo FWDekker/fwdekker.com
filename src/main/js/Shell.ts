@@ -2,9 +2,9 @@ import {Commands} from "./Commands";
 import {Environment} from "./Environment";
 import {Directory, FileSystem, Path} from "./FileSystem";
 import {InputHistory} from "./InputHistory";
-import {InputParser} from "./InputParser";
+import {Globber, InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {asciiHeaderHtml, IllegalStateError, isStandalone} from "./Shared";
+import {asciiHeaderHtml, extractWordBefore, IllegalStateError, isStandalone} from "./Shared";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
 import {OutputStream, StreamSet} from "./Stream";
@@ -180,6 +180,28 @@ export class Shell {
             }
             this.saveState();
         });
+    }
+
+    /**
+     * Tries to auto-complete the given input string at the indicated offset.
+     *
+     * @param input the input to auto-complete in
+     * @param offset the offset of the caret in the given string at which auto-completion is invoked
+     * @return the new input string and caret position
+     */
+    autoComplete(input: string, offset: number): [string, number] {
+        const cwd = this.environment.get("cwd");
+        const globber = new Globber(this.fileSystem, cwd);
+
+        const [left, word, right] = extractWordBefore(input, offset, " ");
+        const options = globber.glob(word + InputParser.EscapeChar + "*");
+        if (options.length !== 1)
+            return [input, offset];
+
+        let replacement = options[0];
+        if (this.fileSystem.get(Path.interpret(cwd, replacement)) instanceof Directory)
+            replacement += "/";
+        return [left + replacement + right, (left + replacement).length];
     }
 
 

@@ -45,7 +45,7 @@ addOnLoad(() => {
 });
 
 /**
- * Exist the application if the server is "shut down".
+ * Exits the application if the server is "shut down".
  */
 addOnLoad(() => {
     if (Persistence.getPoweroff()) {

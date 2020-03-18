@@ -1,3 +1,6 @@
+import "./Extensions";
+
+
 /**
  * The fancy ASCII header that is displayed at the start of a terminal session.
  */
@@ -51,6 +54,29 @@ export function escapeHtml(string: string): string {
 }
 
 /**
+ * Given an input string, finds the word that ends at the indicated offset, and returns the string before the word, the
+ * word itself, and the string after the word.
+ *
+ * The word is preceded by a whitespace or forward slash, and ends at the indicated offset. Whitespace and forward
+ * slashes at the end of the word are ignored.
+ *
+ * @param input the input string to find the word in
+ * @param offset the right-most position of the word
+ * @param delimiters the delimiters to consider
+ * @return the string before the word, the word itself, and the string after the word
+ */
+export function extractWordBefore(input: string, offset: number, delimiters: string = " /"): [string, string, string] {
+    const right = input.slice(offset);
+
+    const leftPlusWord = input.slice(0, offset);
+    const trimmedLeftPlusWord =
+        delimiters.split("").reduce((acc, delimiter) => acc.trimRightChar(delimiter), leftPlusWord);
+
+    const wordStart = Math.max.apply(null, delimiters.split("").map((it) => trimmedLeftPlusWord.lastIndexOf(it)));
+    return [leftPlusWord.slice(0, wordStart + 1), leftPlusWord.slice(wordStart + 1, leftPlusWord.length), right];
+}
+
+/**
  * Returns the extension of the given filename, or `""` if it doesn't have one.
  *
  * @param filename the filename to return the extension of
@@ -70,10 +96,13 @@ export function isStandalone(): boolean {
 /**
  * Moves the caret to the given position in the given node.
  *
- * @param node the node to move the caret in
+ * @param node the node to move the caret in; if `null`, nothing happens
  * @param position the position from the left to place the caret at
  */
-export function moveCaretTo(node: Node, position: number): void {
+export function moveCaretTo(node: Node | null, position: number): void {
+    if (node === null)
+        return;
+
     const range = document.createRange();
     range.setStart(node, position);
 

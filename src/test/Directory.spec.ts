@@ -1,7 +1,7 @@
 import "mocha";
 import {expect} from "chai";
 
-import "../main/js/Extensions"
+import "../main/js/Extensions";
 import {Directory, File} from "../main/js/FileSystem";
 
 
@@ -130,11 +130,11 @@ describe("directory", () => {
             });
             const copy = directory.copy();
 
-            (<File>directory.get("file")).open("write").write("changed");
-            expect((<File>copy.get("file")).open("read").read()).to.equal("contents");
+            (<File> directory.get("file")).open("write").write("changed");
+            expect((<File> copy.get("file")).open("read").read()).to.equal("contents");
 
-            (<Directory>directory.get("dir")).add("file2", new File());
-            expect((<Directory>copy.get("dir")).nodeCount).to.equal(0);
+            (<Directory> directory.get("dir")).add("file2", new File());
+            expect((<Directory> copy.get("dir")).nodeCount).to.equal(0);
 
             directory.remove("file");
             expect(copy.nodeCount).to.equal(2);

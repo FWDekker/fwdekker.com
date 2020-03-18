@@ -1,6 +1,6 @@
 import {InputHistory} from "./InputHistory";
 import {Persistence} from "./Persistence";
-import {escapeHtml, isStandalone, moveCaretTo, moveCaretToEndOf, parseCssPixels} from "./Shared";
+import {escapeHtml, extractWordBefore, isStandalone, moveCaretTo, moveCaretToEndOf, parseCssPixels} from "./Shared";
 import {Shell} from "./Shell";
 import {Buffer, StreamSet} from "./Stream";
 
@@ -297,8 +297,10 @@ export class Terminal {
             case "meta":
             case "os":
             case "shift":
+                // Do nothing
                 return; // Return without scrolling to 0
             case "arrowup": {
+                // Display previous entry from history
                 this.inputText = this.inputHistory.previous();
 
                 const inputChild = this.input.firstChild;
@@ -307,6 +309,7 @@ export class Terminal {
                 break;
             }
             case "arrowdown": {
+                // Display next entry in history
                 this.inputText = this.inputHistory.next();
 
                 const inputChild = this.input.firstChild;
@@ -314,9 +317,19 @@ export class Terminal {
                     setTimeout(() => moveCaretToEndOf(inputChild), 0);
                 break;
             }
-            case "tab":
+            case "tab": {
+                // Auto complete
+                let offset = this.inputText.length;
+                if (this.input === document.activeElement)
+                    offset = document.getSelection()?.anchorOffset ?? offset;
+
+                const [newInput, newPosition] = this.shell.autoComplete(this.inputText, offset);
+                this.inputText = newInput;
+                setTimeout(() => moveCaretTo(this.input.firstChild, newPosition), 0);
+
                 event.preventDefault();
                 break;
+            }
             case "c":
                 // Only if focused on the input as to not prevent copying of selected text
                 if (event.ctrlKey) {
@@ -328,6 +341,7 @@ export class Terminal {
                 }
                 break;
             case "l":
+                // Clear screen
                 if (event.ctrlKey) {
                     this.outputText = "";
 
@@ -337,28 +351,15 @@ export class Terminal {
                 break;
             case "w":
             case "backspace":
+                // Remove word before caret
                 if (event.ctrlKey) {
                     let offset = this.inputText.length;
                     if (this.input === document.activeElement)
                         offset = document.getSelection()?.anchorOffset ?? offset;
 
-                    const left = this.inputText.slice(0, offset);
-                    const right = this.inputText.slice(offset);
-
-                    const delimiterIndex = Math.max(
-                        left.trimRightChar(" ").lastIndexOf(" "),
-                        left.trimRightChar("/").lastIndexOf("/")
-                    );
-                    const newLeft = delimiterIndex >= 0
-                        ? left.slice(0, delimiterIndex + 1)
-                        : "";
-                    const newOffset = offset - (left.length - newLeft.length);
-
+                    const [newLeft, word, right] = extractWordBefore(this.inputText, offset);
                     this.inputText = newLeft + right;
-
-                    const element = this.input.firstChild;
-                    if (element !== null)
-                        window.setTimeout(() => moveCaretTo(element, newOffset), 0);
+                    window.setTimeout(() => moveCaretTo(this.input.firstChild, offset - word.length), 0);
 
                     event.preventDefault();
                 }

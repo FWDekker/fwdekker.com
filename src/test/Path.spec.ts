@@ -1,7 +1,7 @@
 import "mocha";
 import {expect} from "chai";
 
-import "../main/js/Extensions"
+import "../main/js/Extensions";
 import {Path} from "../main/js/FileSystem";
 
 

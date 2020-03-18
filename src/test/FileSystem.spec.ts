@@ -1,7 +1,7 @@
 import "mocha";
 import {expect} from "chai";
 
-import "../main/js/Extensions"
+import "../main/js/Extensions";
 import {Directory, File, FileSystem, Path} from "../main/js/FileSystem";
 
 
@@ -127,7 +127,7 @@ describe("file system", () => {
             fileSystem.copy(new Path("/src"), new Path("/dst"), false);
             file.open("write").write("new");
 
-            expect((<File>fileSystem.get(new Path("/dst"))).open("read").read()).to.equal("old");
+            expect((<File> fileSystem.get(new Path("/dst"))).open("read").read()).to.equal("old");
         });
     });
 
@@ -196,7 +196,7 @@ describe("file system", () => {
             expect(fileSystem.has(new Path("/dir"))).to.be.true;
         });
 
-        it("returns true if a directory exists at the given file path", () =>{
+        it("returns true if a directory exists at the given file path", () => {
             fileSystem.add(new Path("/dir"), new Directory(), false);
 
             expect(fileSystem.has(new Path("/dir"))).to.be.true;
@@ -263,7 +263,7 @@ describe("file system", () => {
             fileSystem.move(new Path("/src"), new Path("/dst"));
             file.open("write").write("new");
 
-            expect((<File>fileSystem.get(new Path("/dst"))).open("read").read()).to.equal("new");
+            expect((<File> fileSystem.get(new Path("/dst"))).open("read").read()).to.equal("new");
         });
 
         it("throws an error if the destination already exists", () => {

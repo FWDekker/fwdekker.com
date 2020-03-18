@@ -1,8 +1,7 @@
 import "mocha";
 import {expect} from "chai";
 
-import "../main/js/Extensions"
-import {escapeHtml, getFileExtension, parseCssPixels} from "../main/js/Shared";
+import {escapeHtml, extractWordBefore, getFileExtension, parseCssPixels} from "../main/js/Shared";
 
 
 describe("shared functions", () => {
@@ -17,6 +16,43 @@ describe("shared functions", () => {
 
         it("escapes quotes", () => {
             expect(escapeHtml(`"my" 'text'`)).to.equal("&quot;my&quot; &#039;text&#039;");
+        });
+    });
+
+    describe("extractWordBefore", () => {
+        it("returns the word", () => {
+            const parts = extractWordBefore("a b c", 3);
+            expect(parts).to.deep.equal(["a ", "b", " c"]);
+        });
+
+        it("returns the word including trailing whitespace", () => {
+            const parts = extractWordBefore("a b   c", 5);
+            expect(parts).to.deep.equal(["a ", "b  ", " c"]);
+        });
+
+        it("returns the word including trailing forward slashes", () => {
+            const parts = extractWordBefore("a b// c", 5);
+            expect(parts).to.deep.equal(["a ", "b//", " c"]);
+        });
+
+        it("returns the word including trailing whitespace and forward slashes", () => {
+            const parts = extractWordBefore("a /b//    c", 9);
+            expect(parts).to.deep.equal(["a /", "b//   ", " c"]);
+        });
+
+        it("returns the word consisting of only forward slashes, delimited by whitespace", () => {
+            const parts = extractWordBefore("a / c", 4);
+            expect(parts).to.deep.equal(["a ", "/ ", "c"]);
+        });
+
+        it("returns the word if there is no preceding delimiter", () => {
+            const parts = extractWordBefore("ab c", 2);
+            expect(parts).to.deep.equal(["", "ab", " c"]);
+        });
+
+        it("returns the word based on custom delimiters", () => {
+            const parts = extractWordBefore("a|b c|d", 6, "|");
+            expect(parts).to.deep.equal(["a|", "b c|", "d"]);
         });
     });
 
