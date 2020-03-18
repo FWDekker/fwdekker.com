@@ -258,7 +258,7 @@ export class Terminal {
         if ((document.getSelection() ?? "").toString() !== "")
             return;
 
-        this.input.focus();
+        setTimeout(() => moveCaretToEndOf(this.input.firstChild), 0);
     }
 
     /**

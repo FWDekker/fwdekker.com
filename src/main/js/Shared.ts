@@ -116,10 +116,10 @@ export function moveCaretTo(node: Node | null, position: number): void {
 /**
  * Moves the caret to the end of the given node.
  *
- * @param node the node in which to move the caret to the end
+ * @param node the node in which to move the caret to the end; if `null`, nothing happens
  */
-export function moveCaretToEndOf(node: Node): void {
-    moveCaretTo(node, (node.textContent ?? "").length);
+export function moveCaretToEndOf(node: Node | null): void {
+    moveCaretTo(node, (node?.textContent ?? "").length);
 }
 
 /**
