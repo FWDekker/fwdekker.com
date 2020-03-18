@@ -365,7 +365,7 @@ export class Commands {
         }
 
         const path = Path.interpret(this.environment.get("cwd"), input.args[0]);
-        if (!this.fileSystem.has(path)) {
+        if (!this.fileSystem.has(path) || !(this.fileSystem.get(path) instanceof Directory)) {
             streams.err.writeLine(`cd: The directory '${path}' does not exist.`);
             return -1;
         }
