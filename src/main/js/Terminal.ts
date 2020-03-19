@@ -378,6 +378,8 @@ export class Terminal {
                 break;
             case "w":
             case "backspace":
+                this.suggestionsText = "";
+
                 // Remove word before caret
                 if (event.ctrlKey) {
                     let offset = this.inputText.length;
