@@ -69,48 +69,22 @@ body {
 
     font-family: "Roboto Mono", monospace;
     font-size: 16px;
+
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
 }
 
 #terminal * {
     margin: 0;
 }
 
-#terminalOutput {
-    max-width: 100%;
-
-    overflow-wrap: break-word;
-    white-space: pre-wrap;
-}
-
 #terminalInput {
-    max-width: 100%;
-}
-
-#terminalInputPrefix {
     display: inline-block;
-    vertical-align: top;
-    white-space: pre;
 }
 
 #terminalInputField {
-    display: inline-block;
-    margin: 0;
-    padding: 0;
-    min-width: 1px;
-    min-height: 2em;
-    max-width: 100%;
-
-    overflow-wrap: break-word;
-    white-space: pre;
-
     outline: none;
     border: none;
-
-    background-color: inherit;
-    color: inherit;
-
-    font-family: inherit;
-    font-size: inherit;
 }
 
 #terminalInputField br {
@@ -121,4 +95,8 @@ body {
     max-width: 1px !important;
     overflow: hidden !important;
     overflow-wrap: normal !important;
+}
+
+#terminalSuggestions {
+    display: block;
 }

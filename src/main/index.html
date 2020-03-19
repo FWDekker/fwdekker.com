@@ -23,25 +23,26 @@
 </head>
 <body>
 <main>
-    <div id="terminal">
-        <noscript>
-            This website does not function if JavaScript is disabled.
-            Please check the <a href="https://www.enable-javascript.com/">
-            instructions how to enable JavaScript in your web browser</a>.
-        </noscript>
-        <div id="ie-warning" style="display:none;">
-            This website does not function with Internet Explorer.
-            Please install a newer browser such as
-            <a href="https://www.microsoft.com/en-us/windows/microsoft-edge">Microsoft Edge</a>.
-        </div>
-        <div id="terminalOutput"></div>
-        <div id="terminalInput">
-            <span id="terminalInputPrefix"></span><!--
+    <!-- Comment out newlines and indents because of `white-space: pre-wrap` in CSS. -->
+    <div id="terminal"><!--
+        --><noscript><!--
+            -->This website does not function if JavaScript is disabled.<!--
+            -->Please check the <a href="https://www.enable-javascript.com/"><!--
+            -->instructions how to enable JavaScript in your web browser</a>.<!--
+        --></noscript><!--
+        --><div id="ie-warning" style="display:none;"><!--
+            -->This website does not function with Internet Explorer.<!--
+            -->Please install a newer browser such as<!--
+            --><a href="https://www.microsoft.com/en-us/windows/microsoft-edge">Microsoft Edge</a>.<!--
+        --></div><!--
+        --><span id="terminalOutput"></span><!--
+        --><span id="terminalInput"><!--
+            --><span id="terminalInputPrefix"></span><!--
             --><span id="terminalInputField" contenteditable="true" autocapitalize="none"
-                     spellcheck="false"></span>
-        </div>
-        <div id="terminalSuggestions"></div>
-    </div>
+                     spellcheck="false"></span><!--
+            --></span><!--
+        --><span id="terminalSuggestions"></span><!--
+    --></div>
 </main>
 
 
