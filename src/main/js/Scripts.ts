@@ -1,9 +1,8 @@
 import {Directory, File} from "./FileSystem";
 
 
+// An escaped newline escape symbol.
 const n = "\\\\\\";
-
-// TODO Fix `man`!
 
 
 // noinspection HtmlUnknownAttribute // False positive
@@ -233,23 +232,6 @@ export const createSlashBin = () => new Directory({
 
         Files starting with a <u>.</u> are only shown if the <b>--all</b> option is given, with the exception of ${n}
         <u>.</u> and <u>..</u>, which are always shown.\`.trimMultiLines(),
-        new InputValidator()
-    )`),
-    "man": new File(`new Command(
-        (input, streams) => {
-            if (input.argc === 0) {
-                streams.out.writeLine("What manual page do you want?");
-                return 0;
-            }
-
-            return 0;
-
-            //return josh.interpreter.execute(input, streams);
-        },
-        \`display manual documentation pages\`,
-        \`man <u>page</u> <u>...</u>\`,
-        \`Displays the manual pages with names <u>page</u>. Equivalent to using <b>help</b> if at least one ${n}
-        <u>page</u> is given.\`.trimMultiLines(),
         new InputValidator()
     )`),
     "help": new File(`new Command(
