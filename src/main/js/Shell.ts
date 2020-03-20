@@ -12,7 +12,7 @@ import {InputArgs} from "./InputArgs";
 
 
 /**
- * A shell that interacts with the user session and file system to execute commands.
+ * A shell that interacts with the environment, user list, file system to execute commands.
  */
 export class Shell {
     /**
@@ -24,7 +24,7 @@ export class Shell {
      */
     private readonly inputHistory: InputHistory;
     /**
-     * The user session describing the user that interacts with the shell.
+     * The user list describing the available users.
      */
     private readonly userList: UserList;
     /**

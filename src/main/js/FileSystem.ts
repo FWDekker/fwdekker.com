@@ -1,3 +1,4 @@
+import {createSlashBin} from "./Scripts";
 import {emptyFunction, getFileExtension, IllegalArgumentError} from "./Shared";
 import {Stream} from "./Stream";
 
@@ -21,6 +22,7 @@ export class FileSystem {
         if (root === undefined)
             this.root =
                 new Directory({
+                    "bin": createSlashBin(),
                     "dev": new Directory({
                         "null": new NullFile()
                     }),

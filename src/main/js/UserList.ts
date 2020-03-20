@@ -1,5 +1,5 @@
 /**
- * Manages a user session.
+ * Manages a list of users.
  */
 export class UserList {
     /**
