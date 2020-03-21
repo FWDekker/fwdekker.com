@@ -352,4 +352,95 @@ describe("file system", () => {
             expect(fileSystem.has(new Path("/file"))).to.be.true;
         });
     });
+
+    describe("determineMoveMappings", () => {
+        describe("single source", () => {
+            it("maps to the destination if the destination does not exist and its parent is a directory", () => {
+                fileSystem.add(new Path("/src"), new File(), false);
+
+                expect(fileSystem.determineMoveMappings([new Path("/src")], new Path("/dst")))
+                    .to.deep.equal([[new Path("/src"), new Path("/dst")]]);
+            });
+
+            it("maps into the destination if the destination exists and it is a directory", () => {
+                fileSystem.add(new Path("/src"), new File(), false);
+                fileSystem.add(new Path("/dst"), new Directory(), false);
+
+                expect(fileSystem.determineMoveMappings([new Path("/src")], new Path("/dst")))
+                    .to.deep.equal([[new Path("/src"), new Path("/dst/src")]]);
+            });
+
+            it("fails if neither the destination nor its parent exists", () => {
+                fileSystem.add(new Path("/src"), new File(), false);
+
+                expect(() => fileSystem.determineMoveMappings([new Path("/src")], new Path("/parent/dst"))).to.throw();
+            });
+
+            it("fails if the destination does not exist and its parent is a file", () => {
+                fileSystem.add(new Path("/src"), new File(), false);
+                fileSystem.add(new Path("/parent"), new File(), false);
+
+                expect(() => fileSystem.determineMoveMappings([new Path("/src")], new Path("/parent/dst"))).to.throw();
+            });
+
+            it("fails if neither the destination nor its parent exists", () => {
+                fileSystem.add(new Path("/src"), new File(), false);
+
+                expect(() => fileSystem.determineMoveMappings([new Path("/src")], new Path("/parent/dst"))).to.throw();
+            });
+
+            it("fails if the destination already exists and it is a file", () => {
+                fileSystem.add(new Path("/src"), new File(), false);
+                fileSystem.add(new Path("/dst"), new File(), false);
+
+                expect(() => fileSystem.determineMoveMappings([new Path("/src")], new Path("/dst"))).to.throw();
+            });
+        });
+
+        describe("multiple sources", () => {
+            it("maps into the destination if the destination exists and it is a directory", () => {
+                fileSystem.add(new Path("/src1"), new File(), false);
+                fileSystem.add(new Path("/src2"), new File(), false);
+                fileSystem.add(new Path("/dst"), new Directory(), false);
+
+                const sources = [new Path("/src1"), new Path("/src2")];
+                const mappings = [
+                    [new Path("/src1"), new Path("/dst/src1")],
+                    [new Path("/src2"), new Path("/dst/src2")]
+                ];
+                expect(fileSystem.determineMoveMappings(sources, new Path("/dst"))).to.deep.equal(mappings);
+            });
+
+            it("maps the filenames into the destination if the sources have different parents, the destination " +
+                "exists, and it is a directory", () => {
+                fileSystem.add(new Path("/src1"), new File(), false);
+                fileSystem.add(new Path("/parent/src2"), new File(), true);
+                fileSystem.add(new Path("/dst"), new Directory(), false);
+
+                const sources = [new Path("/src1"), new Path("/parent/src2")];
+                const mappings = [
+                    [new Path("/src1"), new Path("/dst/src1")],
+                    [new Path("/parent/src2"), new Path("/dst/src2")]
+                ];
+                expect(fileSystem.determineMoveMappings(sources, new Path("/dst"))).to.deep.equal(mappings);
+            });
+
+            it("fails if the destination does not exist", () => {
+                fileSystem.add(new Path("/src1"), new File(), false);
+                fileSystem.add(new Path("/src2"), new File(), false);
+
+                const sources = [new Path("/src1"), new Path("/src2")];
+                expect(() => fileSystem.determineMoveMappings(sources, new Path("/dst"))).to.throw();
+            });
+
+            it("fails if the destination exists and is a file", () => {
+                fileSystem.add(new Path("/src1"), new File(), false);
+                fileSystem.add(new Path("/src2"), new File(), false);
+                fileSystem.add(new Path("/dst"), new File(), false);
+
+                const sources = [new Path("/src1"), new Path("/src2")];
+                expect(() => fileSystem.determineMoveMappings(sources, new Path("/dst"))).to.throw();
+            });
+        });
+    });
 });
