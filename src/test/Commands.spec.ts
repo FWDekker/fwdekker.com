@@ -51,7 +51,7 @@ describe("commands", () => {
         });
 
         it("writes an error if the command is a doc-only command", () => {
-            fileSystem.add(new Path("/command"), new File(`new DocOnlyCommand("", "")`), false);
+            fileSystem.add(new Path("/command"), new File(`return new DocOnlyCommand("", "")`), false);
 
             expect(execute("/command")).to.equal(-1);
             expect((streamSet.err as Buffer).read())
@@ -59,7 +59,7 @@ describe("commands", () => {
         });
 
         it("writes an error if the arguments to the command are invalid", () => {
-            const command = `new Command("", "", "", "", new InputValidator({minArgs: 2}))`;
+            const command = `return new Command("", "", "", "", new InputValidator({minArgs: 2}))`;
             fileSystem.add(new Path("/command"), new File(command), false);
 
             expect(execute("/command arg1")).to.equal(-1);
@@ -68,7 +68,7 @@ describe("commands", () => {
         });
 
         it("executes the command otherwise", () => {
-            const command = `new Command(
+            const command = `return new Command(
                 (input, streams) => { streams.out.writeLine(input.args[0]); return Number(input.args[1]); },
                 "", "", "",
                 new InputValidator()
@@ -83,7 +83,8 @@ describe("commands", () => {
     describe("resolve", () => {
         describe("/bin commands", () => {
             it("resolves a command from /bin if it exists", () => {
-                fileSystem.add(new Path("/bin/command"), new File(`new Command("", "Summary", "", "", "")`), true);
+                const command = `return new Command("", "Summary", "", "", "")`;
+                fileSystem.add(new Path("/bin/command"), new File(command), true);
 
                 expect((commands.resolve("command") as Command).summary).to.equal("Summary");
             });
@@ -93,7 +94,8 @@ describe("commands", () => {
             });
 
             it("resolves a /bin command using a relative path", () => {
-                fileSystem.add(new Path("/bin/command"), new File(`new Command("", "Summary", "", "", "")`), true);
+                const command = `return new Command("", "Summary", "", "", "")`;
+                fileSystem.add(new Path("/bin/command"), new File(command), true);
 
                 expect((commands.resolve("bin/command") as Command).summary).to.equal("Summary");
             });
@@ -101,7 +103,7 @@ describe("commands", () => {
 
         describe("relative commands", () => {
             it("resolves a command from a relative path if it exists", () => {
-                fileSystem.add(new Path("/command"), new File(`new Command("", "Summary", "", "", "")`), true);
+                fileSystem.add(new Path("/command"), new File(`return new Command("", "Summary", "", "", "")`), true);
 
                 expect((commands.resolve("./command") as Command).summary).to.equal("Summary");
             });

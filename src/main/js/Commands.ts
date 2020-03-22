@@ -2,12 +2,12 @@ import "./Extensions";
 import {Environment} from "./Environment";
 import {Directory, File, FileSystem, Node, Path,} from "./FileSystem";
 import {InputArgs} from "./InputArgs";
-import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
 import {escapeHtml, ExpectedGoodbyeError, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
 import {StreamSet} from "./Stream";
-import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
+import {EscapeCharacters} from "./Terminal";
+import {InputParser} from "./InputParser";
 
 
 /**
@@ -120,45 +120,30 @@ export class Commands {
      */
     private interpretScript(code: string, environment: Environment, userList: UserList,
                             fileSystem: FileSystem): Command {
-        const __JOSH_Directory = Directory;
-        const __JOSH_EscapeCharacters = EscapeCharacters;
-        const __JOSH_File = File;
-        const __JOSH_Path = Path;
-        const __JOSH_InputParser = InputParser;
-        const __JOSH_InputValidator = InputValidator;
-        const __JOSH_Persistence = Persistence;
-        {
-            // noinspection JSUnusedLocalSymbols
-            const josh = {
-                "environment": environment,
-                "fileSystem": fileSystem,
-                "interpreter": this,
-                "userList": userList,
-                "util": {
-                    "escapeHtml": escapeHtml,
-                    "isStandalone": isStandalone
-                }
-            };
+        const josh = {
+            "environment": environment,
+            "fileSystem": fileSystem,
+            "interpreter": this,
+            "userList": userList,
+            "util": {
+                "escapeHtml": escapeHtml,
+                "isStandalone": isStandalone
+            }
+        };
+        const namespace = {
+            "Command": Command,
+            "Directory": Directory,
+            "DocOnlyCommand": DocOnlyCommand,
+            "EscapeCharacters": EscapeCharacters,
+            "File": File,
+            "InputParser": InputParser,
+            "InputValidator": InputValidator,
+            "Path": Path,
+            "Persistence": Persistence,
+            "josh": josh
+        };
 
-            // noinspection JSUnusedLocalSymbols
-            const Directory = __JOSH_Directory;
-            // noinspection JSUnusedLocalSymbols
-            const EscapeCharacters = __JOSH_EscapeCharacters;
-            // noinspection JSUnusedLocalSymbols
-            const File = __JOSH_File;
-            // noinspection JSUnusedLocalSymbols
-            const InputParser = __JOSH_InputParser;
-            // noinspection JSUnusedLocalSymbols
-            const InputValidator = __JOSH_InputValidator;
-            // noinspection JSUnusedLocalSymbols
-            const Path = __JOSH_Path;
-            // noinspection JSUnusedLocalSymbols
-            const Persistence = __JOSH_Persistence;
-
-            // TODO: Consider using geval, see what happens.
-            // const geval = eval;
-            return eval(code);
-        }
+        return Function(...(Object.keys(namespace).concat([code])))(...Object.values(namespace));
     };
 
     /**
@@ -313,7 +298,7 @@ const n = "\\\\\\";
  * @return the script contents of the binaries in the `/bin` directory
  */
 export const commandBinaries: { [key: string]: string } = {
-    "and": `new Command(
+    "and": `return new Command(
         (input, streams) => {
             const previousStatus = Number(josh.environment.getOrDefault("status", "0"));
             if (previousStatus !== 0)
@@ -333,7 +318,7 @@ export const commandBinaries: { [key: string]: string } = {
         \`.trimMultiLines(),
         new InputValidator({minArgs: 1})
     )`,
-    "cat": `new Command(
+    "cat": `return new Command(
         (input, streams) => {
             return input.args
                 .map(arg => Path.interpret(josh.environment.get("cwd"), arg))
@@ -363,7 +348,7 @@ export const commandBinaries: { [key: string]: string } = {
         given, special HTML characters are escaped and the raw text contents can be inspected.\`.trimMultiLines(),
         new InputValidator({minArgs: 1})
     )`,
-    "cd": `new Command(
+    "cd": `return new Command(
         (input, streams) => {
             if (input.argc === 0) {
                 josh.environment.set("cwd", josh.environment.get("home"));
@@ -385,7 +370,7 @@ export const commandBinaries: { [key: string]: string } = {
         current working directory is changed to the current user's home directory.\`.trimMultiLines(),
         new InputValidator({maxArgs: 1})
     )`,
-    "clear": `new Command(
+    "clear": `return new Command(
         (input, streams) => {
             streams.out.write(EscapeCharacters.Escape + EscapeCharacters.Clear);
             return 0;
@@ -395,7 +380,7 @@ export const commandBinaries: { [key: string]: string } = {
         \`Clears all previous terminal output.\`,
         new InputValidator({maxArgs: 0})
     )`,
-    "cp": `new Command(
+    "cp": `return new Command(
         (input, streams) => {
             let mappings;
             try {
@@ -434,7 +419,7 @@ export const commandBinaries: { [key: string]: string } = {
         given.\`.trimMultiLines(),
         new InputValidator({minArgs: 2})
     )`,
-    "echo": `new Command(
+    "echo": `return new Command(
         (input, streams) => {
             const message = input.args.join(" ").replace("hunter2", "*******");
 
@@ -452,7 +437,7 @@ export const commandBinaries: { [key: string]: string } = {
         Unless the <b>--newline</b> parameter is given, a newline is appended to the end.\`.trimMultiLines(),
         new InputValidator()
     )`,
-    "exit": `new Command(
+    "exit": `return new Command(
         (input, streams) => {
             josh.environment.set("user", "");
             return 0;
@@ -462,7 +447,7 @@ export const commandBinaries: { [key: string]: string } = {
         \`Closes the terminal session.\`,
         new InputValidator({maxArgs: 0})
     )`,
-    "help": `new Command(
+    "help": `return new Command(
         (input, streams) => {
             if (input.argc > 0) {
                 return input.args
@@ -530,7 +515,7 @@ export const commandBinaries: { [key: string]: string } = {
         If no commands are given, a list of all commands is shown.\`.trimMultiLines(),
         new InputValidator()
     )`,
-    "hier": `new DocOnlyCommand(
+    "hier": `return new DocOnlyCommand(
         \`description of the filesystem hierarchy\`,
         \`A typical josh system has, among others, the following directories:
 
@@ -544,7 +529,7 @@ export const commandBinaries: { [key: string]: string } = {
 
         <u>/root</u>  The home directory of the root user.\`.trimMultiLines()
     )`,
-    "ls": `new Command(
+    "ls": `return new Command(
         (input, streams) => {
             return (input.argc === 0 ? [""] : input.args)
                 .map(arg => Path.interpret(josh.environment.get("cwd"), arg))
@@ -602,7 +587,7 @@ export const commandBinaries: { [key: string]: string } = {
         <u>.</u> and <u>..</u>, which are always shown.\`.trimMultiLines(),
         new InputValidator()
     )`,
-    "mkdir": `new Command(
+    "mkdir": `return new Command(
         (input, streams) => {
             return input.args
                 .map(arg => Path.interpret(josh.environment.get("cwd"), arg))
@@ -626,7 +611,7 @@ export const commandBinaries: { [key: string]: string } = {
         \`.trimMultiLines(),
         new InputValidator({minArgs: 1})
     )`,
-    "mv": `new Command(
+    "mv": `return new Command(
         (input, streams) => {
             let mappings;
             try {
@@ -661,7 +646,7 @@ export const commandBinaries: { [key: string]: string } = {
         pre-existing directory. The file names of the <u>source</u> files are retained.\`.trimMultiLines(),
         new InputValidator({minArgs: 2})
     )`,
-    "not": `new Command(
+    "not": `return new Command(
         (input, streams) => {
             return Number(!josh.interpreter.execute(
                 InputParser.create(josh.environment, josh.fileSystem).parseCommand(input.args),
@@ -674,7 +659,7 @@ export const commandBinaries: { [key: string]: string } = {
         precisely, the exit code is set to 0 if it was non-zero, and is set to 1 otherwise.\`.trimMultiLines(),
         new InputValidator({minArgs: 1})
     )`,
-    "open": `new Command(
+    "open": `return new Command(
         (input, streams) => {
             return input.args
                 .map(it => Path.interpret(josh.environment.get("cwd"), it))
@@ -702,7 +687,7 @@ export const commandBinaries: { [key: string]: string } = {
         a tab regardless of whether <b>--blank</b> is given.\`.trimMultiLines(),
         new InputValidator({minArgs: 1})
     )`,
-    "or": `new Command(
+    "or": `return new Command(
         (input, streams) => {
             const previousStatus = Number(josh.environment.getOrDefault("status", "0"));
             if (previousStatus === 0)
@@ -722,7 +707,7 @@ export const commandBinaries: { [key: string]: string } = {
         \`.trimMultiLines(),
         new InputValidator({minArgs: 1})
     )`,
-    "poweroff": `new Command(
+    "poweroff": `return new Command(
         (input, streams) => {
             const userName = josh.environment.get("user");
             if (userName === "") {
@@ -750,7 +735,7 @@ export const commandBinaries: { [key: string]: string } = {
         \`Automated shutdown procedure to nicely notify users when the system is shutting down.\`,
         new InputValidator({maxArgs: 0})
     )`,
-    "pwd": `new Command(
+    "pwd": `return new Command(
         (input, streams) => {
             streams.out.writeLine(josh.environment.get("cwd") || "");
             return 0;
@@ -760,7 +745,7 @@ export const commandBinaries: { [key: string]: string } = {
         \`Displays the current working directory.\`,
         new InputValidator({maxArgs: 0})
     )`,
-    "rm": `new Command(
+    "rm": `return new Command(
         (input, streams) => {
             return input.args
                 .map(arg => Path.interpret(josh.environment.get("cwd"), arg))
@@ -808,7 +793,7 @@ export const commandBinaries: { [key: string]: string } = {
         Unless <b>--no-preserve-root</b> is set, the root directory cannot be removed.\`.trimMultiLines(),
         new InputValidator({minArgs: 1})
     )`,
-    "rmdir": `new Command(
+    "rmdir": `return new Command(
         (input, streams) => {
             return input.args
                 .map(arg => Path.interpret(josh.environment.get("cwd"), arg))
@@ -843,7 +828,7 @@ export const commandBinaries: { [key: string]: string } = {
         order they are given in. Non-empty directories will not be removed.\`.trimMultiLines(),
         new InputValidator({minArgs: 1})
     )`,
-    "set": `new Command(
+    "set": `return new Command(
         (input, streams) => {
             try {
                 if (input.argc === 1)
@@ -863,7 +848,7 @@ export const commandBinaries: { [key: string]: string } = {
         variable is cleared. Read-only variables cannot be set.\`.trimMultiLines(),
         new InputValidator({minArgs: 1, maxArgs: 2})
     )`,
-    "touch": `new Command(
+    "touch": `return new Command(
         (input, streams) => {
             return input.args
                 .map(arg => Path.interpret(josh.environment.get("cwd"), arg))
@@ -884,7 +869,7 @@ export const commandBinaries: { [key: string]: string } = {
         not exist, it is created.\`.trimMultiLines(),
         new InputValidator({minArgs: 1})
     )`,
-    "whoami": `new Command(
+    "whoami": `return new Command(
         (input, streams) => {
             const user = josh.userList.get(josh.environment.get("user"));
             if (user === undefined) {
