@@ -284,8 +284,13 @@ export class Terminal {
         if ((document.getSelection() ?? "").toString() !== "")
             return;
 
+        // Do not focus if user clicks in input
+        if (target === this.input)
+            return;
+
         this.input.focus();
-        setTimeout(() => moveCaretToEndOf(this.input.firstChild), 0);
+        if (target !== this.prefixDiv) // `focus` moved to start; move to end unless prefix was clicked
+            setTimeout(() => moveCaretToEndOf(this.input.firstChild), 0);
     }
 
     /**
