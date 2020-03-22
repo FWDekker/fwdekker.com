@@ -265,19 +265,17 @@ describe("input parser", () => {
 
     describe("redirect targets", () => {
         it("assigns a number-less target to index 1", () => {
-            expect(parser.parseCommands("command >file")[0].redirectTargets[1]).to.deep.equal({type: "write", target: "file"});
-            expect(parser.parseCommands("command >>file")[0].redirectTargets[1]).to.deep.equal({
-                type: "append",
-                target: "file"
-            });
+            expect(parser.parseCommands("command >file")[0].redirectTargets[1])
+                .to.deep.equal({type: "write", target: "file"});
+            expect(parser.parseCommands("command >>file")[0].redirectTargets[1])
+                .to.deep.equal({type: "append", target: "file"});
         });
 
         it("assigns the target to the preceding number", () => {
-            expect(parser.parseCommands("command 3>file")[0].redirectTargets[3]).to.deep.equal({type: "write", target: "file"});
-            expect(parser.parseCommands("command 3>>file")[0].redirectTargets[3]).to.deep.equal({
-                type: "append",
-                target: "file"
-            });
+            expect(parser.parseCommands("command 3>file")[0].redirectTargets[3])
+                .to.deep.equal({type: "write", target: "file"});
+            expect(parser.parseCommands("command 3>>file")[0].redirectTargets[3])
+                .to.deep.equal({type: "append", target: "file"});
         });
 
         it("uses the last target that is defined", () => {

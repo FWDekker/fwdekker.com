@@ -1,5 +1,5 @@
 /**
- * Manages a user session.
+ * Manages a list of users.
  */
 export class UserList {
     /**
@@ -31,6 +31,15 @@ export class UserList {
         return this._users.slice();
     }
 
+
+    /**
+     * Adds the given user to the user list.
+     *
+     * @param user the user to add
+     */
+    add(user: User) {
+        this._users.push(user);
+    }
 
     /**
      * Returns `true` if and only if a user with the given name exists.

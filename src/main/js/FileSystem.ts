@@ -1,3 +1,4 @@
+import {commandBinaries} from "./Commands";
 import {emptyFunction, getFileExtension, IllegalArgumentError} from "./Shared";
 import {Stream} from "./Stream";
 
@@ -21,6 +22,11 @@ export class FileSystem {
         if (root === undefined)
             this.root =
                 new Directory({
+                    "bin": Object.keys(commandBinaries)
+                        .reduce((acc, key) => {
+                            acc.add(key, new File(commandBinaries[key]));
+                            return acc;
+                        }, new Directory()),
                     "dev": new Directory({
                         "null": new NullFile()
                     }),
@@ -170,9 +176,6 @@ export class FileSystem {
      * @throws if the target or its parent does not exist, or if the target is not a file
      */
     open(target: Path, mode: FileMode): FileStream {
-        if (!this.has(target.parent))
-            throw new IllegalArgumentError(`Directory '${target.parent}' does not exist.`);
-
         if (!this.has(target)) {
             if (mode === "append" || mode === "write")
                 this.add(target, new File(), false);
@@ -204,6 +207,40 @@ export class FileSystem {
             return;
 
         parent.remove(target.fileName);
+    }
+
+
+    /**
+     * Determines the path of the given sources if they are moved into the given destination.
+     *
+     * @param sources the paths to the source files that are to be moved relative to the destination path
+     * @param destination the path into which the sources should be moved
+     * @return a mapping from the given source paths to the new destination paths
+     */
+    determineMoveMappings(sources: Path[], destination: Path): [Path, Path][] {
+        let mappings: [Path, Path][];
+        if (this.has(destination)) {
+            // Move into directory
+            if (!(this.get(destination) instanceof Directory)) {
+                if (sources.length === 1)
+                    throw new IllegalArgumentError(`'${destination}' already exists.`);
+                else
+                    throw new IllegalArgumentError(`'${destination}' is not a directory.`);
+            }
+
+            mappings = sources.map(source => [source, destination.getChild(source.fileName)]);
+        } else {
+            // Move to exact location
+            if (sources.length !== 1)
+                throw new IllegalArgumentError(`'${destination}' is not a directory.`);
+
+            if (!(this.get(destination.parent) instanceof Directory))
+                throw new IllegalArgumentError(`'${destination.parent}' is not a directory.`);
+
+            mappings = sources.map(path => [path, destination]);
+        }
+
+        return mappings;
     }
 }
 
