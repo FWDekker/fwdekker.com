@@ -33,6 +33,15 @@ export class UserList {
 
 
     /**
+     * Adds the given user to the user list.
+     *
+     * @param user the user to add
+     */
+    add(user: User) {
+        this._users.push(user);
+    }
+
+    /**
      * Returns `true` if and only if a user with the given name exists.
      *
      * @param name the name of the user to check

@@ -176,9 +176,6 @@ export class FileSystem {
      * @throws if the target or its parent does not exist, or if the target is not a file
      */
     open(target: Path, mode: FileMode): FileStream {
-        if (!this.has(target.parent))
-            throw new IllegalArgumentError(`Directory '${target.parent}' does not exist.`);
-
         if (!this.has(target)) {
             if (mode === "append" || mode === "write")
                 this.add(target, new File(), false);

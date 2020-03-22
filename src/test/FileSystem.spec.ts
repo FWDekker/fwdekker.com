@@ -288,10 +288,6 @@ describe("file system", () => {
     });
 
     describe("open", () => {
-        it("throws an error if the target's parent does not exist", () => {
-            expect(() => fileSystem.open(new Path("/dir/file"), "read")).to.throw();
-        });
-
         it("throws an error if the target is an existing directory", () => {
             fileSystem.add(new Path("/dir"), new Directory(), false);
 

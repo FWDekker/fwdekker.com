@@ -4,7 +4,7 @@ import {Directory, File, FileSystem, Node, Path,} from "./FileSystem";
 import {InputArgs} from "./InputArgs";
 import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {ExpectedGoodbyeError, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
+import {escapeHtml, ExpectedGoodbyeError, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
 import {StreamSet} from "./Stream";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
@@ -127,6 +127,7 @@ export class Commands {
                 "interpreter": this,
                 "userList": userList,
                 "util": {
+                    "escapeHtml": escapeHtml,
                     "isStandalone": isStandalone
                 }
             };
@@ -328,20 +329,15 @@ export const commandBinaries: { [key: string]: string } = {
             return input.args
                 .map(arg => Path.interpret(josh.environment.get("cwd"), arg))
                 .map(path => {
-                    if (!josh.fileSystem.has(path)) {
-                        streams.err.writeLine(\`cat: \${path}: No such file.\`);
-                        return -1;
-                    }
-
                     const node = josh.fileSystem.get(path);
                     if (!(node instanceof File)) {
-                        streams.err.writeLine(\`cat: \${path}: No such file.\`);
+                        streams.err.writeLine(\`cat: '\${path}': No such file.\`);
                         return -1;
                     }
 
                     let contents = node.open("read").read();
-                    if (input.hasAnyOption("e", "--escape-html"))
-                        contents = escapeHtml(contents);
+                    if (input.hasAnyOption("-e", "--escape-html"))
+                        contents = josh.util.escapeHtml(contents);
                     if (!contents.endsWith("\\n"))
                         contents += "\\n";
 
@@ -360,13 +356,13 @@ export const commandBinaries: { [key: string]: string } = {
     )`,
     "cd": `new Command(
         (input, streams) => {
-            if (input.argc === 0 || input.args[0] === "") {
+            if (input.argc === 0) {
                 josh.environment.set("cwd", josh.environment.get("home"));
                 return 0;
             }
 
             const path = Path.interpret(josh.environment.get("cwd"), input.args[0]);
-            if (!josh.fileSystem.has(path) || !(josh.fileSystem.get(path) instanceof Directory)) {
+            if (!(josh.fileSystem.get(path) instanceof Directory)) {
                 streams.err.writeLine(\`cd: The directory '\${path}' does not exist.\`);
                 return -1;
             }
@@ -379,6 +375,16 @@ export const commandBinaries: { [key: string]: string } = {
         \`Changes the current working directory to <u>directory</u>. If no <u>directory</u> is supplied, the ${n}
         current working directory is changed to the current user's home directory.\`.trimMultiLines(),
         new InputValidator({maxArgs: 1})
+    )`,
+    "clear": `new Command(
+        (input, streams) => {
+            streams.out.write(EscapeCharacters.Escape + EscapeCharacters.Clear);
+            return 0;
+        },
+        \`clear terminal output\`,
+        \`clear\`,
+        \`Clears all previous terminal output.\`,
+        new InputValidator({maxArgs: 0})
     )`,
     "cp": `new Command(
         (input, streams) => {
@@ -419,16 +425,6 @@ export const commandBinaries: { [key: string]: string } = {
         given.\`.trimMultiLines(),
         new InputValidator({minArgs: 2})
     )`,
-    "clear": `new Command(
-        (input, streams) => {
-            streams.out.write(EscapeCharacters.Escape + EscapeCharacters.Clear);
-            return 0;
-        },
-        \`clear terminal output\`,
-        \`clear\`,
-        \`Clears all previous terminal output.\`,
-        new InputValidator({maxArgs: 0})
-    )`,
     "echo": `new Command(
         (input, streams) => {
             const message = input.args.join(" ").replace("hunter2", "*******");
@@ -456,78 +452,6 @@ export const commandBinaries: { [key: string]: string } = {
         \`exit\`,
         \`Closes the terminal session.\`,
         new InputValidator({maxArgs: 0})
-    )`,
-    "hier": `new DocOnlyCommand(
-        \`description of the filesystem hierarchy\`,
-        \`A typical josh system has, among others, the following directories:
-
-        <u>/</u>      This is the root directory. This is where the whole tree starts.
-
-        <u>/bin</u>   Executable programs fundamental to user environments.
-
-        <u>/dev</u>   Contains special files and device files that refer to physical devices.
-
-        <u>/home</u>  Contains directories for users to store personal files in.
-
-        <u>/root</u>  The home directory of the root user.\`.trimMultiLines()
-    )`,
-    "ls": `new Command(
-        (input, streams) => {
-            return (input.argc === 0 ? [""] : input.args)
-                .map(arg => Path.interpret(josh.environment.get("cwd"), arg))
-                .map((path, i) => {
-                    if (i > 0)
-                        streams.out.write("\\n");
-
-                    const node = josh.fileSystem.get(path);
-                    if (node === undefined) {
-                        streams.err.writeLine(\`ls: The directory '\${path}' does not exist.\`);
-                        return -1;
-                    }
-                    if (!(node instanceof Directory)) {
-                        streams.err.writeLine(\`ls: '\${path}' is not a directory.\`);
-                        return -1;
-                    }
-
-                    const dirList = [
-                        new Directory().nameString("./", path),
-                        new Directory().nameString("../", path.parent)
-                    ];
-                    const fileList = [];
-
-                    const nodes = node.nodes;
-                    Object.keys(nodes)
-                        .sortAlphabetically(it => it, true)
-                        .forEach(name => {
-                            const node = nodes[name];
-                            if (!input.hasAnyOption("-a", "-A", "--all") && name.startsWith("."))
-                                return;
-
-                            if (node instanceof Directory)
-                                dirList.push(node.nameString(\`\${name}/\`, path.getChild(name)));
-                            else if (node instanceof File)
-                                fileList.push(node.nameString(name, path.getChild(name)));
-                            else
-                                throw new IllegalStateError(
-                                    \`ls: '\${path.getChild(name)}' is neither a file nor a directory.\`);
-                        });
-
-                    if (input.argc > 1)
-                        streams.out.writeLine(\`<b>\${path}</b>\`);
-                    streams.out.writeLine(dirList.concat(fileList).join("\\n"));
-                    return 0;
-                })
-                .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
-        },
-        \`list directory contents\`,
-        \`ls [<b>-a</b> | <b>-A</b> | <b>--all</b>] [<u>directory</u> <u>...</u>]\`,
-        \`Displays the files and directories in each <u>directory</u>. If no directory is given, the files and ${n}
-        directories in the current working directory are shown. If more than one directory is given, the files and ${n}
-        directories are shown for each given <u>directory</u> in order.
-
-        Files starting with a <u>.</u> are only shown if the <b>--all</b> option is given, with the exception of ${n}
-        <u>.</u> and <u>..</u>, which are always shown.\`.trimMultiLines(),
-        new InputValidator()
     )`,
     "help": `new Command(
         (input, streams) => {
@@ -595,6 +519,78 @@ export const commandBinaries: { [key: string]: string } = {
         \`Displays help documentation for each <u>command</u>.
 
         If no commands are given, a list of all commands is shown.\`.trimMultiLines(),
+        new InputValidator()
+    )`,
+    "hier": `new DocOnlyCommand(
+        \`description of the filesystem hierarchy\`,
+        \`A typical josh system has, among others, the following directories:
+
+        <u>/</u>      This is the root directory. This is where the whole tree starts.
+
+        <u>/bin</u>   Executable programs fundamental to user environments.
+
+        <u>/dev</u>   Contains special files and device files that refer to physical devices.
+
+        <u>/home</u>  Contains directories for users to store personal files in.
+
+        <u>/root</u>  The home directory of the root user.\`.trimMultiLines()
+    )`,
+    "ls": `new Command(
+        (input, streams) => {
+            return (input.argc === 0 ? [""] : input.args)
+                .map(arg => Path.interpret(josh.environment.get("cwd"), arg))
+                .map((path, i) => {
+                    if (i > 0)
+                        streams.out.write("\\n");
+
+                    const node = josh.fileSystem.get(path);
+                    if (node === undefined) {
+                        streams.err.writeLine(\`ls: The directory '\${path}' does not exist.\`);
+                        return -1;
+                    }
+                    if (!(node instanceof Directory)) {
+                        streams.err.writeLine(\`ls: '\${path}' is not a directory.\`);
+                        return -1;
+                    }
+
+                    const dirList = [
+                        new Directory().nameString("./", path),
+                        new Directory().nameString("../", path.parent)
+                    ];
+                    const fileList = [];
+
+                    const nodes = node.nodes;
+                    Object.keys(nodes)
+                        .sortAlphabetically(it => it, true)
+                        .forEach(name => {
+                            const node = nodes[name];
+                            if (name.startsWith(".") && !input.hasAnyOption("-a", "-A", "--all"))
+                                return;
+
+                            if (node instanceof Directory)
+                                dirList.push(node.nameString(\`\${name}/\`, path.getChild(name)));
+                            else if (node instanceof File)
+                                fileList.push(node.nameString(name, path.getChild(name)));
+                            else
+                                throw new IllegalStateError(
+                                    \`ls: '\${path.getChild(name)}' is neither a file nor a directory.\`);
+                        });
+
+                    if (input.argc > 1)
+                        streams.out.writeLine(\`<b>\${path}</b>\`);
+                    streams.out.writeLine(dirList.concat(fileList).join("\\n"));
+                    return 0;
+                })
+                .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+        },
+        \`list directory contents\`,
+        \`ls [<b>-a</b> | <b>-A</b> | <b>--all</b>] [<u>directory</u> <u>...</u>]\`,
+        \`Displays the files and directories in each <u>directory</u>. If no directory is given, the files and ${n}
+        directories in the current working directory are shown. If more than one directory is given, the files and ${n}
+        directories are shown for each given <u>directory</u> in order.
+
+        Files starting with a <u>.</u> are only shown if the <b>--all</b> option is given, with the exception of ${n}
+        <u>.</u> and <u>..</u>, which are always shown.\`.trimMultiLines(),
         new InputValidator()
     )`,
     "mkdir": `new Command(
@@ -747,7 +743,7 @@ export const commandBinaries: { [key: string]: string } = {
     )`,
     "pwd": `new Command(
         (input, streams) => {
-            streams.out.writeLine(josh.environment.get("cwd") ?? "");
+            streams.out.writeLine(josh.environment.get("cwd") || "");
             return 0;
         },
         \`print working directory\`,
@@ -864,7 +860,7 @@ export const commandBinaries: { [key: string]: string } = {
                 .map(arg => Path.interpret(josh.environment.get("cwd"), arg))
                 .map(path => {
                     try {
-                        josh.fileSystem.add(path, ), false);
+                        josh.fileSystem.add(path, new File(), false);
                         return 0;
                     } catch (error) {
                         streams.err.writeLine(\`touch: \${error.message}\`);
