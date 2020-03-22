@@ -2,7 +2,7 @@ import "mocha";
 import {expect} from "chai";
 
 import {Directory, File, FileSystem, Path} from "../main/js/FileSystem";
-import {commandBinaries, Commands} from "../main/js/Commands";
+import {Command, commandBinaries, Commands} from "../main/js/Commands";
 import {Environment} from "../main/js/Environment";
 import {User, UserList} from "../main/js/UserList";
 import {InputParser} from "../main/js/InputParser";
@@ -39,64 +39,82 @@ describe("commands", () => {
     describe("execute", () => {
         it("writes an error if it cannot resolve the command", () => {
             expect(execute("does-not-exist")).to.equal(-1);
-            expect((streamSet.err as Buffer).read()).to.not.equal("");
+            expect((streamSet.err as Buffer).read()).to.equal("Unknown command 'does-not-exist'.\n");
         });
 
-        it("returns an error if the command is a doc-only command", () => {
+        it("writes an error if the command is invalid", () => {
+            fileSystem.add(new Path("/command"), new File("invalid"), false);
+
+            expect(execute("/command")).to.equal(-1);
+            expect((streamSet.err as Buffer).read())
+                .to.equal("Could not parse command '/command': ReferenceError: invalid is not defined.\n");
+        });
+
+        it("writes an error if the command is a doc-only command", () => {
             fileSystem.add(new Path("/command"), new File(`new DocOnlyCommand("", "")`), false);
 
             expect(execute("/command")).to.equal(-1);
-            expect((streamSet.err as Buffer).read()).to.not.equal("");
+            expect((streamSet.err as Buffer).read())
+                .to.equal("Could not execute doc-only command. Try 'help /command' instead.\n");
         });
 
-        it("returns an error if the arguments to the command are invalid", () => {
+        it("writes an error if the arguments to the command are invalid", () => {
             const command = `new Command("", "", "", "", new InputValidator({minArgs: 2}))`;
             fileSystem.add(new Path("/command"), new File(command), false);
 
             expect(execute("/command arg1")).to.equal(-1);
-            expect((streamSet.err as Buffer).read()).to.not.equal("");
+            expect((streamSet.err as Buffer).read())
+                .to.contain("Invalid usage of '/command'. Expected at least 2 arguments but got 1.");
         });
 
         it("executes the command otherwise", () => {
-            const command = `new Command(() => 42, "", "", "", new InputValidator())`;
+            const command = `new Command(
+                (input, streams) => { streams.out.writeLine(input.args[0]); return Number(input.args[1]); },
+                "", "", "",
+                new InputValidator()
+            )`.trimMultiLines();
             fileSystem.add(new Path("/command"), new File(command), false);
 
-            expect(execute("/command")).to.equal(42);
-            expect((streamSet.err as Buffer).read()).to.equal("");
+            expect(execute("/command output 42")).to.equal(42);
+            expect((streamSet.out as Buffer).read()).to.equal("output\n");
         });
     });
 
     describe("resolve", () => {
-        it("resolves a command from /bin if it exists", () => {
-            fileSystem.add(new Path("/bin/command"), new File(`new Command("", "Summary", "", "", "")`), true);
+        describe("/bin commands", () => {
+            it("resolves a command from /bin if it exists", () => {
+                fileSystem.add(new Path("/bin/command"), new File(`new Command("", "Summary", "", "", "")`), true);
 
-            expect(commands.resolve("command")?.summary).to.equal("Summary");
+                expect((commands.resolve("command") as Command).summary).to.equal("Summary");
+            });
+
+            it("cannot resolve a command from /bin if it does not exist", () => {
+                expect(commands.resolve("command")).to.equal(undefined);
+            });
+
+            it("resolves a /bin command using a relative path", () => {
+                fileSystem.add(new Path("/bin/command"), new File(`new Command("", "Summary", "", "", "")`), true);
+
+                expect((commands.resolve("bin/command") as Command).summary).to.equal("Summary");
+            });
         });
 
-        it("cannot resolve a command from /bin if it does not exist", () => {
-            expect(commands.resolve("command")).to.equal(undefined);
-        });
+        describe("relative commands", () => {
+            it("resolves a command from a relative path if it exists", () => {
+                fileSystem.add(new Path("/command"), new File(`new Command("", "Summary", "", "", "")`), true);
 
-        it("resolves a /bin command using a relative path", () => {
-            fileSystem.add(new Path("/bin/command"), new File(`new Command("", "Summary", "", "", "")`), true);
+                expect((commands.resolve("./command") as Command).summary).to.equal("Summary");
+            });
 
-            expect(commands.resolve("bin/command")?.summary).to.equal("Summary");
-        });
-
-        it("resolves a command from a relative path if it exists", () => {
-            fileSystem.add(new Path("/command"), new File(`new Command("", "Summary", "", "", "")`), true);
-
-            expect(commands.resolve("./command")?.summary).to.equal("Summary");
-        });
-
-        it("cannot resolve a command from a relative path if it does not exist", () => {
-            expect(commands.resolve("./command")).to.equal(undefined);
+            it("cannot resolve a command from a relative path if it does not exist", () => {
+                expect(commands.resolve("./command")).to.equal(undefined);
+            });
         });
 
         it("cannot resolve a command if the file cannot be parsed", () => {
-            fileSystem.add(new Path("/command"), new File(`invalid javascript`), true);
+            fileSystem.add(new Path("/command"), new File("invalid"), true);
 
-            expect(commands.resolve("command")).to.equal(undefined);
+            expect((commands.resolve("./command") as Error).message).to.equal("invalid is not defined");
         });
     });
 

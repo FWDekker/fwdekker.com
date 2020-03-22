@@ -58,8 +58,16 @@ export class Commands {
             return 0;
 
         const command = this.resolve(input.command);
-        if (command === undefined || command instanceof DocOnlyCommand) {
+        if (command === undefined) {
             streams.err.writeLine(`Unknown command '${input.command}'.`);
+            return -1;
+        }
+        if (command instanceof Error) {
+            streams.err.writeLine(`Could not parse command '${input.command}': ${command}.`);
+            return -1;
+        }
+        if (command instanceof DocOnlyCommand) {
+            streams.err.writeLine(`Could not execute doc-only command. Try 'help ${input.command}' instead.`);
             return -1;
         }
 
@@ -76,9 +84,10 @@ export class Commands {
      * Finds the `Command` with the given name and returns it.
      *
      * @param commandName the name of or path to the command to find
-     * @return the command addressed by the given name or path, or `undefined` if no such command could be found
+     * @return the command addressed by the given name or path, an 'Error' if the command could be found but could not
+     * be parsed, or `undefined` if the command could not be found
      */
-    resolve(commandName: string): Command | undefined {
+    resolve(commandName: string): Command | Error | undefined {
         const cwd = this.environment.get("cwd");
 
         let script: Node | undefined;
@@ -88,7 +97,6 @@ export class Commands {
             script = this.fileSystem.get(Path.interpret(cwd, "/bin", commandName));
         }
         if (!(script instanceof File)) {
-            // TODO: Show error
             return undefined;
         }
 
@@ -97,7 +105,7 @@ export class Commands {
             return this.interpretScript(code, this.environment, this.userList, this.fileSystem);
         } catch (e) {
             console.error(`Failed to interpret script '${commandName}'.`, code, e);
-            return undefined;
+            return e;
         }
     }
 
@@ -147,6 +155,7 @@ export class Commands {
             // noinspection JSUnusedLocalSymbols
             const Persistence = __JOSH_Persistence;
 
+            // TODO: Consider using geval, see what happens.
             // const geval = eval;
             return eval(code);
         }
@@ -161,7 +170,7 @@ export class Commands {
      * @return an error message about invalid usage of the given command
      */
     private createUsageErrorOutput(commandName: string, command: Command, errorMessage: string | undefined): string {
-        return `Invalid usage of ${commandName}. ${errorMessage ?? ""}
+        return `Invalid usage of '${commandName}'. ${errorMessage ?? ""}
 
                <b>Usage</b>
                ${command.usage}`.trimLines();
@@ -172,7 +181,7 @@ export class Commands {
 /**
  * A command that can be executed.
  */
-class Command {
+export class Command {
     /**
      * The function to execute with the command is executed.
      */
@@ -218,7 +227,7 @@ class Command {
 /**
  * A command that cannot be executed, but of which the documentation can be looked up anyway.
  */
-class DocOnlyCommand extends Command {
+export class DocOnlyCommand extends Command {
     /**
      * Constructs a new doc-only command.
      *
