@@ -525,6 +525,8 @@ export const commandBinaries: { [key: string]: string } = {
 
         <u>/dev</u>   Contains special files and device files that refer to physical devices.
 
+        <u>/etc</u>   System configuration files and scripts.
+
         <u>/home</u>  Contains directories for users to store personal files in.
 
         <u>/root</u>  The home directory of the root user.\`.trimMultiLines()

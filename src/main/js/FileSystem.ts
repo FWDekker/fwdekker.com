@@ -1,6 +1,7 @@
 import {commandBinaries} from "./Commands";
 import {emptyFunction, getFileExtension, IllegalArgumentError} from "./Shared";
 import {Stream} from "./Stream";
+import {User} from "./UserList";
 
 
 /**
@@ -29,6 +30,14 @@ export class FileSystem {
                         }, new Directory()),
                     "dev": new Directory({
                         "null": new NullFile()
+                    }),
+                    "etc": new Directory({
+                        "passwd": new File(
+                            [
+                                new User("root", "root", "/root", ""),
+                                new User("felix", "felix", undefined, "")
+                            ].map(it => User.toString(it)).join("\n") + "\n"
+                        )
                     }),
                     "home": new Directory({
                         "felix": new Directory({

@@ -50,8 +50,8 @@ export class Shell {
      */
     constructor(inputHistory: InputHistory) {
         this.inputHistory = inputHistory;
-        this.userList = new UserList();
         this.fileSystem = Persistence.getFileSystem();
+        this.userList = new UserList(this.fileSystem);
         this.environment = Persistence.getEnvironment(this.userList);
         this.commands = new Commands(this.environment, this.userList, this.fileSystem);
 
