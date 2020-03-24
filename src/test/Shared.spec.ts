@@ -1,5 +1,5 @@
-import "mocha";
 import {expect} from "chai";
+import "mocha";
 
 import {escapeHtml, extractWordBefore, getFileExtension, parseCssPixels} from "../main/js/Shared";
 

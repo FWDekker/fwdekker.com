@@ -1,5 +1,5 @@
-import {File, FileSystem, Path} from "./FileSystem";
 import {sha256} from "js-sha256";
+import {File, FileSystem, Path} from "./FileSystem";
 import {IllegalArgumentError} from "./Shared";
 
 

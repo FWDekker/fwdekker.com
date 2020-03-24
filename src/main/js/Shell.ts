@@ -1,14 +1,14 @@
 import {Commands} from "./Commands";
 import {Environment} from "./Environment";
 import {Directory, FileSystem, Path} from "./FileSystem";
+import {InputArgs} from "./InputArgs";
 import {InputHistory} from "./InputHistory";
 import {Globber, InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
 import {asciiHeaderHtml, IllegalStateError, isStandalone} from "./Shared";
+import {OutputStream, StreamSet} from "./Stream";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
-import {OutputStream, StreamSet} from "./Stream";
-import {InputArgs} from "./InputArgs";
 
 
 /**

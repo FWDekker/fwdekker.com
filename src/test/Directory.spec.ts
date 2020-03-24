@@ -1,5 +1,5 @@
-import "mocha";
 import {expect} from "chai";
+import "mocha";
 
 import "../main/js/Extensions";
 import {Directory, File} from "../main/js/FileSystem";

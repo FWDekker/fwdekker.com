@@ -1,5 +1,5 @@
-import "mocha";
 import {expect} from "chai";
+import "mocha";
 
 import {InputValidator} from "../main/js/Commands";
 import {InputArgs} from "../main/js/InputArgs";

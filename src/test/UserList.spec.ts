@@ -1,6 +1,6 @@
-import "mocha";
-import "jsdom-global";
 import {expect} from "chai";
+import "jsdom-global";
+import "mocha";
 
 import {Directory, File, FileSystem, Path} from "../main/js/FileSystem";
 import {HashProvider, User, UserList} from "../main/js/UserList";

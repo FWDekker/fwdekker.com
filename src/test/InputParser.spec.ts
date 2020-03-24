@@ -1,9 +1,10 @@
-import "mocha";
 import {expect} from "chai";
+import "mocha";
 
 import {Environment} from "../main/js/Environment";
-import {Expander, Globber, InputParser, Tokenizer} from "../main/js/InputParser";
 import {Directory, File, FileSystem, Node, Path} from "../main/js/FileSystem";
+import {Expander, Globber, InputParser, Tokenizer} from "../main/js/InputParser";
+
 
 /**
  * Shorthand for the escape character used internally in the input parser.

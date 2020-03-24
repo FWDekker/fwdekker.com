@@ -1,7 +1,7 @@
+import * as semver from "semver";
 import {Persistence} from "./Persistence";
 import {addOnLoad, ExpectedGoodbyeError, q} from "./Shared";
 import {Terminal} from "./Terminal";
-import * as semver from "semver";
 
 
 declare global {
