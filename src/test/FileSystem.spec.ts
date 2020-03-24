@@ -15,10 +15,6 @@ describe("file system", () => {
 
 
     describe("constructor", () => {
-        it("uses the default root if no directory is given", () => {
-            expect(new FileSystem().root).to.not.be.empty;
-        });
-
         it("uses the given directory as root", () => {
             const root = new Directory();
             expect(new FileSystem(root).root).to.equal(root);

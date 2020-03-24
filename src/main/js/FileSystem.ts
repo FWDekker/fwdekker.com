@@ -34,8 +34,8 @@ export class FileSystem {
                     "etc": new Directory({
                         "passwd": new File(
                             [
-                                new User("root", "g9PjKu", "/root", "You're a hacker, Harry!"),
-                                new User("felix", "password", undefined, "Who are <i>you</i>?")
+                                new User("root", User.hashPassword("g9PjKu"), "/root", "You're a hacker, Harry!"),
+                                new User("felix", User.hashPassword("password"), undefined, "Who are <i>you</i>?")
                             ].map(it => User.toString(it)).join("\n") + "\n"
                         )
                     }),

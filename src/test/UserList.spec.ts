@@ -1,4 +1,5 @@
 import "mocha";
+import "jsdom-global"
 import {expect} from "chai";
 
 import {Directory, File, FileSystem, Path} from "../main/js/FileSystem";
@@ -6,35 +7,34 @@ import {User, UserList} from "../main/js/UserList";
 
 
 describe("user list", () => {
+    const userFilePath = new Path("/etc/passwd");
+
     let fileSystem: FileSystem;
     let userList: UserList;
-    let initialContents: string;
 
 
-    const readUserFile = () => (fileSystem.get(new Path("/etc/passwd")) as File).open("read").read();
+    const readUserFile = () => (fileSystem.get(userFilePath) as File).open("read").read();
 
 
     beforeEach(() => {
         fileSystem = new FileSystem(new Directory());
-        userList = new UserList(fileSystem);
-        initialContents = readUserFile();
+        userList = new UserList(fileSystem, userFilePath);
     });
 
 
     describe("file management", () => {
-        it("populates the file with a default root account if the file disappeared", () => {
-            fileSystem.remove(new Path("/etc/passwd"));
+        it("creates the file if it does not exist when a method is invoked", () => {
+            userList.has("user");
 
-            expect(userList.has("root")).to.be.true;
-            expect(readUserFile()).to.equal(initialContents);
+            expect(fileSystem.has(userFilePath)).to.be.true;
+            expect(readUserFile()).to.equal("");
         });
 
-        it("populates the file with a default root account if the target is a directory", () => {
-            fileSystem.remove(new Path("/etc/passwd"));
-            fileSystem.add(new Path("/etc/passwd"), new Directory(), true);
+        it("creates the file if the target is a directory when a method is invoked", () => {
+            userList.has("user");
 
-            expect(userList.has("root")).to.be.true;
-            expect(readUserFile()).to.equal(initialContents);
+            expect(fileSystem.has(userFilePath)).to.be.true;
+            expect(readUserFile()).to.equal("");
         });
     });
 
@@ -44,7 +44,7 @@ describe("user list", () => {
 
             userList.add(user);
 
-            expect(readUserFile()).to.equal(initialContents + User.toString(user) + "\n");
+            expect(readUserFile()).to.equal(User.toString(user) + "\n");
         });
 
         it("does not add duplicate users", () => {
@@ -53,7 +53,7 @@ describe("user list", () => {
             userList.add(user);
             userList.add(user);
 
-            expect(readUserFile()).to.equal(initialContents + User.toString(user) + "\n");
+            expect(readUserFile()).to.equal(User.toString(user) + "\n");
         });
     });
 
@@ -84,6 +84,28 @@ describe("user list", () => {
 
         it("returns `false` if the user does not exist", () => {
             expect(userList.has("user")).to.be.false;
+        });
+    });
+});
+
+describe("user", () => {
+    describe("password hash", () => {
+        it("returns a different hash for a different salt", () => {
+            expect(User.hashPassword("password", "salt1")).to.not.equal(User.hashPassword("password", "salt2"));
+        });
+
+        it("returns true if the password matches the user's password", () => {
+            const hash = User.hashPassword("password", "salt");
+            const user = new User("user", hash);
+
+            expect(user.hasPassword("password")).to.be.true;
+        });
+
+        it("returns false if the password does not match the user's password", () => {
+            const hash = User.hashPassword("password", "salt");
+            const user = new User("user", hash);
+
+            expect(user.hasPassword("not-password")).to.be.false;
         });
     });
 });

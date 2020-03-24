@@ -2,20 +2,13 @@
  * Manages a list of users.
  */
 import {File, FileSystem, Path} from "./FileSystem";
+import {sha256} from "js-sha256";
 
 
 /**
  * Manages a file containing user data.
  */
 export class UserList {
-    /**
-     * The default contents of the user data file, inserted if the file is unexpectedly removed or invalidated.
-     *
-     * This is a function to prevent accidental modification of these data.
-     */
-    private readonly GET_DEFAULT_USER = () => new User("root", "root", "/root", "The root user.");
-
-
     /**
      * The file system in which the user data file is located.
      */
@@ -35,8 +28,6 @@ export class UserList {
     constructor(fileSystem: FileSystem, userFilePath: Path = new Path("/etc/passwd")) {
         this.fileSystem = fileSystem;
         this.userFilePath = userFilePath;
-
-        this.userFile; // Initialize file
     }
 
 
@@ -48,10 +39,10 @@ export class UserList {
     private get userFile(): File {
         let userFile = this.fileSystem.get(this.userFilePath);
         if (userFile === undefined) {
-            userFile = new File(User.toString(this.GET_DEFAULT_USER()) + "\n");
+            userFile = new File();
             this.fileSystem.add(this.userFilePath, userFile, true);
         } else if (!(userFile instanceof File)) {
-            userFile = new File(User.toString(this.GET_DEFAULT_USER()) + "\n");
+            userFile = new File();
             this.fileSystem.remove(this.userFilePath);
             this.fileSystem.add(this.userFilePath, userFile, true);
         }
@@ -131,15 +122,28 @@ export class User {
      * Constructs a new user.
      *
      * @param name the name of the user
-     * @param password the password of the user
+     * @param password the hash of this user's password
      * @param home the path to the user's home directory, or `undefined` to use `/home/<name>`
      * @param description the description of the user
      */
-    constructor(name: string, password: string, home: string | undefined, description: string = "") {
+    constructor(name: string, password: string, home: string | undefined = undefined,
+                description: string | undefined = undefined) {
         this.name = name;
         this.password = password;
         this.home = home ?? `/home/${name}`;
-        this.description = description;
+        this.description = description ?? "";
+    }
+
+
+    /**
+     * Returns `true` if and only if the given password matches that of this user.
+     *
+     * @param password the password to compare against the password of this user
+     * @return `true` if and only if the given password matches that of this user
+     */
+    hasPassword(password: string): boolean {
+        const salt = this.password.split("$", 2)[0];
+        return User.hashPassword(password, salt) === this.password;
     }
 
 
@@ -162,5 +166,20 @@ export class User {
      */
     static toString(user: User): string {
         return `${user.name}|${user.password}|${user.home}|${user.description}`;
+    }
+
+
+    /**
+     * Hashes the given password.
+     *
+     * @param password the password to hash
+     * @param salt the salt to flavor the password with
+     * @return the hashed password
+     */
+    static hashPassword(password: string, salt: string | undefined = undefined): string {
+        salt = salt ?? Array.from(window.crypto.getRandomValues(new Uint8Array(8)))
+            .map(it => it.toString(16).padStart(2, "0"))
+            .join("");
+        return salt + "$" + sha256(salt + password);
     }
 }

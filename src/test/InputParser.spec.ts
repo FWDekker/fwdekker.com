@@ -10,53 +10,51 @@ import {Directory, File, FileSystem, Node, Path} from "../main/js/FileSystem";
  */
 const escape = InputParser.EscapeChar;
 
+/**
+ * A dummy implementation of the tokenizer that simply splits the given string by unescaped whitespaces.
+ *
+ * Note that escaped escape symbols are not recognized by this simple tokenizer.
+ */
+const dummyTokenizer = new class extends Tokenizer {
+    tokenize(input: string): string[] {
+        return input.split(/(?<!\\)\s/);
+    }
+};
+
+/**
+ * A dummy implementation of the globber that simply returns the given token.
+ */
+const dummyGlobber = new class extends Globber {
+    constructor() {
+        super(new FileSystem(new Directory()), "");
+    }
+
+
+    glob(token: string): string[] {
+        return [token];
+    }
+};
+
+/**
+ * A dummy implementation of the expander that simply returns the given token.
+ */
+const dummyExpander = new class extends Expander {
+    constructor() {
+        super(new Environment(), dummyGlobber);
+    }
+
+
+    glob(token: string): string[] {
+        return [token];
+    }
+};
+
 
 describe("input parser", () => {
     let parser: InputParser;
 
 
-    beforeEach(() => {
-        /**
-         * A dummy implementation of the tokenizer that simply splits the given string by unescaped whitespaces.
-         *
-         * Note that escaped escape symbols are not recognized by this simple tokenizer.
-         */
-        const dummyTokenizer = new class extends Tokenizer {
-            tokenize(input: string): string[] {
-                return input.split(/(?<!\\)\s/);
-            }
-        };
-
-        /**
-         * A dummy implementation of the globber that simply returns the given token.
-         */
-        const dummyGlobber = new class extends Globber {
-            constructor() {
-                super(new FileSystem(), "");
-            }
-
-
-            glob(token: string): string[] {
-                return [token];
-            }
-        };
-
-        /**
-         * A dummy implementation of the expander that simply returns the given token.
-         */
-        const dummyExpander = new class extends Expander {
-            constructor() {
-                super(new Environment(), dummyGlobber);
-            }
-
-
-            glob(token: string): string[] {
-                return [token];
-            }
-        };
-
-        parser = new InputParser(dummyTokenizer, dummyExpander);
-    });
+    beforeEach(() => parser = new InputParser(dummyTokenizer, dummyExpander));
 
 
     describe("command", () => {
@@ -494,20 +492,6 @@ describe("expander", () => {
 
 
     beforeEach(() => {
-        /**
-         * A dummy implementation of the globber that simply returns the given token.
-         */
-        const dummyGlobber = new class extends Globber {
-            constructor() {
-                super(new FileSystem(), "");
-            }
-
-
-            glob(token: string): string[] {
-                return [token];
-            }
-        };
-
         environment = new Environment();
         expander = new Expander(environment, dummyGlobber);
     });
@@ -645,7 +629,7 @@ describe("expander", () => {
         it("throws an error if the globber returns an empty array", () => {
             const globber = new class extends Globber {
                 constructor() {
-                    super(new FileSystem(), "");
+                    super(new FileSystem(new Directory()), "");
                 }
 
 

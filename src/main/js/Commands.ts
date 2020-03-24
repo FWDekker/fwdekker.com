@@ -344,8 +344,9 @@ export const commandBinaries: { [key: string]: string } = {
         \`cat [<b>-e</b> | <b>--escape-html</b>] <u>file</u> <u>...</u>\`,
         \`Reads files sequentially, writing them to the standard output.
 
-        If the file contains valid HTML, it will be displayed as such by default. If the <b>--html</b> option is ${n}
-        given, special HTML characters are escaped and the raw text contents can be inspected.\`.trimMultiLines(),
+        If the file contains valid HTML, it will be displayed as such by default. If the <b>--escape-html</b> ${n}
+        option is given, special HTML characters are escaped and the raw text contents can be inspected.${n}
+        \`.trimMultiLines(),
         new InputValidator({minArgs: 1})
     )`,
     "cd": `return new Command(

@@ -133,7 +133,7 @@ export class Shell {
                 streams.out.write(EscapeCharacters.Escape + EscapeCharacters.ShowInput);
 
                 const attemptUser = this.userList.get(this.attemptUser);
-                if (attemptUser !== undefined && attemptUser.password === inputString) {
+                if (attemptUser !== undefined && attemptUser.hasPassword(inputString)) {
                     this.environment.set("user", attemptUser.name);
                     this.environment.set("home", attemptUser.home);
                     this.environment.set("cwd", attemptUser.home);
