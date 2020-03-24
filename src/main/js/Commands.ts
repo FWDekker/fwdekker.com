@@ -5,7 +5,7 @@ import {InputArgs} from "./InputArgs";
 import {Persistence} from "./Persistence";
 import {escapeHtml, ExpectedGoodbyeError, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
 import {StreamSet} from "./Stream";
-import {UserList} from "./UserList";
+import {HashProvider, User, UserList} from "./UserList";
 import {EscapeCharacters} from "./Terminal";
 import {InputParser} from "./InputParser";
 
@@ -136,10 +136,12 @@ export class Commands {
             "DocOnlyCommand": DocOnlyCommand,
             "EscapeCharacters": EscapeCharacters,
             "File": File,
+            "HashProvider": HashProvider,
             "InputParser": InputParser,
             "InputValidator": InputValidator,
             "Path": Path,
             "Persistence": Persistence,
+            "User": User,
             "josh": josh
         };
 
@@ -517,7 +519,7 @@ export const commandBinaries: { [key: string]: string } = {
         new InputValidator()
     )`,
     "hier": `return new DocOnlyCommand(
-        \`description of the filesystem hierarchy\`,
+        \`description of the file system hierarchy\`,
         \`A typical josh system has, among others, the following directories:
 
         <u>/</u>      This is the root directory. This is where the whole tree starts.
@@ -871,6 +873,106 @@ export const commandBinaries: { [key: string]: string } = {
         \`Update the access and modification times of each <u>file</u> to the current time. If a <u>file</u> does ${n}
         not exist, it is created.\`.trimMultiLines(),
         new InputValidator({minArgs: 1})
+    )`,
+    "useradd": `return new Command(
+        (input, streams) => {
+            if (josh.userList.has(input.args[0])) {
+                streams.err.writeLine(\`useradd: User '\${input.args[0]}' already exists.\`);
+                return -1;
+            }
+
+            let user;
+            try {
+                user = new User(input.args[0], HashProvider.default.hashPassword(input.args[1]));
+                if (input.hasAnyOption("-h", "--home"))
+                    user.home = input.options["-h"] || input.options["--home"];
+                if (input.hasAnyOption("-d", "--description"))
+                    user.description = input.options["-d"] || input.options["--description"];
+            } catch (error) {
+                streams.err.writeLine(\`useradd: \${error.message}\`);
+                return -1;
+            }
+
+            if (!josh.userList.add(user)) {
+                streams.err.writeLine(\`useradd: Unexpectedly failed to add user '\${input.args[0]}'.\`);
+                return -1;
+            }
+
+            streams.out.writeLine(\`useradd: Successfully added user '\${input.args[0]}'\`);
+            return 0;
+        },
+        \`add new user\`,
+        \`useradd ${n}
+            [<b>-h</b>/<b>--home</b>=<u>home</u>] ${n}
+            [<b>-d</b>/<b>--description</b>=<u>description</u>] ${n}
+            <u>name</u> <u>password</u>\`.trimMultiLines(),
+        \`Adds a user with the given data to the system.
+
+        The <u>name</u> must consist solely of alphanumerical characters.
+        The <u>home</u> directory and the <u>description</u> must not contain the pipe character (') or the newline ${n}
+        character ('\\\\n').
+
+        If no <u>home</u> is given, it defaults to "/home/<u>name</u>".\`.trimMultiLines(),
+        new InputValidator({minArgs: 2, maxArgs: 4})
+    )`,
+    "userdel": `return new Command(
+        (input, streams) => {
+            if (!josh.userList.has(input.args[0])) {
+                streams.err.writeLine(\`userdel: Could not delete non-existent user '\${input.args[0]}'.\`);
+                return -1;
+            }
+
+            if (!josh.userList.delete(input.args[0])) {
+                streams.err.writeLine(\`userdel: Unexpectedly failed to delete user '\${input.args[0]}'.\`);
+                return -1;
+            }
+
+            streams.out.writeLine(\`userdel: Successfully deleted user '\${input.args[0]}'\`);
+            return 0;
+        },
+        \`delete user\`,
+        \`userdel <u>name</u>\`,
+        \`Deletes the user with the given <u>name</u>.\`.trimMultiLines(),
+        new InputValidator({minArgs: 1, maxArgs: 1})
+    )`,
+    "usermod": `return new Command(
+        (input, streams) => {
+            let user = josh.userList.get(input.args[0]);
+            if (user === undefined) {
+                streams.err.writeLine(\`usermod: Could not modify non-existent user '\${input.args[0]}'.\`);
+                return -1;
+            }
+
+            try {
+                if (input.hasAnyOption("-p", "--password")) {
+                    const password = input.options["-p"] || input.options["--password"];
+                    user.passwordHash = HashProvider.default.hashPassword(password);
+                }
+                if (input.hasAnyOption("-h", "--home"))
+                    user.home = input.options["-h"] || input.options["--home"];
+                if (input.hasAnyOption("-d", "--description"))
+                    user.description = input.options["-d"] || input.options["--description"];
+            } catch (error) {
+                streams.err.writeLine(\`usermod: \${error.message}\`);
+                return -1;
+            }
+
+            if (!josh.userList.modify(user)) {
+                streams.err.writeLine(\`usermod: Unexpectedly failed to modify user '\${input.args[0]}'.\`);
+                return -1;
+            }
+
+            return 0;
+        },
+        \'modify user\',
+        \`usermod ${n}
+            [<b>-p</b>/<b>--password</b>=<u>password</u>] ${n}
+            [<b>-h</b>/<b>--home</b>=<u>home</u>] ${n}
+            [<b>-d</b>/<b>--description</b>=<u>description</u>] ${n}
+            <u>name</u>\`.trimMultiLines(),
+        \`Modifies the user with the given <u>name</u>. See the "useradd" command for more information on the ${n}
+        fields that can be modified.\`.trimMultiLines(),
+        new InputValidator({minArgs: 1, maxArgs: 1})
     )`,
     "whoami": `return new Command(
         (input, streams) => {

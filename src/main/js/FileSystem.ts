@@ -1,7 +1,7 @@
 import {commandBinaries} from "./Commands";
 import {emptyFunction, getFileExtension, IllegalArgumentError} from "./Shared";
 import {Stream} from "./Stream";
-import {User} from "./UserList";
+import {HashProvider, User} from "./UserList";
 
 
 /**
@@ -34,8 +34,10 @@ export class FileSystem {
                     "etc": new Directory({
                         "passwd": new File(
                             [
-                                new User("root", User.hashPassword("g9PjKu"), "/root", "You're a hacker, Harry!"),
-                                new User("felix", User.hashPassword("password"), undefined, "Who are <i>you</i>?")
+                                new User("root", HashProvider.default.hashPassword("g9PjKu"), "/root",
+                                    "You're a hacker, Harry!"),
+                                new User("felix", HashProvider.default.hashPassword("password"), undefined,
+                                    "Who are <i>you</i>?")
                             ].map(it => User.toString(it)).join("\n") + "\n"
                         )
                     }),

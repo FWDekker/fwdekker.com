@@ -1,14 +1,33 @@
 import "mocha";
+import "jsdom-global";
 import {expect} from "chai";
 
 import {Directory, File, FileSystem, Path} from "../main/js/FileSystem";
 import {Command, commandBinaries, Commands} from "../main/js/Commands";
 import {Environment} from "../main/js/Environment";
-import {User, UserList} from "../main/js/UserList";
+import {HashProvider, User, UserList} from "../main/js/UserList";
 import {InputParser} from "../main/js/InputParser";
 import {Buffer, StreamSet} from "../main/js/Stream";
 
 
+/**
+ * A plain hash provider that doesn't actually hash anything.
+ */
+const plainHashProvider = new class extends HashProvider {
+    hashPassword(password: string): string {
+        return password;
+    }
+
+    checkPassword(hash: string, password: string): boolean {
+        return password === hash;
+    }
+};
+
+
+// TODO Add utility method for reading error stream
+// TODO Check the other TODOs for testing
+// TODO Re-order inputs in all files
+// TODO Add documentation to top-level describes in all files
 describe("commands", () => {
     let environment: Environment;
     let fileSystem: FileSystem;
@@ -689,6 +708,122 @@ describe("commands", () => {
                 expect(execute("touch /file1 /file2")).to.equal(0);
                 expect(fileSystem.has(new Path("/file1"))).to.be.true;
                 expect(fileSystem.has(new Path("/file2"))).to.be.true;
+            });
+        });
+
+        describe("useradd", () => {
+            before(() => HashProvider.default = plainHashProvider);
+
+            beforeEach(() => loadCommand("useradd"));
+
+            after(() => HashProvider.default = new HashProvider());
+
+
+            it("fails if the user already exists", () => {
+                userList.add(new User("user", "old"));
+
+                expect(execute("useradd user new")).to.equal(-1);
+                expect((streamSet.err as Buffer).read()).to.equal("useradd: User 'user' already exists.\n");
+            });
+
+            it("fails if any of the fields is malformed", () => {
+                expect(execute("useradd user_name password")).to.equal(-1);
+                expect((streamSet.err as Buffer).read())
+                    .to.equal("useradd: Name must contain only alphanumerical characters.\n");
+            });
+
+            it("adds a user with default home and empty description if those fields are not given", () => {
+                expect(execute("useradd user password")).to.equal(0);
+                expect(userList.get("user")).to.deep.equal(new User("user", "password"));
+            });
+
+            it("adds a new user with default home if that option is not given", () => {
+                expect(execute("useradd --description=description user password")).to.equal(0);
+                expect(userList.get("user")).to.deep.equal(new User("user", "password", undefined, "description"));
+            });
+
+            it("adds a user with default description if that option is not given", () => {
+                expect(execute("useradd --home=/user user password")).to.equal(0);
+                expect(userList.get("user")).to.deep.equal(new User("user", "password", "/user"));
+            });
+
+            it("adds a user with the given home and description", () => {
+                expect(execute("useradd --home=/user --description=description user password")).to.equal(0);
+                expect(userList.get("user")).to.deep.equal(new User("user", "password", "/user", "description"));
+            });
+        });
+
+        describe("userdel", () => {
+            beforeEach(() => loadCommand("userdel"));
+
+
+            it("fails if the target user does not exist", () => {
+                expect(execute("userdel user")).to.equal(-1);
+                expect((streamSet.err as Buffer).read())
+                    .to.equal("userdel: Could not delete non-existent user 'user'.\n");
+            });
+
+            it("deletes the given user", () => {
+                userList.add(new User("user", "password"));
+
+                expect(execute("userdel user")).to.equal(0);
+                expect(userList.has("user")).to.be.false;
+            });
+        });
+
+        describe("usermod", () => {
+            before(() => HashProvider.default = plainHashProvider);
+
+            beforeEach(() => loadCommand("usermod"));
+
+            after(() => HashProvider.default = new HashProvider());
+
+
+            it("fails if the target user does not exist", () => {
+                expect(execute("usermod user")).to.equal(-1);
+                expect((streamSet.err as Buffer).read())
+                    .to.equal("usermod: Could not modify non-existent user 'user'.\n");
+            });
+
+            it("fails if a changed parameter is malformed", () => {
+                const user = new User("user", "password", "/home");
+                userList.add(user);
+
+                expect(execute("usermod -h=/ho|me user")).to.equal(-1);
+                expect((streamSet.err as Buffer).read())
+                    .to.equal("usermod: Home must not contain pipe ('|') or newline character.\n");
+            });
+
+            it("modifies nothing if no modified fields are given", () => {
+                const user = new User("user", "password", "/home", "description");
+                userList.add(user);
+
+                expect(execute("usermod user")).to.equal(0);
+                expect(userList.get("user")).to.deep.equal(user);
+            });
+
+            it("modifies the user's password", () => {
+                const user = new User("user", "old");
+                userList.add(user);
+
+                expect(execute("usermod -p=new user")).to.equal(0);
+                expect(userList.get("user")?.passwordHash).to.equal("new");
+            });
+
+            it("modifies the user's home", () => {
+                const user = new User("user", "pwd", "/old");
+                userList.add(user);
+
+                expect(execute("usermod -h=/new user")).to.equal(0);
+                expect(userList.get("user")?.home).to.equal("/new");
+            });
+
+            it("modifies the user's description", () => {
+                const user = new User("user", "password", undefined, "old");
+                userList.add(user);
+
+                expect(execute("usermod -d=new user")).to.equal(0);
+                expect(userList.get("user")?.description).to.equal("new");
             });
         });
 
