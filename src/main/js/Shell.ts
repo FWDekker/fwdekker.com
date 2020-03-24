@@ -166,16 +166,17 @@ export class Shell {
         }
 
         inputs.forEach(input => {
+            const localStreams = streams.copy();
             try {
-                streams.out = this.toStream(input.redirectTargets[1]) ?? streams.out;
-                streams.err = this.toStream(input.redirectTargets[2]) ?? streams.err;
+                localStreams.out = this.toStream(input.redirectTargets[1]) ?? localStreams.out;
+                localStreams.err = this.toStream(input.redirectTargets[2]) ?? localStreams.err;
             } catch (error) {
                 streams.err.writeLine(`Error while redirecting output:\n${error.message}`);
                 this.environment.set("status", "-1");
                 return;
             }
 
-            const output = this.commands.execute(input, streams);
+            const output = this.commands.execute(input, localStreams);
             this.environment.set("status", "" + output);
 
             if (this.environment.get("user") === "") {
