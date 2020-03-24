@@ -69,6 +69,10 @@ describe("user list", () => {
         it("returns undefined if the user does not exist", () => {
             expect(userList.get("user")).to.be.undefined;
         });
+
+        it("returns undefined for an empty user name", () => {
+            expect(userList.get("")).to.be.undefined;
+        });
     });
 
     describe("has", () => {

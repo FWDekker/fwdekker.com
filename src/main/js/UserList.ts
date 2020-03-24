@@ -62,7 +62,10 @@ export class UserList {
      * Returns a copy of the list of all users.
      */
     get users(): User[] {
-        return this.userFile.open("read").read().split("\n").map(it => User.fromString(it));
+        return this.userFile.open("read").read()
+            .split("\n")
+            .filter(it => it.trim().length > 0)
+            .map(it => User.fromString(it));
     }
 
 
@@ -147,7 +150,7 @@ export class User {
      * @return the user object described by the given string
      */
     static fromString(string: string): User {
-        const parts = string.split("|");
+        const parts = string.split("|", 4);
         return new User(parts[0], parts[1], parts[2], parts[3]);
     }
 
