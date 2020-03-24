@@ -95,6 +95,8 @@ body {
     max-width: 1px !important;
     overflow: hidden !important;
     overflow-wrap: normal !important;
+    display: inline-block !important;
+    vertical-align: top !important;
 }
 
 #terminalSuggestions {
