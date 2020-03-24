@@ -4,7 +4,7 @@ import {Directory, File, FileSystem, Node, Path,} from "./FileSystem";
 import {InputArgs} from "./InputArgs";
 import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {escapeHtml, ExpectedGoodbyeError, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
+import {escapeHtml, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
 import {StreamSet} from "./Stream";
 import {EscapeCharacters} from "./Terminal";
 import {HashProvider, User, UserList} from "./UserList";
@@ -49,11 +49,6 @@ export class Commands {
      * @param streams the streams to interact with
      */
     execute(input: InputArgs, streams: StreamSet): number {
-        if (input.command === "factory-reset") {
-            Persistence.reset();
-            location.reload(true);
-            throw new ExpectedGoodbyeError("Goodbye");
-        }
         if (input.command === "")
             return 0;
 
@@ -898,7 +893,7 @@ export const commandBinaries: { [key: string]: string } = {
                 return -1;
             }
 
-            streams.out.writeLine(\`useradd: Successfully added user '\${input.args[0]}'\`);
+            streams.out.writeLine(\`useradd: Added user '\${input.args[0]}'.\`);
             return 0;
         },
         \`add new user\`,
@@ -927,7 +922,7 @@ export const commandBinaries: { [key: string]: string } = {
                 return -1;
             }
 
-            streams.out.writeLine(\`userdel: Successfully deleted user '\${input.args[0]}'\`);
+            streams.out.writeLine(\`userdel: Deleted user '\${input.args[0]}'.\`);
             return 0;
         },
         \`delete user\`,
@@ -962,6 +957,7 @@ export const commandBinaries: { [key: string]: string } = {
                 return -1;
             }
 
+            streams.out.writeLine(\`usermod: Modified user '\${input.args[0]}'.\`);
             return 0;
         },
         \'modify user\',

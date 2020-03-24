@@ -5,7 +5,7 @@ import {InputArgs} from "./InputArgs";
 import {InputHistory} from "./InputHistory";
 import {Globber, InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {asciiHeaderHtml, IllegalStateError, isStandalone} from "./Shared";
+import {asciiHeaderHtml, ExpectedGoodbyeError, IllegalStateError, isStandalone} from "./Shared";
 import {OutputStream, StreamSet} from "./Stream";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
@@ -121,6 +121,11 @@ export class Shell {
      */
     execute(streams: StreamSet): void {
         const inputString = streams.ins.readLine().replace("\n", "");
+        if (inputString === "factory-reset") {
+            Persistence.reset();
+            location.reload(true);
+            throw new ExpectedGoodbyeError("Goodbye");
+        }
 
         if (this.environment.get("user") === "") {
             if (this.attemptUser === undefined) {
