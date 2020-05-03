@@ -3,7 +3,7 @@
     "target": "es2019",
     "strict": true,
     "rootDir": "./src/main/js/",
-    "outDir": "./build/js/"
+    "outDir": "./dist/js/"
   },
   "include": [
     "src/main/js/**/*.ts"

@@ -4,25 +4,25 @@ module.exports = grunt => {
     grunt.initConfig({
         pkg: grunt.file.readJSON("package.json"),
         clean: {
-            default: [".nyc_output/", "build/"]
+            default: [".nyc_output/", "dist/"]
         },
         copy: {
             images: {
-                files: [{expand: true, cwd: "src/main/", src: ["**/*.png", "**/*.ico"], dest: "build/"}]
+                files: [{expand: true, cwd: "src/main/", src: ["**/*.png", "**/*.ico"], dest: "dist/"}]
             },
             html: {
-                files: [{expand: true, cwd: "src/main/", src: "**/*.html", dest: "build/"}]
+                files: [{expand: true, cwd: "src/main/", src: "**/*.html", dest: "dist/"}]
             },
             css: {
-                files: [{expand: true, cwd: "src/main/", src: "**/*.css", dest: "build/"}]
+                files: [{expand: true, cwd: "src/main/", src: "**/*.css", dest: "dist/"}]
             },
             pwa: {
-                files: [{expand: true, cwd: "src/main/", src: ["manifest.json", "sw.js"], dest: "build/"}]
+                files: [{expand: true, cwd: "src/main/", src: ["manifest.json", "sw.js"], dest: "dist/"}]
             }
         },
         replace: {
             dev: {
-                src: ["./build/*.js"],
+                src: ["./dist/*.js"],
                 replacements: [
                     {
                         from: "%%VERSION_NUMBER%%",
@@ -32,7 +32,7 @@ module.exports = grunt => {
                 overwrite: true
             },
             deploy: {
-                src: ["./build/*.js"],
+                src: ["./dist/*.js"],
                 replacements: [
                     {
                         from: "%%VERSION_NUMBER%%",
@@ -59,7 +59,7 @@ module.exports = grunt => {
                 },
                 output: {
                     filename: "bundle.js",
-                    path: path.resolve(__dirname, "build/"),
+                    path: path.resolve(__dirname, "dist/"),
                 }
             },
             dev: {
