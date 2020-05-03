@@ -32,7 +32,7 @@
         --></noscript><!--
         --><div id="ie-warning" style="display:none;"><!--
             -->This website does not function with Internet Explorer. <!--
-            -->Please install a newer browser such as<!--
+            -->Please install a newer browser such as <!--
             --><a href="https://www.microsoft.com/en-us/windows/microsoft-edge">Microsoft Edge</a>.<!--
         --></div><!--
         --><span id="terminalOutput"></span><!--
@@ -47,11 +47,17 @@
 
 
 <script>
-    if (/MSIE|Trident/.test(window.navigator.userAgent))
-        document.getElementById("ie-warning").style.display = "block";
+    if (/MSIE|Trident/.test(window.navigator.userAgent)) {
+        window.onload = function () {
+            document.getElementById("ie-warning").style.display = "block";
+        };
+    }
 
-    if ("serviceWorker" in navigator)
-        window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+            return navigator.serviceWorker.register("sw.js");
+        });
+    }
 </script>
 <script type="module" src="bundle.js"></script>
 </body>
