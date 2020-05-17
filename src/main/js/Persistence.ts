@@ -119,7 +119,7 @@ export class Persistence {
      * @param environment the environment to persist
      */
     static setEnvironment(environment: Environment): void {
-        Cookies.set("env", environment.variables, {"path": "/"});
+        Cookies.set("env", environment.variables, {path: "/", secure: true, sameSite: "lax"});
     }
 
     /**
@@ -162,8 +162,10 @@ export class Persistence {
      */
     static setPoweroff(value: boolean): void {
         Cookies.set("poweroff", "" + value, {
-            "expires": new Date(new Date().setSeconds(new Date().getSeconds() + 30)),
-            "path": "/"
+            expires: new Date(new Date().setSeconds(new Date().getSeconds() + 30)),
+            path: "/",
+            secure: true,
+            sameSite: "lax"
         });
     }
 

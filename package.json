@@ -1,6 +1,6 @@
 {
     "name": "fwdekker.com",
-    "version": "0.33.8",
+    "version": "0.33.9",
     "description": "The source code of [my personal website](https://fwdekker.com/).",
     "author": "Felix W. Dekker",
     "browser": "dist/bundle.js",
