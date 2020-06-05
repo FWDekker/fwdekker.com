@@ -288,14 +288,14 @@ export class InputValidator {
 // An escaped newline escape symbol.
 const n = "\\\\\\";
 
-// noinspection HtmlUnknownAttribute // False positive
 /**
  * Returns the script contents of the binaries in the `/bin` directory.
  *
  * @return the script contents of the binaries in the `/bin` directory
  */
+// @formatter:off
 export const commandBinaries: { [key: string]: string } = {
-    "and": `\
+    "and": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         const previousStatus = Number(josh.environment.getOrDefault("status", "0"));
@@ -316,7 +316,7 @@ return new Command(
     \`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
-    "cat": `\
+    "cat": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         return input.args
@@ -347,7 +347,7 @@ return new Command(
     given, special HTML characters are escaped and the raw text contents can be inspected.\`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
-    "cd": `\
+    "cd": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         if (input.argc === 0) {
@@ -370,7 +370,7 @@ return new Command(
     working directory is changed to the current user's home directory.\`.trimMultiLines(),
     new InputValidator({maxArgs: 1})
 )`,
-    "clear": `\
+    "clear": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         streams.out.write(EscapeCharacters.Escape + EscapeCharacters.Clear);
@@ -381,7 +381,7 @@ return new Command(
     \`Clears all previous terminal output.\`,
     new InputValidator({maxArgs: 0})
 )`,
-    "cp": `\
+    "cp": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         let mappings;
@@ -421,7 +421,7 @@ return new Command(
     \`.trimMultiLines(),
     new InputValidator({minArgs: 2})
 )`,
-    "echo": `\
+    "echo": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         const message = input.args.join(" ").replace("hunter2", "*******");
@@ -440,7 +440,7 @@ return new Command(
     Unless the <b>--newline</b> parameter is given, a newline is appended to the end.\`.trimMultiLines(),
     new InputValidator()
 )`,
-    "exit": `\
+    "exit": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         josh.environment.set("user", "");
@@ -451,7 +451,7 @@ return new Command(
     \`Closes the terminal session.\`,
     new InputValidator({maxArgs: 0})
 )`,
-    "help": `\
+    "help": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         if (input.argc > 0) {
@@ -520,7 +520,7 @@ return new Command(
     If no commands are given, a list of all commands is shown.\`.trimMultiLines(),
     new InputValidator()
 )`,
-    "hier": `\
+    "hier": /* language=JavaScript */ `\
 return new DocOnlyCommand(
     \`description of the file system hierarchy\`,
     \`A typical josh system has, among others, the following directories:
@@ -537,7 +537,7 @@ return new DocOnlyCommand(
 
     <u>/root</u>  The home directory of the root user.\`.trimMultiLines()
 )`,
-    "ls": `\
+    "ls": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         return (input.argc === 0 ? [""] : input.args)
@@ -596,7 +596,7 @@ return new Command(
     <u>.</u> and <u>..</u>, which are always shown.\`.trimMultiLines(),
     new InputValidator()
 )`,
-    "mkdir": `\
+    "mkdir": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         return input.args
@@ -620,7 +620,7 @@ return new Command(
     <b>--parents</b> option is given, parent directories that do not exist are created as well.\`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
-    "mv": `\
+    "mv": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         let mappings;
@@ -656,7 +656,7 @@ return new Command(
     pre-existing directory. The file names of the <u>source</u> files are retained.\`.trimMultiLines(),
     new InputValidator({minArgs: 2})
 )`,
-    "not": `\
+    "not": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         return Number(!josh.interpreter.execute(
@@ -670,7 +670,7 @@ return new Command(
     the exit code is set to 0 if it was non-zero, and is set to 1 otherwise.\`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
-    "open": `\
+    "open": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         return input.args
@@ -699,7 +699,7 @@ return new Command(
     tab regardless of whether <b>--blank</b> is given.\`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
-    "or": `\
+    "or": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         const previousStatus = Number(josh.environment.getOrDefault("status", "0"));
@@ -719,7 +719,7 @@ return new Command(
     The exit code is retained if it was zero, and is changed to that of <u>command</u> otherwise.\`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
-    "poweroff": `\
+    "poweroff": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         const userName = josh.environment.get("user");
@@ -748,7 +748,7 @@ return new Command(
     \`Automated shutdown procedure to nicely notify users when the system is shutting down.\`,
     new InputValidator({maxArgs: 0})
 )`,
-    "pwd": `\
+    "pwd": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         streams.out.writeLine(josh.environment.get("cwd") || "");
@@ -759,7 +759,7 @@ return new Command(
     \`Displays the current working directory.\`,
     new InputValidator({maxArgs: 0})
 )`,
-    "rm": `\
+    "rm": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         return input.args
@@ -808,7 +808,7 @@ return new Command(
     Unless <b>--no-preserve-root</b> is set, the root directory cannot be removed.\`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
-    "rmdir": `\
+    "rmdir": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         return input.args
@@ -844,7 +844,7 @@ return new Command(
     order they are given in. Non-empty directories will not be removed.\`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
-    "set": `\
+    "set": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         try {
@@ -865,7 +865,7 @@ return new Command(
     variable is cleared. Read-only variables cannot be set.\`.trimMultiLines(),
     new InputValidator({minArgs: 1, maxArgs: 2})
 )`,
-    "touch": `\
+    "touch": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         return input.args
@@ -887,7 +887,7 @@ return new Command(
     exist, it is created.\`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
-    "useradd": `\
+    "useradd": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         if (josh.userList.has(input.args[0])) {
@@ -929,7 +929,7 @@ return new Command(
     If no <u>home</u> is given, it defaults to "/home/<u>name</u>".\`.trimMultiLines(),
     new InputValidator({minArgs: 2, maxArgs: 4})
 )`,
-    "userdel": `\
+    "userdel": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         if (!josh.userList.has(input.args[0])) {
@@ -950,7 +950,7 @@ return new Command(
     \`Deletes the user with the given <u>name</u>.\`.trimMultiLines(),
     new InputValidator({minArgs: 1, maxArgs: 1})
 )`,
-    "usermod": `\
+    "usermod": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         let user = josh.userList.get(input.args[0]);
@@ -991,7 +991,7 @@ return new Command(
     that can be modified.\`.trimMultiLines(),
     new InputValidator({minArgs: 1, maxArgs: 1})
 )`,
-    "whoami": `\
+    "whoami": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
         const user = josh.userList.get(josh.environment.get("user"));
@@ -1009,3 +1009,4 @@ return new Command(
     new InputValidator({maxArgs: 0})
 )`,
 };
+// @formatter:on
