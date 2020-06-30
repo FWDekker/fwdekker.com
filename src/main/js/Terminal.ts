@@ -60,6 +60,27 @@ export class Terminal {
      * The standard output stream.
      */
     private readonly standardOutput = new Buffer();
+    /**
+     * The standard error stream, actually just a wrapper around the standard output stream.
+     */
+    private readonly standardError = new class extends Buffer {
+        private wrappedBuffer: Buffer;
+
+
+        constructor(wrappedBuffer: Buffer) {
+            super();
+
+            this.wrappedBuffer = wrappedBuffer;
+        }
+
+        read(count: number | undefined = undefined): string {
+            return this.wrappedBuffer.read(count);
+        }
+
+        write(string: string) {
+            this.wrappedBuffer.write(`<span class="errorMessage">${string}</span>`);
+        }
+    }(this.standardOutput);
 
 
     /**
@@ -234,7 +255,7 @@ export class Terminal {
         this.outputText += `${this.prefixText}${this.isInputHidden ? "" : escapeHtml(input)}\n`;
 
         this.standardInput.writeLine(input);
-        this.shell.execute(new StreamSet(this.standardInput, this.standardOutput, this.standardOutput));
+        this.shell.execute(new StreamSet(this.standardInput, this.standardOutput, this.standardError));
 
         let buffer = "";
         while (this.standardOutput.has(1)) {

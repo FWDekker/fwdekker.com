@@ -159,7 +159,6 @@ describe("commands", () => {
             it("executes the command if the previous command exited successfully", () => {
                 environment.set("status", "" + ExitCode.OK);
 
-                // TODO (#129) Run `false` to check that the exit code changes
                 expect(execute("and echo 'message'")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("message\n");
             });
