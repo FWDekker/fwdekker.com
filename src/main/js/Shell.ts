@@ -110,7 +110,10 @@ export class Shell {
             .map(part => new Directory().nameString(part.fileName, part))
             .join("/");
 
-        return `${userName}@fwdekker.com <span class="prefixPath">${rootText}${partText}</span>&gt; `;
+        const status = this.environment.get("status");
+        const statusString = status === "0" ? "" : ` <span class="errorMessage">[${status}]</span>`;
+
+        return `${userName}@fwdekker.com <span class="prefixPath">${rootText}${partText}</span>${statusString}&gt; `;
     }
 
 

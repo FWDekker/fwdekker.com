@@ -102,3 +102,8 @@ body {
 #terminalSuggestions {
     display: block;
 }
+
+
+.errorMessage {
+    color: red;
+}
