@@ -508,6 +508,14 @@ return new Command(
     \`Closes the terminal session.\`,
     new InputValidator({maxArgs: 0})
 )`,
+    "false": /* language=JavaScript */ `\
+return new Command(
+    () => {return ExitCode.MISC;},
+    \`return unsuccessful exit code\`,
+    \`false\`,
+    \`Set the <tt>status</tt> environment variable to ${ExitCode.MISC}.\`.trimMultiLines(),
+    new InputValidator({minArgs: 0})
+)`,
     "help": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
@@ -519,8 +527,8 @@ return new Command(
 
                     const command = josh.interpreter.resolve(commandName);
                     if (command === undefined) {
-                        streams.out.writeLine(\`Unknown command '\${commandName}'.\`);
-                        return ExitCode.COMMAND_NOT_FOUND;
+                        streams.err.writeLine(\`help: Unknown command '\${commandName}'.\`);
+                        return ExitCode.USAGE;
                     }
 
                     let helpString = "<b>Name</b>\\n" + commandName;
@@ -946,6 +954,14 @@ return new Command(
     exist, it is created.\`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
+    "true": /* language=JavaScript */ `\
+return new Command(
+    () => {return ExitCode.OK;},
+    \`return successful exit code\`,
+    \`true\`,
+    \`Set the <tt>status</tt> environment variable to ${ExitCode.OK}.\`.trimMultiLines(),
+    new InputValidator({minArgs: 0})
+)`,
     "useradd": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
@@ -1049,6 +1065,27 @@ return new Command(
     \`Modifies the user with the given <u>name</u>. See the "useradd" command for more information on the fields ${n}
     that can be modified.\`.trimMultiLines(),
     new InputValidator({minArgs: 1, maxArgs: 1})
+)`,
+    "whatis": /* language=JavaScript */ `\
+return new Command(
+    (input, streams) => {
+        return input.args
+            .map(commandName => {
+                const command = josh.interpreter.resolve(commandName);
+                if (command === undefined) {
+                    streams.err.writeLine(\`whatis: Unknown command '\${commandName}'.\`);
+                    return ExitCode.USAGE;
+                }
+
+                streams.out.writeLine("<b>" + commandName + "</b> - " + command.summary);
+                return ExitCode.OK;
+            })
+            .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
+    },
+    \`display one-line documentation\`,
+    \`whatis <u>command</u> <u>...</u>\`,
+    \`Displays a one-line summary for each <u>command</u>.\`.trimMultiLines(),
+    new InputValidator({minArgs: 1})
 )`,
     "whoami": /* language=JavaScript */ `\
 return new Command(

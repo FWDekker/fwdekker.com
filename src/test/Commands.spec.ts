@@ -324,11 +324,25 @@ describe("commands", () => {
             });
         });
 
+        describe("false", () => {
+            beforeEach(() => loadCommand("false"));
+
+
+            it("sets the exit code to an erroneous value", () => {
+                expect(execute("false")).to.not.equal(ExitCode.OK);
+            });
+        });
+
         describe("help", () => {
             beforeEach(() => loadCommand("help"));
 
 
-            it("outputs something", () => {
+            it("outputs an error if the command could not be found", () => {
+                expect(execute("help error")).to.equal(ExitCode.USAGE);
+                expect(readErr()).to.equal("help: Unknown command 'error'.\n");
+            });
+
+            it("outputs something if the command could be found", () => {
                 expect(execute("help help")).to.equal(ExitCode.OK);
                 expect(readOut()).to.not.equal("");
             });
@@ -722,6 +736,15 @@ describe("commands", () => {
             });
         });
 
+        describe("true", () => {
+            beforeEach(() => loadCommand("true"));
+
+
+            it("sets the exit code to a successful value", () => {
+                expect(execute("true")).to.equal(ExitCode.OK);
+            });
+        });
+
         describe("useradd", () => {
             before(() => HashProvider.default = plainHashProvider);
 
@@ -831,6 +854,21 @@ describe("commands", () => {
 
                 expect(execute("usermod -d=new user")).to.equal(ExitCode.OK);
                 expect(userList.get("user")?.description).to.equal("new");
+            });
+        });
+
+        describe("whatis", () => {
+            beforeEach(() => loadCommand("whatis"));
+
+
+            it("outputs an error if a command could not be found", () => {
+                expect(execute("whatis error")).to.equal(ExitCode.USAGE);
+                expect(readErr()).to.equal("whatis: Unknown command 'error'.\n");
+            });
+
+            it("outputs a short summary of itself", () => {
+                expect(execute("whatis whatis")).to.equal(ExitCode.OK);
+                expect(readOut()).to.equal("<b>whatis</b> - display one-line documentation\n");
             });
         });
 
