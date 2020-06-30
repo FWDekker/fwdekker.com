@@ -2,7 +2,7 @@ import {expect} from "chai";
 import "jsdom-global";
 import "mocha";
 
-import {Command, commandBinaries, Commands} from "../main/js/Commands";
+import {Command, commandBinaries, Commands, ExitCode} from "../main/js/Commands";
 import {Environment} from "../main/js/Environment";
 import {Directory, File, FileSystem, Path} from "../main/js/FileSystem";
 import {InputParser} from "../main/js/InputParser";
@@ -55,21 +55,21 @@ describe("commands", () => {
 
     describe("execute", () => {
         it("writes an error if it cannot resolve the command", () => {
-            expect(execute("does-not-exist")).to.equal(-1);
+            expect(execute("does-not-exist")).to.equal(ExitCode.COMMAND_NOT_FOUND);
             expect(readErr()).to.equal("Unknown command 'does-not-exist'.\n");
         });
 
         it("writes an error if the command is invalid", () => {
             fileSystem.add(new Path("/command"), new File("invalid"), false);
 
-            expect(execute("/command")).to.equal(-1);
+            expect(execute("/command")).to.equal(ExitCode.COMMAND_NOT_FOUND);
             expect(readErr()).to.equal("Could not parse command '/command': ReferenceError: invalid is not defined.\n");
         });
 
         it("writes an error if the command is a doc-only command", () => {
             fileSystem.add(new Path("/command"), new File(`return new DocOnlyCommand("", "")`), false);
 
-            expect(execute("/command")).to.equal(-1);
+            expect(execute("/command")).to.equal(ExitCode.COMMAND_NOT_FOUND);
             expect(readErr()).to.equal("Could not execute doc-only command. Try 'help /command' instead.\n");
         });
 
@@ -77,7 +77,7 @@ describe("commands", () => {
             const command = `return new Command("", "", "", "", new InputValidator({minArgs: 2}))`;
             fileSystem.add(new Path("/command"), new File(command), false);
 
-            expect(execute("/command arg1")).to.equal(-1);
+            expect(execute("/command arg1")).to.equal(ExitCode.USAGE);
             expect(readErr()).to.contain("Invalid usage of '/command'. Expected at least 2 arguments but got 1.");
         });
 
@@ -142,17 +142,25 @@ describe("commands", () => {
             });
 
 
-            it("does nothing if the previous command exited unsuccessfully", () => {
+            it("does nothing if the previous command exited unsuccessfully with a negative code", () => {
                 environment.set("status", "-1");
 
                 expect(execute("and echo 'message'")).to.equal(-1);
                 expect(readOut()).to.equal("");
             });
 
-            it("executes the command if the previous command exited successfully", () => {
-                environment.set("status", "0");
+            it("does nothing if the previous command exited unsuccessfully with a positive code", () => {
+                environment.set("status", "1");
 
-                expect(execute("and echo 'message'")).to.equal(0);
+                expect(execute("and echo 'message'")).to.equal(1);
+                expect(readOut()).to.equal("");
+            });
+
+            it("executes the command if the previous command exited successfully", () => {
+                environment.set("status", "" + ExitCode.OK);
+
+                // TODO (#129) Run `false` to check that the exit code changes
+                expect(execute("and echo 'message'")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("message\n");
             });
         });
@@ -162,35 +170,35 @@ describe("commands", () => {
 
 
             it("fails if the file does not exist", () => {
-                expect(execute("cat /file")).to.equal(-1);
+                expect(execute("cat /file")).to.equal(ExitCode.FILE_NOT_FOUND);
                 expect(readErr()).to.equal(`cat: '/file': No such file.\n`);
             });
 
             it("fails if the target is not a file", () => {
                 fileSystem.add(new Path("/dir"), new Directory(), false);
 
-                expect(execute("cat /dir")).to.equal(-1);
+                expect(execute("cat /dir")).to.equal(ExitCode.FILE_NOT_FOUND);
                 expect(readErr()).to.equal(`cat: '/dir': No such file.\n`);
             });
 
             it("writes the contents of the file to the output stream", () => {
                 fileSystem.add(new Path("/file"), new File("contents"), false);
 
-                expect(execute("cat /file")).to.equal(0);
+                expect(execute("cat /file")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("contents\n");
             });
 
             it("does not add an extra newline at the end if there already is one", () => {
                 fileSystem.add(new Path("/file"), new File("contents\n"), false);
 
-                expect(execute("cat /file")).to.equal(0);
+                expect(execute("cat /file")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("contents\n");
             });
 
             it("escapes HTML if prompted to do so", () => {
                 fileSystem.add(new Path("/file"), new File("<i>contents</i>"), false);
 
-                expect(execute("cat -e /file")).to.equal(0);
+                expect(execute("cat -e /file")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("&lt;i&gt;contents&lt;/i&gt;\n");
             });
 
@@ -198,7 +206,7 @@ describe("commands", () => {
                 fileSystem.add(new Path("/file1"), new File("contents1"), false);
                 fileSystem.add(new Path("/file2"), new File("contents2"), false);
 
-                expect(execute("cat /file1 /file2")).to.equal(0);
+                expect(execute("cat /file1 /file2")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("contents1\ncontents2\n");
             });
         });
@@ -210,26 +218,26 @@ describe("commands", () => {
             it("changes the directory to the home directory if no directory is given", () => {
                 environment.set("home", "/home");
 
-                expect(execute("cd")).to.equal(0);
+                expect(execute("cd")).to.equal(ExitCode.OK);
                 expect(environment.get("cwd")).to.equal("/home");
             });
 
             it("fails if the target directory does not exist", () => {
-                expect(execute("cd target")).to.equal(-1);
+                expect(execute("cd target")).to.equal(ExitCode.FILE_NOT_FOUND);
                 expect(readErr()).to.equal("cd: The directory '/target' does not exist.\n");
             });
 
             it("fails if the target is a file", () => {
                 fileSystem.add(new Path("/target"), new File(), false);
 
-                expect(execute("cd target")).to.equal(-1);
-                expect(readErr()).to.equal("cd: The directory '/target' does not exist.\n");
+                expect(execute("cd target")).to.equal(ExitCode.USAGE);
+                expect(readErr()).to.equal("cd: '/target' is not a directory.\n");
             });
 
             it("changes the directory to the given target", () => {
                 fileSystem.add(new Path("/target"), new Directory(), false);
 
-                expect(execute("cd target")).to.equal(0);
+                expect(execute("cd target")).to.equal(ExitCode.OK);
                 expect(environment.get("cwd")).to.equal("/target");
             });
         });
@@ -241,7 +249,7 @@ describe("commands", () => {
             it("copies the source file to the exact target if it does not exist already", () => {
                 fileSystem.add(new Path("/src"), new File("contents"), false);
 
-                expect(execute("cp /src /dst")).to.equal(0);
+                expect(execute("cp /src /dst")).to.equal(ExitCode.OK);
                 expect(fileSystem.open(new Path("/src"), "read").read()).to.equal("contents");
                 expect(fileSystem.open(new Path("/dst"), "read").read()).to.equal("contents");
             });
@@ -249,14 +257,14 @@ describe("commands", () => {
             it("fails if the source is a directory and the recursive option is not given", () => {
                 fileSystem.add(new Path("/src"), new Directory(), true);
 
-                expect(execute("cp /src /dst")).to.equal(-1);
+                expect(execute("cp /src /dst")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("cp: '/src' is a directory.\n");
             });
 
             it("copies the source directory to the exact target if it does not exist already", () => {
                 fileSystem.add(new Path("/src/file"), new File("contents"), true);
 
-                expect(execute("cp -r /src /dst")).to.equal(0);
+                expect(execute("cp -r /src /dst")).to.equal(ExitCode.OK);
                 expect(fileSystem.open(new Path("/src/file"), "read").read()).to.equal("contents");
                 expect(fileSystem.open(new Path("/dst/file"), "read").read()).to.equal("contents");
             });
@@ -265,7 +273,7 @@ describe("commands", () => {
                 fileSystem.add(new Path("/src1"), new File("contents1"), false);
                 fileSystem.add(new Path("/src2"), new File("contents2"), false);
 
-                expect(execute("cp /src1 /src2 /dst")).to.equal(-1);
+                expect(execute("cp /src1 /src2 /dst")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("cp: '/dst' is not a directory.\n");
             });
 
@@ -274,7 +282,7 @@ describe("commands", () => {
                 fileSystem.add(new Path("/src2"), new File("contents2"), false);
                 fileSystem.add(new Path("/dst"), new File(), false);
 
-                expect(execute("cp /src1 /src2 /dst")).to.equal(-1);
+                expect(execute("cp /src1 /src2 /dst")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("cp: '/dst' is not a directory.\n");
             });
 
@@ -283,7 +291,7 @@ describe("commands", () => {
                 fileSystem.add(new Path("/src2"), new File("contents2"), false);
                 fileSystem.add(new Path("/dst"), new Directory(), false);
 
-                expect(execute("cp /src1 /src2 /dst")).to.equal(0);
+                expect(execute("cp /src1 /src2 /dst")).to.equal(ExitCode.OK);
                 expect(fileSystem.open(new Path("/src1"), "read").read()).to.equal("contents1");
                 expect(fileSystem.open(new Path("/src2"), "read").read()).to.equal("contents2");
                 expect(fileSystem.open(new Path("/dst/src1"), "read").read()).to.equal("contents1");
@@ -296,12 +304,12 @@ describe("commands", () => {
 
 
             it("adds a newline to the end by default", () => {
-                expect(execute("echo a b c \n")).to.equal(0);
+                expect(execute("echo a b c \n")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("a b c \n\n");
             });
 
             it("does not add a newline if prompted to do so", () => {
-                expect(execute("echo -n a b c")).to.equal(0);
+                expect(execute("echo -n a b c")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("a b c");
             });
         });
@@ -311,7 +319,7 @@ describe("commands", () => {
 
 
             it("changes the current user", () => {
-                expect(execute("exit")).to.equal(0);
+                expect(execute("exit")).to.equal(ExitCode.OK);
                 expect(environment.get("user")).to.equal("");
             });
         });
@@ -321,7 +329,7 @@ describe("commands", () => {
 
 
             it("outputs something", () => {
-                expect(execute("help help")).to.equal(0);
+                expect(execute("help help")).to.equal(ExitCode.OK);
                 expect(readOut()).to.not.equal("");
             });
         });
@@ -334,7 +342,7 @@ describe("commands", () => {
 
 
             it("outputs something", () => {
-                expect(execute("help hier")).to.equal(0);
+                expect(execute("help hier")).to.equal(ExitCode.OK);
                 expect(readOut()).to.not.equal("");
             });
         });
@@ -344,21 +352,21 @@ describe("commands", () => {
 
 
             it("fails if the target does not exist", () => {
-                expect(execute("ls dir")).to.equal(-1);
+                expect(execute("ls dir")).to.equal(ExitCode.FILE_NOT_FOUND);
                 expect(readErr()).to.equal("ls: The directory '/dir' does not exist.\n");
             });
 
             it("fails if the target is a file", () => {
                 fileSystem.add(new Path("file"), new File(), true);
 
-                expect(execute("ls file")).to.equal(-1);
+                expect(execute("ls file")).to.equal(ExitCode.USAGE);
                 expect(readErr()).to.equal("ls: '/file' is not a directory.\n");
             });
 
             it("outputs something otherwise", () => {
                 fileSystem.add(new Path("dir"), new Directory(), true);
 
-                expect(execute("ls dir")).to.equal(0);
+                expect(execute("ls dir")).to.equal(ExitCode.OK);
                 expect(readOut()).to.not.equal("");
             });
         });
@@ -370,22 +378,22 @@ describe("commands", () => {
             it("fails if the given directory exists", () => {
                 fileSystem.add(new Path("/dir"), new Directory(), false);
 
-                expect(execute("mkdir /dir")).to.equal(-1);
+                expect(execute("mkdir /dir")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("mkdir: A file or directory already exists at '/dir'.\n");
             });
 
             it("fails if the parent does not exist", () => {
-                expect(execute("mkdir /parent/dir")).to.equal(-1);
+                expect(execute("mkdir /parent/dir")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("mkdir: The directory '/parent' does not exist.\n");
             });
 
             it("creates the parents if opted to do so", () => {
-                expect(execute("mkdir -p /parent/dir")).to.equal(0);
+                expect(execute("mkdir -p /parent/dir")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/parent/dir"))).to.be.true;
             });
 
             it("creates the given directories in order", () => {
-                expect(execute("mkdir /parent /parent/dir1 /dir2")).to.equal(0);
+                expect(execute("mkdir /parent /parent/dir1 /dir2")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/parent/dir1"))).to.be.true;
                 expect(fileSystem.has(new Path("/dir2"))).to.be.true;
             });
@@ -398,7 +406,7 @@ describe("commands", () => {
             it("moves the source file to the exact target if it does not exist already", () => {
                 fileSystem.add(new Path("/src"), new File("contents"), false);
 
-                expect(execute("mv /src /dst")).to.equal(0);
+                expect(execute("mv /src /dst")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/src"))).to.be.false;
                 expect(fileSystem.open(new Path("/dst"), "read").read()).to.equal("contents");
             });
@@ -406,7 +414,7 @@ describe("commands", () => {
             it("moves the source directory to the exact target if it does not exist already", () => {
                 fileSystem.add(new Path("/src/file"), new File("contents"), true);
 
-                expect(execute("mv -r /src /dst")).to.equal(0);
+                expect(execute("mv -r /src /dst")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/src"))).to.be.false;
                 expect(fileSystem.has(new Path("/src/file"))).to.be.false;
                 expect(fileSystem.open(new Path("/dst/file"), "read").read()).to.equal("contents");
@@ -416,7 +424,7 @@ describe("commands", () => {
                 fileSystem.add(new Path("/src1"), new File("contents1"), false);
                 fileSystem.add(new Path("/src2"), new File("contents2"), false);
 
-                expect(execute("mv /src1 /src2 /dst")).to.equal(-1);
+                expect(execute("mv /src1 /src2 /dst")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("mv: '/dst' is not a directory.\n");
             });
 
@@ -425,7 +433,7 @@ describe("commands", () => {
                 fileSystem.add(new Path("/src2"), new File("contents2"), false);
                 fileSystem.add(new Path("/dst"), new File(), false);
 
-                expect(execute("mv /src1 /src2 /dst")).to.equal(-1);
+                expect(execute("mv /src1 /src2 /dst")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("mv: '/dst' is not a directory.\n");
             });
 
@@ -434,7 +442,7 @@ describe("commands", () => {
                 fileSystem.add(new Path("/src2"), new File("contents2"), false);
                 fileSystem.add(new Path("/dst"), new Directory(), false);
 
-                expect(execute("mv /src1 /src2 /dst")).to.equal(0);
+                expect(execute("mv /src1 /src2 /dst")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/src1"))).to.be.false;
                 expect(fileSystem.has(new Path("/src2"))).to.be.false;
                 expect(fileSystem.open(new Path("/dst/src1"), "read").read()).to.equal("contents1");
@@ -450,7 +458,7 @@ describe("commands", () => {
 
 
             it("returns 0 if the given command exits unsuccessfully", () => {
-                expect(execute("not rm /file")).to.equal(0);
+                expect(execute("not rm /file")).to.equal(ExitCode.OK);
             });
 
             it("returns 1 if the command exits successfully", () => {
@@ -471,7 +479,7 @@ describe("commands", () => {
 
 
             it("fails if the file does not exist", () => {
-                expect(execute("open file.lnk")).to.equal(-1);
+                expect(execute("open file.lnk")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("open: File '/file.lnk' does not exist.\n");
             });
         });
@@ -486,14 +494,14 @@ describe("commands", () => {
             it("does nothing if the previous command exited successfully", () => {
                 environment.set("status", "0");
 
-                expect(execute("or echo 'message'")).to.equal(0);
+                expect(execute("or echo 'message'")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("");
             });
 
             it("executes the command if the previous command did not exit successfully", () => {
                 environment.set("status", "-1");
 
-                expect(execute("or echo 'message'")).to.equal(0);
+                expect(execute("or echo 'message'")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("message\n");
             });
         });
@@ -505,14 +513,14 @@ describe("commands", () => {
             it("fails if no user is logged in", () => {
                 environment.set("user", "");
 
-                expect(execute("poweroff")).to.equal(-1);
+                expect(execute("poweroff")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("poweroff: Cannot execute while not logged in.\n");
             });
 
             it("it outputs something", () => {
                 environment.set("user", "user");
 
-                expect(execute("poweroff")).to.equal(0);
+                expect(execute("poweroff")).to.equal(ExitCode.OK);
                 expect(readOut().trim()).to.not.equal("");
             });
         });
@@ -524,14 +532,14 @@ describe("commands", () => {
             it("writes the cwd variable to the output stream", () => {
                 environment.set("cwd", "/dir");
 
-                expect(execute("pwd")).to.equal(0);
+                expect(execute("pwd")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("/dir\n");
             });
 
             it("writes an empty string if the cwd variable has no value", () => {
                 environment.set("cwd", "");
 
-                expect(execute("pwd")).to.equal(0);
+                expect(execute("pwd")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("\n");
             });
         });
@@ -541,45 +549,45 @@ describe("commands", () => {
 
 
             it("fails if the target does not exist", () => {
-                expect(execute("rm /file")).to.equal(-1);
+                expect(execute("rm /file")).to.equal(ExitCode.FILE_NOT_FOUND);
                 expect(readErr()).to.equal("rm: The file '/file' does not exist.\n");
             });
 
             it("does nothing if the target does not exist but the force option is given", () => {
-                expect(execute("rm -f /file")).to.equal(0);
+                expect(execute("rm -f /file")).to.equal(ExitCode.OK);
                 expect(readErr()).to.equal("");
             });
 
             it("fails if the target is a directory", () => {
                 fileSystem.add(new Path("/dir"), new Directory(), false);
 
-                expect(execute("rm /dir")).to.equal(-1);
+                expect(execute("rm /dir")).to.equal(ExitCode.USAGE);
                 expect(readErr()).to.equal("rm: '/dir' is a directory.\n");
             });
 
             it("removes an empty directory if the recursive option is given", () => {
                 fileSystem.add(new Path("/dir"), new Directory(), false);
 
-                expect(execute("rm -r /dir")).to.equal(0);
+                expect(execute("rm -r /dir")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/dir"))).to.be.false;
             });
 
             it("removes a non-empty directory if the recursive option is given", () => {
                 fileSystem.add(new Path("/dir/file"), new File(), true);
 
-                expect(execute("rm -r /dir")).to.equal(0);
+                expect(execute("rm -r /dir")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/dir"))).to.be.false;
             });
 
             it("fails if the target is the root even though the recursive option is given", () => {
-                expect(execute("rm -r /")).to.equal(-1);
+                expect(execute("rm -r /")).to.equal(ExitCode.USAGE);
                 expect(readErr()).to.equal("rm: Cannot remove root directory.\n");
             });
 
             it("removes the root if the recursive and no-preserve-root options are given", () => {
                 fileSystem.add(new Path("/dir"), new Directory(), false);
 
-                expect(execute("rm -r --no-preserve-root /")).to.equal(0);
+                expect(execute("rm -r --no-preserve-root /")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/dir"))).to.be.false;
                 expect(fileSystem.has(new Path("/"))).to.be.true;
             });
@@ -587,15 +595,15 @@ describe("commands", () => {
             it("removes the given file", () => {
                 fileSystem.add(new Path("/file"), new File(), false);
 
-                expect(execute("rm /file")).to.equal(0);
+                expect(execute("rm /file")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/file"))).to.be.false;
             });
 
-            it("removes files but not directories of the recursive option is not given", () => {
+            it("removes files but not directories if the recursive option is not given", () => {
                 fileSystem.add(new Path("/dir"), new Directory(), false);
                 fileSystem.add(new Path("/file"), new File(), false);
 
-                expect(execute("rm /dir /file")).to.equal(-1);
+                expect(execute("rm /dir /file")).to.equal(ExitCode.USAGE);
                 expect(fileSystem.has(new Path("/dir"))).to.be.true;
                 expect(fileSystem.has(new Path("/file"))).to.be.false;
             });
@@ -606,35 +614,35 @@ describe("commands", () => {
 
 
             it("fails if the target does not exist", () => {
-                expect(execute("rmdir /dir")).to.equal(-1);
+                expect(execute("rmdir /dir")).to.equal(ExitCode.FILE_NOT_FOUND);
                 expect(readErr()).to.equal("rmdir: '/dir' does not exist.\n");
             });
 
             it("fails if the target is not a directory", () => {
                 fileSystem.add(new Path("/file"), new File(), false);
 
-                expect(execute("rmdir /file")).to.equal(-1);
+                expect(execute("rmdir /file")).to.equal(ExitCode.USAGE);
                 expect(readErr()).to.equal("rmdir: '/file' is not a directory.\n");
             });
 
             it("fails if the target is not empty", () => {
                 fileSystem.add(new Path("/dir/file"), new File(), true);
 
-                expect(execute("rmdir /dir")).to.equal(-1);
+                expect(execute("rmdir /dir")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("rmdir: '/dir' is not empty.\n");
             });
 
             it("removes the target if it is an empty directory", () => {
                 fileSystem.add(new Path("/dir"), new Directory(), false);
 
-                expect(execute("rmdir /dir")).to.equal(0);
+                expect(execute("rmdir /dir")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/dir"))).to.be.false;
             });
 
             it("removes the targets if they're empty directories", () => {
                 fileSystem.add(new Path("/dir1/dir2"), new Directory(), true);
 
-                expect(execute("rmdir /dir1/dir2 /dir1")).to.equal(0);
+                expect(execute("rmdir /dir1/dir2 /dir1")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/dir1"))).to.be.false;
             });
         });
@@ -644,28 +652,28 @@ describe("commands", () => {
 
 
             it("creates a variable if it does not exist", () => {
-                expect(execute("set var val")).to.equal(0);
+                expect(execute("set var val")).to.equal(ExitCode.OK);
                 expect(environment.variables["var"]).to.equal("val");
             });
 
             it("changes a variable if it exists", () => {
                 environment.set("var", "old");
 
-                expect(execute("set var new")).to.equal(0);
+                expect(execute("set var new")).to.equal(ExitCode.OK);
                 expect(environment.variables["var"]).to.equal("new");
             });
 
             it("removes the variable if no value is given", () => {
                 environment.set("var", "val");
 
-                expect(execute("set var")).to.equal(0);
+                expect(execute("set var")).to.equal(ExitCode.OK);
                 expect(environment.variables["var"]).to.be.undefined;
             });
 
             it("cannot change a read-only variable", () => {
                 environment.set("cwd", "old");
 
-                expect(execute("set cwd new")).to.equal(-1);
+                expect(execute("set cwd new")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("set: Cannot set read-only environment variable.\n");
                 expect(environment.variables["cwd"]).to.equal("old");
             });
@@ -673,7 +681,7 @@ describe("commands", () => {
             it("cannot remove a read-only variable", () => {
                 environment.set("cwd", "old");
 
-                expect(execute("set cwd")).to.equal(-1);
+                expect(execute("set cwd")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("set: Cannot set read-only environment variable.\n");
                 expect(environment.variables["cwd"]).to.equal("old");
             });
@@ -686,29 +694,29 @@ describe("commands", () => {
             it("fails if a directory already exists at the target", () => {
                 fileSystem.add(new Path("/dir"), new Directory(), false);
 
-                expect(execute("touch /dir")).to.equal(-1);
+                expect(execute("touch /dir")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("touch: A file or directory already exists at '/dir'.\n");
             });
 
             it("fails if the parent of the target does not exist", () => {
-                expect(execute("touch /parent/file")).to.equal(-1);
+                expect(execute("touch /parent/file")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("touch: The directory '/parent' does not exist.\n");
             });
 
             it("fails if the parent of the target is a file", () => {
                 fileSystem.add(new Path("/parent"), new File(), false);
 
-                expect(execute("touch /parent/file")).to.equal(-1);
+                expect(execute("touch /parent/file")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("touch: '/parent' is not a directory.\n");
             });
 
             it("creates a file at the target", () => {
-                expect(execute("touch /file")).to.equal(0);
+                expect(execute("touch /file")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/file"))).to.be.true;
             });
 
             it("creates files at the target", () => {
-                expect(execute("touch /file1 /file2")).to.equal(0);
+                expect(execute("touch /file1 /file2")).to.equal(ExitCode.OK);
                 expect(fileSystem.has(new Path("/file1"))).to.be.true;
                 expect(fileSystem.has(new Path("/file2"))).to.be.true;
             });
@@ -725,32 +733,32 @@ describe("commands", () => {
             it("fails if the user already exists", () => {
                 userList.add(new User("user", "old"));
 
-                expect(execute("useradd user new")).to.equal(-1);
+                expect(execute("useradd user new")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("useradd: User 'user' already exists.\n");
             });
 
             it("fails if any of the fields is malformed", () => {
-                expect(execute("useradd user_name password")).to.equal(-1);
+                expect(execute("useradd user_name password")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("useradd: Name must contain only alphanumerical characters.\n");
             });
 
             it("adds a user with default home and empty description if those fields are not given", () => {
-                expect(execute("useradd user password")).to.equal(0);
+                expect(execute("useradd user password")).to.equal(ExitCode.OK);
                 expect(userList.get("user")).to.deep.equal(new User("user", "password"));
             });
 
             it("adds a new user with default home if that option is not given", () => {
-                expect(execute("useradd --description=description user password")).to.equal(0);
+                expect(execute("useradd --description=description user password")).to.equal(ExitCode.OK);
                 expect(userList.get("user")).to.deep.equal(new User("user", "password", undefined, "description"));
             });
 
             it("adds a user with default description if that option is not given", () => {
-                expect(execute("useradd --home=/user user password")).to.equal(0);
+                expect(execute("useradd --home=/user user password")).to.equal(ExitCode.OK);
                 expect(userList.get("user")).to.deep.equal(new User("user", "password", "/user"));
             });
 
             it("adds a user with the given home and description", () => {
-                expect(execute("useradd --home=/user --description=description user password")).to.equal(0);
+                expect(execute("useradd --home=/user --description=description user password")).to.equal(ExitCode.OK);
                 expect(userList.get("user")).to.deep.equal(new User("user", "password", "/user", "description"));
             });
         });
@@ -760,14 +768,14 @@ describe("commands", () => {
 
 
             it("fails if the target user does not exist", () => {
-                expect(execute("userdel user")).to.equal(-1);
+                expect(execute("userdel user")).to.equal(ExitCode.USAGE);
                 expect(readErr()).to.equal("userdel: Could not delete non-existent user 'user'.\n");
             });
 
             it("deletes the given user", () => {
                 userList.add(new User("user", "password"));
 
-                expect(execute("userdel user")).to.equal(0);
+                expect(execute("userdel user")).to.equal(ExitCode.OK);
                 expect(userList.has("user")).to.be.false;
             });
         });
@@ -781,7 +789,7 @@ describe("commands", () => {
 
 
             it("fails if the target user does not exist", () => {
-                expect(execute("usermod user")).to.equal(-1);
+                expect(execute("usermod user")).to.equal(ExitCode.USAGE);
                 expect(readErr()).to.equal("usermod: Could not modify non-existent user 'user'.\n");
             });
 
@@ -789,7 +797,7 @@ describe("commands", () => {
                 const user = new User("user", "password", "/home");
                 userList.add(user);
 
-                expect(execute("usermod -h=/ho|me user")).to.equal(-1);
+                expect(execute("usermod -h=/ho|me user")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("usermod: Home must not contain pipe ('|') or newline character.\n");
             });
 
@@ -797,7 +805,7 @@ describe("commands", () => {
                 const user = new User("user", "password", "/home", "description");
                 userList.add(user);
 
-                expect(execute("usermod user")).to.equal(0);
+                expect(execute("usermod user")).to.equal(ExitCode.OK);
                 expect(userList.get("user")).to.deep.equal(user);
             });
 
@@ -805,7 +813,7 @@ describe("commands", () => {
                 const user = new User("user", "old");
                 userList.add(user);
 
-                expect(execute("usermod -p=new user")).to.equal(0);
+                expect(execute("usermod -p=new user")).to.equal(ExitCode.OK);
                 expect(userList.get("user")?.passwordHash).to.equal("new");
             });
 
@@ -813,7 +821,7 @@ describe("commands", () => {
                 const user = new User("user", "pwd", "/old");
                 userList.add(user);
 
-                expect(execute("usermod -h=/new user")).to.equal(0);
+                expect(execute("usermod -h=/new user")).to.equal(ExitCode.OK);
                 expect(userList.get("user")?.home).to.equal("/new");
             });
 
@@ -821,7 +829,7 @@ describe("commands", () => {
                 const user = new User("user", "password", undefined, "old");
                 userList.add(user);
 
-                expect(execute("usermod -d=new user")).to.equal(0);
+                expect(execute("usermod -d=new user")).to.equal(ExitCode.OK);
                 expect(userList.get("user")?.description).to.equal("new");
             });
         });
@@ -833,7 +841,7 @@ describe("commands", () => {
             it("fails if no user is logged in", () => {
                 environment.set("user", "");
 
-                expect(execute("whoami")).to.equal(-1);
+                expect(execute("whoami")).to.equal(ExitCode.MISC);
                 expect(readErr()).to.equal("whoami: Cannot execute while not logged in.\n");
             });
 
@@ -841,7 +849,7 @@ describe("commands", () => {
                 userList.add(new User("user", "pwd", "/", "Description"));
                 environment.set("user", "user");
 
-                expect(execute("whoami")).to.equal(0);
+                expect(execute("whoami")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("Description\n");
             });
         });

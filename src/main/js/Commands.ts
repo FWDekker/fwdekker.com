@@ -50,26 +50,26 @@ export class Commands {
      */
     execute(input: InputArgs, streams: StreamSet): number {
         if (input.command === "")
-            return 0;
+            return ExitCode.OK;
 
         const command = this.resolve(input.command);
         if (command === undefined) {
             streams.err.writeLine(`Unknown command '${input.command}'.`);
-            return -1;
+            return ExitCode.COMMAND_NOT_FOUND;
         }
         if (command instanceof Error) {
             streams.err.writeLine(`Could not parse command '${input.command}': ${command}.`);
-            return -1;
+            return ExitCode.COMMAND_NOT_FOUND;
         }
         if (command instanceof DocOnlyCommand) {
             streams.err.writeLine(`Could not execute doc-only command. Try 'help ${input.command}' instead.`);
-            return -1;
+            return ExitCode.COMMAND_NOT_FOUND;
         }
 
         const validation = command.validator.validate(input);
         if (!validation[0]) {
             streams.err.writeLine(this.createUsageErrorOutput(input.command, command, validation[1]));
-            return -1;
+            return ExitCode.USAGE;
         }
 
         return command.fun.bind(this)(input, streams);
@@ -130,6 +130,7 @@ export class Commands {
             "Directory": Directory,
             "DocOnlyCommand": DocOnlyCommand,
             "EscapeCharacters": EscapeCharacters,
+            "ExitCode": ExitCode,
             "File": File,
             "HashProvider": HashProvider,
             "InputParser": InputParser,
@@ -284,6 +285,58 @@ export class InputValidator {
     }
 }
 
+/**
+ * Standard exit codes.
+ *
+ * Inspired by `/usr/include/sysexits.h` as seen in FreeBSD 12.1.
+ */
+export enum ExitCode {
+    /**
+     * Successful termination.
+     */
+    OK = 0,
+    /**
+     * Some unspecified error.
+     */
+    MISC = 1,
+    /**
+     * Command line usage error.
+     */
+    USAGE = 64,
+    /**
+     * Input data was incorrect in one way or another.
+     */
+    DATA_ERROR = 65,
+    /**
+     * An input file could not be found.
+     */
+    FILE_NOT_FOUND = 66,
+    /**
+     * An output file could not be created.
+     */
+    CANT_CREATE = 73,
+    /**
+     * Some I/O operation failed on a file.
+     */
+    IO_ERROR = 74,
+    /**
+     * The failure is temporary, and the user should probably try again.
+     */
+    TEMP_FAIL = 75,
+    /**
+     * Not enough permissions to execute the desired action.
+     */
+    PERMISSION = 77,
+    /**
+     * Something was not configured correctly.
+     */
+    CONFIG = 78,
+    /**
+     * The desired command could not be found.
+     */
+    COMMAND_NOT_FOUND = 127
+}
+
 
 // An escaped newline escape symbol.
 const n = "\\\\\\";
@@ -298,8 +351,8 @@ export const commandBinaries: { [key: string]: string } = {
     "and": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
-        const previousStatus = Number(josh.environment.getOrDefault("status", "0"));
-        if (previousStatus !== 0)
+        const previousStatus = Number(josh.environment.getOrDefault("status", ExitCode.OK.toString()));
+        if (previousStatus !== ExitCode.OK)
             return previousStatus;
 
         return josh.interpreter.execute(
@@ -310,7 +363,7 @@ return new Command(
     \`execute command if previous command did not fail\`,
     \`and <u>command</u>\`,
     \`Executes <u>command</u> with its associated options and arguments if and only if the status code of the ${n}
-    previously-executed command is 0.
+    previously-executed command is ${ExitCode.OK}.
 
     The exit code is retained if it was non-zero, and is changed to that of <u>command</u> otherwise.${n}
     \`.trimMultiLines(),
@@ -325,7 +378,7 @@ return new Command(
                 const node = josh.fileSystem.get(path);
                 if (!(node instanceof File)) {
                     streams.err.writeLine(\`cat: '\${path}': No such file.\`);
-                    return -1;
+                    return ExitCode.FILE_NOT_FOUND;
                 }
 
                 let contents = node.open("read").read();
@@ -335,9 +388,9 @@ return new Command(
                     contents += "\\n";
 
                 streams.out.write(contents);
-                return 0;
+                return ExitCode.OK;
             })
-            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`concatenate and print files\`,
     \`cat [<b>-e</b> | <b>--escape-html</b>] <u>file</u> <u>...</u>\`,
@@ -352,17 +405,21 @@ return new Command(
     (input, streams) => {
         if (input.argc === 0) {
             josh.environment.set("cwd", josh.environment.get("home"));
-            return 0;
+            return ExitCode.OK;
         }
 
         const path = Path.interpret(josh.environment.get("cwd"), input.args[0]);
-        if (!(josh.fileSystem.get(path) instanceof Directory)) {
+        const target = josh.fileSystem.get(path);
+        if (target === undefined) {
             streams.err.writeLine(\`cd: The directory '\${path}' does not exist.\`);
-            return -1;
+            return ExitCode.FILE_NOT_FOUND;
+        } else if (!(target instanceof Directory)) {
+            streams.err.writeLine(\`cd: '\${path}' is not a directory.\`);
+            return ExitCode.USAGE;
         }
 
         josh.environment.set("cwd", path.toString());
-        return 0;
+        return ExitCode.OK;
     },
     \`change directory\`,
     \`cd [<u>directory</u>]\`,
@@ -374,7 +431,7 @@ return new Command(
 return new Command(
     (input, streams) => {
         streams.out.write(EscapeCharacters.Escape + EscapeCharacters.Clear);
-        return 0;
+        return ExitCode.OK;
     },
     \`clear terminal output\`,
     \`clear\`,
@@ -393,20 +450,20 @@ return new Command(
             );
         } catch (error) {
             streams.err.writeLine(\`cp: \${error.message}\`);
-            return -1;
+            return ExitCode.MISC;
         }
 
         return mappings
             .map(([source, destination]) => {
                 try {
                     josh.fileSystem.copy(source, destination, input.hasAnyOption("-r", "-R", "--recursive"));
-                    return 0;
+                    return ExitCode.OK;
                 } catch (error) {
                     streams.err.writeLine(\`cp: \${error.message}\`);
-                    return -1;
+                    return ExitCode.MISC;
                 }
             })
-            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`copy files\`,
     \`cp [<b>-r</b> | <b>-R</b> | <b>--recursive</b>] <u>source</u> <u>target file</u>
@@ -431,7 +488,7 @@ return new Command(
         else
             streams.out.writeLine(message);
 
-        return 0;
+        return ExitCode.OK;
     },
     \`display text\`,
     \`echo [<b>-n</b> | <b>--newline</b>] [<u>text</u> <u>...</u>]\`,
@@ -444,7 +501,7 @@ return new Command(
 return new Command(
     (input, streams) => {
         josh.environment.set("user", "");
-        return 0;
+        return ExitCode.OK;
     },
     \`close session\`,
     \`exit\`,
@@ -463,7 +520,7 @@ return new Command(
                     const command = josh.interpreter.resolve(commandName);
                     if (command === undefined) {
                         streams.out.writeLine(\`Unknown command '\${commandName}'.\`);
-                        return -1;
+                        return ExitCode.COMMAND_NOT_FOUND;
                     }
 
                     let helpString = "<b>Name</b>\\n" + commandName;
@@ -475,14 +532,14 @@ return new Command(
                         helpString += "\\n\\n<b>Description</b>\\n" + command.desc;
 
                     streams.out.writeLine(helpString);
-                    return 0;
+                    return ExitCode.OK;
                 })
-                .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+                .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
         } else {
             const cwd = josh.environment.get("cwd");
             const slashBin = josh.fileSystem.get(Path.interpret(cwd, "/bin"));
             if (!(slashBin instanceof Directory)) {
-                return -1;
+                return ExitCode.FILE_NOT_FOUND;
             }
 
             const commands = {};
@@ -510,7 +567,7 @@ return new Command(
 
                 Write "help [COMMAND]" or click a command in the list above for more information.\`.trimMultiLines()
             );
-            return 0;
+            return ExitCode.OK;
         }
     },
     \`display documentation\`,
@@ -549,11 +606,11 @@ return new Command(
                 const node = josh.fileSystem.get(path);
                 if (node === undefined) {
                     streams.err.writeLine(\`ls: The directory '\${path}' does not exist.\`);
-                    return -1;
+                    return ExitCode.FILE_NOT_FOUND;
                 }
                 if (!(node instanceof Directory)) {
                     streams.err.writeLine(\`ls: '\${path}' is not a directory.\`);
-                    return -1;
+                    return ExitCode.USAGE;
                 }
 
                 const dirList = [
@@ -582,9 +639,9 @@ return new Command(
                 if (input.argc > 1)
                     streams.out.writeLine(\`<b>\${path}</b>\`);
                 streams.out.writeLine(dirList.concat(fileList).join("\\n"));
-                return 0;
+                return ExitCode.OK;
             })
-            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`list directory contents\`,
     \`ls [<b>-a</b> | <b>-A</b> | <b>--all</b>] [<u>directory</u> <u>...</u>]\`,
@@ -604,13 +661,13 @@ return new Command(
             .map(path => {
                 try {
                     josh.fileSystem.add(path, new Directory(), input.hasAnyOption("-p", "--parents"));
-                    return 0;
+                    return ExitCode.OK;
                 } catch (error) {
                     streams.err.writeLine(\`mkdir: \${error.message}\`);
-                    return -1;
+                    return ExitCode.MISC;
                 }
             })
-            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`make directories\`,
     \`mkdir [<b>-p</b> | <b>--parents</b>] <u>directory</u> <u>...</u>\`,
@@ -632,20 +689,20 @@ return new Command(
             );
         } catch (error) {
             streams.err.writeLine(\`mv: \${error.message}\`);
-            return -1;
+            return ExitCode.MISC;
         }
 
         return mappings
             .map(([source, destination]) => {
                 try {
                     josh.fileSystem.move(source, destination);
-                    return 0;
+                    return ExitCode.OK;
                 } catch (error) {
                     streams.err.writeLine(\`mv: \${error.message}\`);
-                    return -1;
+                    return ExitCode.MISC;
                 }
             })
-            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`move files\`,
     \`mv <u>source</u> <u>destination file</u>
@@ -659,15 +716,17 @@ return new Command(
     "not": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
-        return Number(!josh.interpreter.execute(
+        const exitCode = josh.interpreter.execute(
             InputParser.create(josh.environment, josh.fileSystem).parseCommand(input.args),
             streams
-        ));
+        );
+        return exitCode === ExitCode.OK ? ExitCode.MISC : ExitCode.OK;
     },
     \`execute command and invert status code\`,
     \`not <u>command</u>\`,
     \`Executes <u>command</u> with its associated options and arguments and inverts its exit code. More precisely, ${n}
-    the exit code is set to 0 if it was non-zero, and is set to 1 otherwise.\`.trimMultiLines(),
+    the exit code is set to ${ExitCode.OK} if it was non-zero, and is set to ${ExitCode.MISC} otherwise.${n}
+    \`.trimMultiLines(),
     new InputValidator({minArgs: 1})
 )`,
     "open": /* language=JavaScript */ `\
@@ -681,13 +740,13 @@ return new Command(
                         ? "_blank"
                         : "_self";
                     window.open(josh.fileSystem.open(path, "read").read(), target);
-                    return 0;
+                    return ExitCode.OK;
                 } catch (error) {
                     streams.err.writeLine(\`open: \${error.message}\`);
-                    return -1;
+                    return ExitCode.MISC;
                 }
             })
-            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`open web pages\`,
     \`open [<b>-b</b> | <b>--blank</b>] <u>file</u> <u>...</u>\`,
@@ -702,8 +761,8 @@ return new Command(
     "or": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
-        const previousStatus = Number(josh.environment.getOrDefault("status", "0"));
-        if (previousStatus === 0)
+        const previousStatus = Number(josh.environment.getOrDefault("status", ""  +ExitCode.OK));
+        if (previousStatus === ExitCode.OK)
             return previousStatus;
 
         return josh.interpreter.execute(
@@ -714,7 +773,7 @@ return new Command(
     \`execute command if previous command failed\`,
     \`or <u>command</u>\`,
     \`Executes <u>command</u> with its associated options and arguments if and only if the status code of the ${n}
-    previously-executed command is not 0.
+    previously-executed command is not ${ExitCode.OK}.
 
     The exit code is retained if it was zero, and is changed to that of <u>command</u> otherwise.\`.trimMultiLines(),
     new InputValidator({minArgs: 1})
@@ -725,7 +784,7 @@ return new Command(
         const userName = josh.environment.get("user");
         if (userName === "") {
             streams.err.writeLine("poweroff: Cannot execute while not logged in.");
-            return -1;
+            return ExitCode.MISC;
         }
 
         Persistence.setPoweroff(true);
@@ -741,7 +800,7 @@ return new Command(
 
             System shutdown time has arrived\`.trimLines()
         );
-        return 0;
+        return ExitCode.OK;
     },
     \`close down the system\`,
     \`poweroff\`,
@@ -752,7 +811,7 @@ return new Command(
 return new Command(
     (input, streams) => {
         streams.out.writeLine(josh.environment.get("cwd") || "");
-        return 0;
+        return ExitCode.OK;
     },
     \`print working directory\`,
     \`pwd\`,
@@ -769,30 +828,30 @@ return new Command(
                     const target = josh.fileSystem.get(path);
                     if (target === undefined) {
                         if (input.hasAnyOption("-f", "--force"))
-                            return 0;
+                            return ExitCode.OK;
 
                         streams.err.writeLine(\`rm: The file '\${path}' does not exist.\`);
-                        return -1;
+                        return ExitCode.FILE_NOT_FOUND;
                     }
                     if (target instanceof Directory) {
                         if (!input.hasAnyOption("-r", "-R", "--recursive")) {
                             streams.err.writeLine(\`rm: '\${path}' is a directory.\`);
-                            return -1;
+                            return ExitCode.USAGE;
                         }
                         if (path.toString() === "/" && !input.hasAnyOption("--no-preserve-root")) {
                             streams.err.writeLine("rm: Cannot remove root directory.");
-                            return -1;
+                            return ExitCode.USAGE;
                         }
                     }
 
                     josh.fileSystem.remove(path);
-                    return 0;
+                    return ExitCode.OK;
                 } catch (error) {
                     streams.err.writeLine(\`rm: \${error.message}\`);
-                    return -1;
+                    return ExitCode.MISC;
                 }
             })
-            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`remove file\`,
     \`rm [<b>-f</b> | <b>--force</b>] [<b>-r</b> | <b>-R</b> | <b>--recursive</b>] ${n}
@@ -818,25 +877,25 @@ return new Command(
                     const target = josh.fileSystem.get(path);
                     if (target === undefined) {
                         streams.err.writeLine(\`rmdir: '\${path}' does not exist.\`);
-                        return -1;
+                        return ExitCode.FILE_NOT_FOUND;
                     }
                     if (!(target instanceof Directory)) {
                         streams.err.writeLine(\`rmdir: '\${path}' is not a directory.\`);
-                        return -1;
+                        return ExitCode.USAGE;
                     }
                     if (target.nodeCount !== 0) {
                         streams.err.writeLine(\`rmdir: '\${path}' is not empty.\`);
-                        return -1;
+                        return ExitCode.MISC;
                     }
 
                     josh.fileSystem.remove(path);
-                    return 0;
+                    return ExitCode.OK;
                 } catch (error) {
                     streams.err.writeLine(\`rmdir: \${error.message}\`);
-                    return -1;
+                    return ExitCode.MISC;
                 }
             })
-            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`remove directories\`,
     \`rmdir <u>directory</u> <u>...</u>\`,
@@ -852,12 +911,12 @@ return new Command(
                 josh.environment.safeDelete(input.args[0]);
             else
                 josh.environment.safeSet(input.args[0], input.args[1]);
+
+            return ExitCode.OK;
         } catch (error) {
             streams.err.writeLine(\`set: \${error.message}\`);
-            return -1;
+            return ExitCode.MISC;
         }
-
-        return 0;
     },
     \`set environment variable\`,
     \`set <u>key</u> [<u>value</u>]\`,
@@ -873,13 +932,13 @@ return new Command(
             .map(path => {
                 try {
                     josh.fileSystem.add(path, new File(), false);
-                    return 0;
+                    return ExitCode.OK;
                 } catch (error) {
                     streams.err.writeLine(\`touch: \${error.message}\`);
-                    return -1;
+                    return ExitCode.MISC;
                 }
             })
-            .reduce((acc, exitCode) => exitCode === 0 ? acc : exitCode);
+            .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`change file timestamps\`,
     \`touch <u>file</u> <u>...</u>\`,
@@ -892,7 +951,7 @@ return new Command(
     (input, streams) => {
         if (josh.userList.has(input.args[0])) {
             streams.err.writeLine(\`useradd: User '\${input.args[0]}' already exists.\`);
-            return -1;
+            return ExitCode.MISC;
         }
 
         let user;
@@ -904,16 +963,16 @@ return new Command(
                 user.description = input.options["-d"] || input.options["--description"];
         } catch (error) {
             streams.err.writeLine(\`useradd: \${error.message}\`);
-            return -1;
+            return ExitCode.MISC;
         }
 
         if (!josh.userList.add(user)) {
             streams.err.writeLine(\`useradd: Unexpectedly failed to add user '\${input.args[0]}'.\`);
-            return -1;
+            return ExitCode.MISC;
         }
 
         streams.out.writeLine(\`useradd: Added user '\${input.args[0]}'.\`);
-        return 0;
+        return ExitCode.OK;
     },
     \`add new user\`,
     \`useradd ${n}
@@ -934,16 +993,16 @@ return new Command(
     (input, streams) => {
         if (!josh.userList.has(input.args[0])) {
             streams.err.writeLine(\`userdel: Could not delete non-existent user '\${input.args[0]}'.\`);
-            return -1;
+            return ExitCode.USAGE;
         }
 
         if (!josh.userList.delete(input.args[0])) {
             streams.err.writeLine(\`userdel: Unexpectedly failed to delete user '\${input.args[0]}'.\`);
-            return -1;
+            return ExitCode.MISC;
         }
 
         streams.out.writeLine(\`userdel: Deleted user '\${input.args[0]}'.\`);
-        return 0;
+        return ExitCode.OK;
     },
     \`delete user\`,
     \`userdel <u>name</u>\`,
@@ -956,7 +1015,7 @@ return new Command(
         let user = josh.userList.get(input.args[0]);
         if (user === undefined) {
             streams.err.writeLine(\`usermod: Could not modify non-existent user '\${input.args[0]}'.\`);
-            return -1;
+            return ExitCode.USAGE;
         }
 
         try {
@@ -970,16 +1029,16 @@ return new Command(
                 user.description = input.options["-d"] || input.options["--description"];
         } catch (error) {
             streams.err.writeLine(\`usermod: \${error.message}\`);
-            return -1;
+            return ExitCode.MISC;
         }
 
         if (!josh.userList.modify(user)) {
             streams.err.writeLine(\`usermod: Unexpectedly failed to modify user '\${input.args[0]}'.\`);
-            return -1;
+            return ExitCode.MISC;
         }
 
         streams.out.writeLine(\`usermod: Modified user '\${input.args[0]}'.\`);
-        return 0;
+        return ExitCode.OK;
     },
     \'modify user\',
     \`usermod ${n}
@@ -997,11 +1056,11 @@ return new Command(
         const user = josh.userList.get(josh.environment.get("user"));
         if (user === undefined) {
             streams.err.writeLine("whoami: Cannot execute while not logged in.");
-            return -1;
+            return ExitCode.MISC;
         }
 
         streams.out.writeLine(user.description);
-        return 0;
+        return ExitCode.OK;
     },
     \`print short description of user\`,
     \`whoami\`,
