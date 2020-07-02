@@ -466,12 +466,12 @@ return new Command(
             .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`copy files\`,
-    \`cp [<b>-r</b> | <b>-R</b> | <b>--recursive</b>] <u>source</u> <u>target file</u>
-    cp [<b>-r</b> | <b>-R</b> | <b>--recursive</b>] <u>source</u> <u>...</u> <u>target directory</u>\`,
-    \`In its first form, <u>source</u> is copied to <u>target file</u>. This form is used if there is no file or ${n}
-    directory at <u>target file</u> beforehand.
+    \`cp [<b>-r</b> | <b>-R</b> | <b>--recursive</b>] <u>source</u> <u>target-file</u>
+    cp [<b>-r</b> | <b>-R</b> | <b>--recursive</b>] <u>source</u> <u>...</u> <u>target-directory</u>\`.trimMultiLines(),
+    \`In its first form, <u>source</u> is copied to <u>target-file</u>. This form is used if there is no file or ${n}
+    directory at <u>target-file</u> beforehand.
 
-    In its second form, all <u>source</u> files are copied into <u>target directory</u>, which must be a ${n}
+    In its second form, all <u>source</u> files are copied into <u>target-directory</u>, which must be a ${n}
     pre-existing directory. The file names of the <u>source</u> files are retained.
 
     In both forms, <u>source</u> files are not copied if they are directories and the <b>-R</b> option is not given.${n}
@@ -713,11 +713,12 @@ return new Command(
             .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`move files\`,
-    \`mv <u>source</u> <u>destination file</u>
-    mv <u>source</u> <u>...</u> <u>destination directory</u>\`,
-    \`In its first form, <u>source</u> is renamed to <u>target file</u>. <u>target file</u> must not exist yet.
+    \`mv <u>source</u> <u>destination-file</u>
+    mv <u>source</u> <u>...</u> <u>destination-directory</u>\`.trimMultiLines(),
+    \`In its first form, <u>source</u> is renamed to <u>destination-file</u>. <u>destination-file</u> must not ${n}
+    exist yet.
 
-    In its second form, all <u>source</u> files are moved into <u>target directory</u>, which must be a ${n}
+    In its second form, all <u>source</u> files are moved into <u>target-directory</u>, which must be a ${n}
     pre-existing directory. The file names of the <u>source</u> files are retained.\`.trimMultiLines(),
     new InputValidator({minArgs: 2})
 )`,
