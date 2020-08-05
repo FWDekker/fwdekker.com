@@ -916,10 +916,15 @@ return new Command(
 return new Command(
     (input, streams) => {
         try {
-            if (input.argc === 1)
+            if (input.argc === 0) {
+                Object.keys(josh.environment.variables)
+                    .sort()
+                    .forEach((key) => streams.out.writeLine(\`\${key} \${josh.environment.variables[key]}\`));
+            } else if (input.argc === 1) {
                 josh.environment.safeDelete(input.args[0]);
-            else
+            } else {
                 josh.environment.safeSet(input.args[0], input.args[1]);
+            }
 
             return ExitCode.OK;
         } catch (error) {
@@ -928,10 +933,13 @@ return new Command(
         }
     },
     \`set environment variable\`,
-    \`set <u>key</u> [<u>value</u>]\`,
+    \`set [<u>key</u> [<u>value</u>]]\`,
     \`Sets the environment variable <u>key</u> to <u>value</u>. If no <u>value</u> is given, the environment ${n}
-    variable is cleared. Read-only variables cannot be set.\`.trimMultiLines(),
-    new InputValidator({minArgs: 1, maxArgs: 2})
+    variable is cleared. Read-only variables cannot be set or cleared.
+
+    If neither <u>key</u> nor <u>value</u> is given, a list of all environment variables with current values is given.
+    \`.trimMultiLines(),
+    new InputValidator({minArgs: 0, maxArgs: 2})
 )`,
     "touch": /* language=JavaScript */ `\
 return new Command(
