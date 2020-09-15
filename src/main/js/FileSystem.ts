@@ -67,6 +67,7 @@ export class FileSystem {
                             }),
                             "me_irl.jpg": new File("https://static.fwdekker.com/img/avatar.jpg", "lnk"),
                             "pgp.pub": new File("https://static.fwdekker.com/misc/pgp.pub.txt", "lnk"),
+                            "privacy-policy.html": new File("https://fwdekker.com/privacy/", "lnk"),
                             "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf", "lnk"),
                         })
                     }),
