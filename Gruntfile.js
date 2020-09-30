@@ -7,18 +7,23 @@ module.exports = grunt => {
             default: [".nyc_output/", "dist/"]
         },
         copy: {
-            images: {
-                files: [{expand: true, cwd: "src/main/", src: ["**/*.png", "**/*.ico"], dest: "dist/"}]
+            css: {
+                files: [{expand: true, cwd: "src/main/", src: "**/*.css", dest: "dist/"}]
             },
             html: {
                 files: [{expand: true, cwd: "src/main/", src: "**/*.html", dest: "dist/"}]
             },
-            css: {
-                files: [{expand: true, cwd: "src/main/", src: "**/*.css", dest: "dist/"}]
+            images: {
+                files: [{expand: true, cwd: "src/main/", src: ["**/*.png", "**/*.ico"], dest: "dist/"}]
             },
             pwa: {
                 files: [{expand: true, cwd: "src/main/", src: ["manifest.json", "sw.js"], dest: "dist/"}]
-            }
+            },
+        },
+        focus: {
+            dev: {
+                include: ["css", "html", "link", "ts"],
+            },
         },
         replace: {
             dev: {
@@ -41,6 +46,24 @@ module.exports = grunt => {
                 ],
                 overwrite: true
             }
+        },
+        watch: {
+            css: {
+                files: ["src/main/**/*.css"],
+                tasks: ["copy:css"],
+            },
+            html: {
+                files: ["src/main/**/*.html"],
+                tasks: ["copy:html"],
+            },
+            link: {
+                files: ["node_modules/@fwdekker/*/dist/**"],
+                tasks: ["webpack:dev", "replace:dev"],
+            },
+            ts: {
+                files: ["src/main/**/*.ts"],
+                tasks: ["webpack:dev", "replace:dev"],
+            },
         },
         webpack: {
             options: {
@@ -74,6 +97,8 @@ module.exports = grunt => {
 
     grunt.loadNpmTasks("grunt-contrib-clean");
     grunt.loadNpmTasks("grunt-contrib-copy");
+    grunt.loadNpmTasks("grunt-contrib-watch");
+    grunt.loadNpmTasks("grunt-focus");
     grunt.loadNpmTasks("grunt-text-replace");
     grunt.loadNpmTasks("grunt-webpack");
 
@@ -90,6 +115,7 @@ module.exports = grunt => {
         // Post
         "replace:dev"
     ]);
+    grunt.registerTask("dev:server", ["dev", "focus:dev"]);
     grunt.registerTask("deploy", [
         // Pre
         "clean",

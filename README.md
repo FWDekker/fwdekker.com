@@ -15,6 +15,8 @@ $> npm ci
 ```shell script
 # Build the application in `dist/` for development
 $> npm run dev
+# Same as above, but automatically rerun it whenever files are changed
+$> npm run dev:server
 # Build the application in `dist/` for deployment
 $> npm run deploy
 # Remove build files
