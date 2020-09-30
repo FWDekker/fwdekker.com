@@ -646,19 +646,23 @@ return new Command(
 
                 if (input.argc > 1)
                     streams.out.writeLine(\`<b>\${path}</b>\`);
-                streams.out.writeLine(dirList.concat(fileList).join("\\n"));
+                streams.out.writeLine(dirList.concat(fileList)
+                    .join(input.hasAnyOption("-l", "-L", "--long") ? "\\n" : " "));
                 return ExitCode.OK;
             })
             .reduce((acc, exitCode) => exitCode === ExitCode.OK ? acc : exitCode);
     },
     \`list directory contents\`,
-    \`ls [<b>-a</b> | <b>-A</b> | <b>--all</b>] [<u>directory</u> <u>...</u>]\`,
+    \`ls [<b>-a</b> | <b>-A</b> | <b>--all</b>] [<b>-l</b> <b>-L</b> <b>--long</b>] [<u>directory</u> <u>...</u>]\`,
     \`Displays the files and directories in each <u>directory</u>. If no directory is given, the files and ${n}
     directories in the current working directory are shown. If more than one directory is given, the files and ${n}
     directories are shown for each given <u>directory</u> in order.
 
     Files starting with a <u>.</u> are only shown if the <b>--all</b> option is given, with the exception of ${n}
-    <u>.</u> and <u>..</u>, which are always shown.\`.trimMultiLines(),
+    <u>.</u> and <u>..</u>, which are always shown.
+
+    Files and directories are separated by a whitespace by default. With the <b>--long</b> option, the separator is ${n}
+    is changed to the newline character.\`.trimMultiLines(),
     new InputValidator()
 )`,
     "mkdir": /* language=JavaScript */ `\
