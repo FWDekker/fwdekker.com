@@ -90,7 +90,9 @@ export class FileSystem {
                 "password.txt": new File("root: g9PjKu"),
             }),
         });
-        (this.get(new Path("home", "felix")) as Directory).addAll(FileSystem.navRoot);
+
+        const home = this.get(new Path("home", "felix")) as Directory;
+        Object.keys(FileSystem.navRoot.nodes).forEach(name => home.add(name, FileSystem.navRoot.get(name)!));
     }
 
 
@@ -575,15 +577,6 @@ export class Directory extends Node {
             throw new IllegalArgumentError(`Cannot add node with name '${name}'.`);
 
         this._nodes[name] = node;
-    }
-
-    /**
-     * Adds (references to) all files in the given directory to this directory.
-     *
-     * @param directory the directory of which to add the children to this directory
-     */
-    addAll(directory: Directory): void {
-        Object.keys(directory.nodes).forEach(name => this.add(name, directory.get(name)!));
     }
 
     /**
