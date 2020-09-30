@@ -8,10 +8,45 @@ import {HashProvider, User} from "./UserList";
  * A file system.
  */
 export class FileSystem {
+    static navRoot: Directory;
     /**
      * The root directory.
      */
     readonly root: Directory;
+
+
+    /**
+     * Loads the contents of my home directory based on the navigation API of fwdekker.com.
+     *
+     * @return an empty promise :'(
+     */
+    static async loadNavApi(): Promise<any> {
+        await fetch("https://fwdekker.com/api/nav/")
+            .then(it => it.json())
+            .then(json => this.navRoot = this.unpack(json)[1] as Directory)
+            .catch(e => {
+                console.error("Failed to fetch navigation elements", e);
+                this.navRoot = new Directory();
+            });
+    }
+
+    /**
+     * Unpacks the given entry from the navigation API.
+     *
+     * @param entry the entry to unpack
+     * @return the name and the (traversed and filled) node unpacked from the given entry
+     * @private
+     */
+    private static unpack(entry: any): [string, Node] {
+        const name = entry.name?.toLowerCase()?.replace(/ /g, "-") ?? "";
+
+        if (entry.entries.length === 0)
+            return [`${name}.lnk`, new File(entry.link)];
+
+        const dir = new Directory();
+        entry.entries.forEach((child: any) => dir.add(...(this.unpack(child))))
+        return [name, dir];
+    }
 
 
     /**
@@ -20,63 +55,42 @@ export class FileSystem {
      * @param root the directory to set as the root
      */
     constructor(root: Directory | undefined = undefined) {
-        if (root === undefined)
-            this.root =
-                new Directory({
-                    "bin": Object.keys(commandBinaries)
-                        .reduce((acc, key) => {
-                            acc.add(key, new File(commandBinaries[key]));
-                            return acc;
-                        }, new Directory()),
-                    "dev": new Directory({
-                        "null": new NullFile()
-                    }),
-                    "etc": new Directory({
-                        "passwd": new File(
-                            [
-                                new User("root", HashProvider.default.hashPassword("g9PjKu"), "/root",
-                                    "You're a hacker, Harry!"),
-                                new User("felix", HashProvider.default.hashPassword("password"), undefined,
-                                    "Who are <i>you</i>?")
-                            ].map(it => User.toString(it)).join("\n") + "\n"
-                        )
-                    }),
-                    "home": new Directory({
-                        "felix": new Directory({
-                            "personal": new Directory({
-                                "blog.lnk": new File("https://blog.fwdekker.com/"),
-                                "nukapedia.lnk": new File("https://fallout.wikia.com/wiki/User:FDekker"),
-                                "steam.lnk": new File("https://steamcommunity.com/id/Waflix"),
-                            }),
-                            "projects": new Directory({
-                                "converter.lnk": new File("https://fwdekker.com/tools/converter/"),
-                                "dice.lnk": new File("https://fwdekker.com/tools/dice/"),
-                                "doomsday.lnk": new File("https://fwdekker.com/tools/doomsday/"),
-                                "fo76-dumps.lnk": new File("https://github.com/FWDekker/fo76-dumps"),
-                                "josh.lnk": new File("https://git.fwdekker.com/FWDekker/fwdekker.com"),
-                                "random-fo76.lnk": new File("https://fwdekker.com/tools/random-fo76/"),
-                                "randomness.lnk": new File("https://github.com/FWDekker/intellij-randomness"),
-                                "schaapi.lnk": new File("https://cafejojo.org/schaapi"),
-                                "simplify-fractions.lnk": new File("https://fwdekker.com/tools/simplify-fractions/"),
-                            }),
-                            "social": new Directory({
-                                "gitea.lnk": new File("https://git.fwdekker.com/explore/"),
-                                "github.lnk": new File("https://github.com/FWDekker/"),
-                                "stackoverflow.lnk": new File("https://stackoverflow.com/u/3307872"),
-                                "linkedin.lnk": new File("https://www.linkedin.com/in/fwdekker/"),
-                            }),
-                            "me_irl.jpg": new File("https://static.fwdekker.com/img/avatar.jpg", "lnk"),
-                            "pgp.pub": new File("https://static.fwdekker.com/misc/pgp.pub.txt", "lnk"),
-                            "privacy-policy.html": new File("https://fwdekker.com/privacy/", "lnk"),
-                            "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf", "lnk"),
-                        })
-                    }),
-                    "root": new Directory({
-                        "password.txt": new File("root: g9PjKu")
-                    })
-                });
-        else
+        if (root !== undefined) {
             this.root = root;
+            return;
+        }
+
+        this.root = new Directory({
+            "bin": Object.keys(commandBinaries)
+                .reduce((acc, key) => {
+                    acc.add(key, new File(commandBinaries[key]));
+                    return acc;
+                }, new Directory()),
+            "dev": new Directory({
+                "null": new NullFile(),
+            }),
+            "etc": new Directory({
+                "passwd": new File(
+                    [
+                        new User("root", HashProvider.default.hashPassword("g9PjKu"), "/root",
+                            "You're a hacker, Harry!"),
+                        new User("felix", HashProvider.default.hashPassword("password"), undefined,
+                            "Who are <i>you</i>?")
+                    ].map(it => User.toString(it)).join("\n") + "\n"
+                ),
+            }),
+            "home": new Directory({
+                "felix": new Directory({
+                    "pgp.pub": new File("https://static.fwdekker.com/misc/pgp.pub.txt", "lnk"),
+                    "privacy-policy.html": new File("https://fwdekker.com/privacy/", "lnk"),
+                    "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf", "lnk"),
+                }),
+            }),
+            "root": new Directory({
+                "password.txt": new File("root: g9PjKu"),
+            }),
+        });
+        (this.get(new Path("home", "felix")) as Directory).addAll(FileSystem.navRoot);
     }
 
 
@@ -561,6 +575,15 @@ export class Directory extends Node {
             throw new IllegalArgumentError(`Cannot add node with name '${name}'.`);
 
         this._nodes[name] = node;
+    }
+
+    /**
+     * Adds (references to) all files in the given directory to this directory.
+     *
+     * @param directory the directory of which to add the children to this directory
+     */
+    addAll(directory: Directory): void {
+        Object.keys(directory.nodes).forEach(name => this.add(name, directory.get(name)!));
     }
 
     /**

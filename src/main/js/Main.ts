@@ -1,4 +1,5 @@
 import * as semver from "semver";
+import {FileSystem} from "./FileSystem";
 import {Persistence} from "./Persistence";
 import {addOnLoad, ExpectedGoodbyeError, q} from "./Shared";
 import {Terminal} from "./Terminal";
@@ -58,7 +59,9 @@ addOnLoad(() => {
 /**
  * Initializes the application.
  */
-addOnLoad(() => {
+addOnLoad(async () => {
+    await FileSystem.loadNavApi();
+
     window.terminal = new Terminal(
         q("#terminal"),
         q("#terminalInputField"),
