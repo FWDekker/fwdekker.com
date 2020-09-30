@@ -27,7 +27,7 @@ module.exports = grunt => {
         },
         replace: {
             dev: {
-                src: ["./dist/*.js"],
+                src: ["./dist/*.html", "./dist/*.js"],
                 replacements: [
                     {
                         from: "%%VERSION_NUMBER%%",
@@ -37,7 +37,7 @@ module.exports = grunt => {
                 overwrite: true
             },
             deploy: {
-                src: ["./dist/*.js"],
+                src: ["./dist/*.html", "./dist/*.js"],
                 replacements: [
                     {
                         from: "%%VERSION_NUMBER%%",
