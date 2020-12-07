@@ -52,58 +52,71 @@ export class Commands {
         if (input.command === "")
             return ExitCode.OK;
 
-        const command = this.resolve(input.command);
-        if (command === undefined) {
+        let target = this.resolve(input.command);
+        if (target === undefined) {
             streams.err.writeLine(`Unknown command '${input.command}'.`);
             return ExitCode.COMMAND_NOT_FOUND;
         }
-        if (command instanceof Error) {
-            streams.err.writeLine(`Could not parse command '${input.command}': ${command}.`);
+        if (target instanceof Error) {
+            streams.err.writeLine(`Could not parse command '${input.command}': ${target}.`);
             return ExitCode.COMMAND_NOT_FOUND;
         }
-        if (command instanceof DocOnlyCommand) {
+        if (target instanceof DocOnlyCommand) {
             streams.err.writeLine(`Could not execute doc-only command. Try 'help ${input.command}' instead.`);
             return ExitCode.COMMAND_NOT_FOUND;
         }
 
-        if (command instanceof Script) {
+        if (target instanceof Directory) {
+            return this.execute(
+                new InputArgs("/bin/cd", input.options, [input.command].concat(input.args), input.redirectTargets),
+                streams
+            );
+        } else if (target instanceof Script) {
             const parser = InputParser.create(this.environment, this.fileSystem);
-            return command.lines
+            return target.lines
                 .map(line => parser.parseCommands(line))
                 .reduce((acc, input) => acc.concat(input))
                 .reduce((acc, code) => acc !== 0 ? acc : this.execute(code, streams), 0);
-        }
+        } else {
+            const validation = target.validator.validate(input);
+            if (!validation[0]) {
+                streams.err.writeLine(this.createUsageErrorOutput(input.command, target, validation[1]));
+                return ExitCode.USAGE;
+            }
 
-        const validation = command.validator.validate(input);
-        if (!validation[0]) {
-            streams.err.writeLine(this.createUsageErrorOutput(input.command, command, validation[1]));
-            return ExitCode.USAGE;
+            return target.fun.bind(this)(input, streams);
         }
-
-        return command.fun.bind(this)(input, streams);
     }
 
     /**
-     * Finds the `Command` with the given name and returns it.
+     * Resolves a target from its name by looking through the file system.
      *
-     * @param commandName the name of or path to the command to find
-     * @return the command addressed by the given name or path, an 'Error' if the command could be found but could not
-     * be parsed, or `undefined` if the command could not be found
+     * If the target is a command, the command is parsed (but not yet invoked) and returned.
+     *
+     * Targets are resolved as follows. If the target name contains a slash, then interpret that path literally.
+     * Otherwise, look for the target in /bin. If no such target exists or it is not a file, then interpret it as a
+     * relative path.
+     *
+     * @param targetName the name of the target to be resolved
+     * @return the `Command`, `Script`, or `Directory` addressed by the target, an `Error` if the target could be found
+     * but could not be parsed, or `undefined` if the target could not be found
      */
-    resolve(commandName: string): Command | Script | Error | undefined {
+    resolve(targetName: string): Command | Script | Directory | Error | undefined {
         const cwd = this.environment.get("cwd");
 
-        let script: Node | undefined;
-        if (commandName.includes("/")) {
-            script = this.fileSystem.get(Path.interpret(cwd, commandName));
+        let target: Node | undefined;
+        if (targetName.includes("/")) {
+            target = this.fileSystem.get(Path.interpret(cwd, targetName));
         } else {
-            script = this.fileSystem.get(Path.interpret(cwd, "/bin", commandName));
-        }
-        if (!(script instanceof File)) {
-            return undefined;
+            target = this.fileSystem.get(Path.interpret(cwd, "/bin", targetName));
+            if (!(target instanceof File))
+                target = this.fileSystem.get(Path.interpret(cwd, targetName));
         }
 
-        const code = script.open("read").read();
+        if (!(target instanceof File))
+            return target instanceof Directory ? target : undefined;
+
+        const code = target.open("read").read();
         try {
             if (code.startsWith("#!/bin/josh\n")) {
                 return new Script(code.split("\n").slice(1));
@@ -111,7 +124,7 @@ export class Commands {
                 return this.interpretBinary(code, this.environment, this.userList, this.fileSystem);
             }
         } catch (e) {
-            console.error(`Failed to interpret script '${commandName}'.`, code, e);
+            console.error(`Failed to interpret script '${targetName}'.`, code, e);
             return e;
         }
     }

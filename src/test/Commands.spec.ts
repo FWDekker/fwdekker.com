@@ -83,11 +83,64 @@ describe("commands", () => {
             });
         });
 
+        describe("directories", () => {
+            beforeEach(() => loadCommand("cd"));
+
+
+            it("navigates to an absolute directory", () => {
+                fileSystem.add(new Path("/dir"), new Directory(), false);
+
+                expect(execute("/dir")).to.equal(ExitCode.OK);
+                expect(environment.get("cwd")).to.equal("/dir");
+            });
+
+            it("navigates to a relative directory without a slash", () => {
+                fileSystem.add(new Path("/dir1/dir2"), new Directory(), true);
+                environment.set("cwd", "/dir1");
+
+                expect(execute("dir2")).to.equal(ExitCode.OK);
+                expect(environment.get("cwd")).to.equal("/dir1/dir2");
+            });
+
+            it("navigates to a relative directory with a slash", () => {
+                fileSystem.add(new Path("/dir1/dir2"), new Directory(), true);
+                environment.set("cwd", "dir1");
+
+                expect(execute("dir2/")).to.equal(ExitCode.OK);
+                expect(environment.get("cwd")).to.equal("/dir1/dir2");
+            });
+
+            it("navigates to a nested relative directory", () => {
+                fileSystem.add(new Path("/dir1/dir2/dir3"), new Directory(), true);
+                environment.set("cwd", "dir1");
+
+                expect(execute("dir2/dir3")).to.equal(ExitCode.OK);
+                expect(environment.get("cwd")).to.equal("/dir1/dir2/dir3");
+            });
+
+            describe("/bin", () => {
+                it("cannot navigate to a directory in /bin by only typing its name if not currently in /bin", () => {
+                    fileSystem.add(new Path("/bin/dir"), new Directory(), true);
+
+                    expect(execute("dir")).to.equal(ExitCode.COMMAND_NOT_FOUND);
+                    expect(environment.get("cwd")).to.equal("/");
+                });
+
+                it("navigates to a directory in /bin by only typing its name if currently in /bin", () => {
+                    fileSystem.add(new Path("/bin/dir"), new Directory(), true);
+                    environment.set("cwd", "/bin");
+
+                    expect(execute("dir")).to.equal(ExitCode.OK);
+                    expect(environment.get("cwd")).to.equal("/bin/dir");
+                });
+            });
+        });
+
         describe("scripts", () => {
             it("executes an empty script", () => {
                 fileSystem.add(new Path("/script"), new File("#!/bin/josh\n"), false);
 
-                expect(execute("/script")).to.equal(0);
+                expect(execute("/script")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("");
             });
 
@@ -96,7 +149,7 @@ describe("commands", () => {
 
                 fileSystem.add(new Path("/script"), new File("#!/bin/josh\necho though\necho only"), false);
 
-                expect(execute("/script")).to.equal(0);
+                expect(execute("/script")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("though\nonly\n");
             });
 
@@ -105,7 +158,7 @@ describe("commands", () => {
 
                 fileSystem.add(new Path("/script"), new File("#!/bin/josh\n   echo rescue \n echo flour  "), false);
 
-                expect(execute("/script")).to.equal(0);
+                expect(execute("/script")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("rescue\nflour\n");
             });
         });
@@ -576,7 +629,7 @@ describe("commands", () => {
 
 
             it("does nothing if the previous command exited successfully", () => {
-                environment.set("status", "0");
+                environment.set("status", "" + ExitCode.OK);
 
                 expect(execute("or echo 'message'")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("");
