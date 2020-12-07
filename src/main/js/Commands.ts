@@ -535,12 +535,12 @@ return new Command(
 return new Command(
     (input, streams) => {
         josh.environment.set("user", "");
-        return ExitCode.OK;
+        return parseInt(input.args[0] || "0");
     },
     \`close session\`,
     \`exit\`,
     \`Closes the terminal session.\`,
-    new InputValidator({maxArgs: 0})
+    new InputValidator({minArgs: 0, maxArgs: 1})
 )`,
     "false": /* language=JavaScript */ `\
 return new Command(

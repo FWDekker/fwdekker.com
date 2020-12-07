@@ -360,9 +360,23 @@ describe("commands", () => {
             beforeEach(() => loadCommand("exit"));
 
 
-            it("changes the current user", () => {
+            it("removes the current user", () => {
+                environment.set("user", "wish");
+
                 expect(execute("exit")).to.equal(ExitCode.OK);
                 expect(environment.get("user")).to.equal("");
+            });
+
+            it("has exit code of OK by default", () => {
+                environment.set("status", "9");
+
+                expect(execute("exit")).to.equal(ExitCode.OK);
+            });
+
+            it("returns the user-supplied exit code", () => {
+                environment.set("status", "1");
+
+                expect(execute("exit 46")).to.equal(46);
             });
         });
 
