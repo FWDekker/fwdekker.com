@@ -515,18 +515,21 @@ return new Command(
     "echo": /* language=JavaScript */ `\
 return new Command(
     (input, streams) => {
-        const message = input.args.join(" ").replace("hunter2", "*******");
+        let message = input.args.join(" ").replace("hunter2", "*******");
+        if (input.hasAnyOption("-e", "--escapes"))
+            message = message.replace(/\\\\n/g, "\\n");
+        if (!input.hasAnyOption("-n", "--newline"))
+            message = message + "\\n";
 
-        if (input.hasAnyOption("-n", "--newline"))
-            streams.out.write(message);
-        else
-            streams.out.writeLine(message);
-
+        streams.out.write(message);
         return ExitCode.OK;
     },
     \`display text\`,
-    \`echo [<b>-n</b> | <b>--newline</b>] [<u>text</u> <u>...</u>]\`,
+    \`echo [<b>-e</b> | <b>--escapes</b>] [<b>-n</b> | <b>--newline</b>] [<u>text</u> <u>...</u>]\`,
     \`Displays each <u>text</u> separated by a single whitespace.
+
+    If the <b>--escapes</b> parameter is given, the newline escape sequence "\\\\n" is replaced by an actual newline
+    character.
 
     Unless the <b>--newline</b> parameter is given, a newline is appended to the end.\`.trimMultiLines(),
     new InputValidator()
@@ -538,8 +541,10 @@ return new Command(
         return parseInt(input.args[0] || "0");
     },
     \`close session\`,
-    \`exit\`,
-    \`Closes the terminal session.\`,
+    \`exit [<u>status</u>]\`,
+    \`Closes the terminal session.
+
+    Returns status code <u>status</u> if it is defined, and returns 0 otherwise.\`,
     new InputValidator({minArgs: 0, maxArgs: 1})
 )`,
     "false": /* language=JavaScript */ `\

@@ -345,14 +345,28 @@ describe("commands", () => {
             beforeEach(() => loadCommand("echo"));
 
 
-            it("adds a newline to the end by default", () => {
-                expect(execute("echo a b c \n")).to.equal(ExitCode.OK);
-                expect(readOut()).to.equal("a b c \n\n");
+            describe("--escapes", () => {
+                it("does not unescape newlines by default", () => {
+                    expect(execute("echo 'a b \\n c'")).to.equal(ExitCode.OK);
+                    expect(readOut()).to.equal("a b \\n c\n");
+                });
+
+                it("unescapes newlines if prompted to do so", () => {
+                    expect(execute("echo -e 'a b \\n c'")).to.equal(ExitCode.OK);
+                    expect(readOut()).to.equal("a b \n c\n");
+                });
             });
 
-            it("does not add a newline if prompted to do so", () => {
-                expect(execute("echo -n a b c")).to.equal(ExitCode.OK);
-                expect(readOut()).to.equal("a b c");
+            describe("--newline", () => {
+                it("adds a newline to the end by default, even if there is already a newline", () => {
+                    expect(execute("echo a b c \n")).to.equal(ExitCode.OK);
+                    expect(readOut()).to.equal("a b c \n\n");
+                });
+
+                it("does not add a newline if prompted to do so", () => {
+                    expect(execute("echo -n a b c")).to.equal(ExitCode.OK);
+                    expect(readOut()).to.equal("a b c");
+                });
             });
         });
 
