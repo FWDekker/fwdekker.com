@@ -239,7 +239,7 @@ export class Terminal {
      * Moves to the next input line without processing the current input line.
      */
     private ignoreInput(): void {
-        this.outputText += `${this.prefixText}${this.inputText}\n`;
+        this.outputText += `${this.prefixText}${escapeHtml(this.inputText)}\n`;
         this.prefixText = this.shell.generatePrefix();
         this.inputText = "";
         this.inputHistory.resetIndex();
