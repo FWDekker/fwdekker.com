@@ -126,12 +126,12 @@ export class InputParser {
             }
 
             const argsParts = arg.split("=");
-            if (argsParts.length === 0 || argsParts.length > 2)
+            if (argsParts.length === 0)
                 throw new IllegalArgumentError("Unexpected number of parts.");
             if (argsParts[0].includes(" ") || argsParts[0].match(/[0-9]/))
                 break;
 
-            const value = argsParts.length === 1 ? null : argsParts[1];
+            const value = argsParts.length === 1 ? null : argsParts.slice(1).join("=");
 
             if (argsParts[0].startsWith("--")) {
                 const key = argsParts[0].substr(2);
@@ -169,9 +169,10 @@ export class Tokenizer {
      * etc.
      *
      * Joining the returned array with spaces in between will give back the input string, disregarding extra whitespaces
-     * in between tokens. That is, no bytes are added, removed, or escaped in tokens.
+     * in between tokens. That is, no bytes are added, removed, or escaped inside tokens.
      *
      * @param input the string to tokenize
+     * @return the tokens
      */
     tokenize(input: string): string[] {
         const tokens: string[] = [];

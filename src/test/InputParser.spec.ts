@@ -210,8 +210,8 @@ describe("input parser", () => {
                 expect(parser.parseCommands("command -- -p")[0].options).to.not.have.own.property("-p");
             });
 
-            it("throws an error if multiple equals signs occur", () => {
-                expect(() => parser.parseCommands("command -a=b=c")[0]).to.throw();
+            it("allows option values with an equals sign", () => {
+                expect(parser.parseCommands("command -a=b=c")[0].options["-a"]).to.equal("b=c");
             });
         });
 
