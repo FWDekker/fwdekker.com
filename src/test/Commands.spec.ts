@@ -2,7 +2,7 @@ import {expect} from "chai";
 import "jsdom-global";
 import "mocha";
 
-import {Command, commandBinaries, Commands, ExitCode} from "../main/js/Commands";
+import {Command, commandBinaries, Commands, ExitCode, Script} from "../main/js/Commands";
 import {Environment} from "../main/js/Environment";
 import {Directory, File, FileSystem, Path} from "../main/js/FileSystem";
 import {InputParser} from "../main/js/InputParser";
@@ -54,43 +54,74 @@ describe("commands", () => {
 
 
     describe("execute", () => {
-        it("writes an error if it cannot resolve the command", () => {
-            expect(execute("does-not-exist")).to.equal(ExitCode.COMMAND_NOT_FOUND);
-            expect(readErr()).to.equal("Unknown command 'does-not-exist'.\n");
+        describe("error handling", () => {
+            it("writes an error if it cannot resolve the target", () => {
+                expect(execute("does-not-exist")).to.equal(ExitCode.COMMAND_NOT_FOUND);
+                expect(readErr()).to.equal("Unknown command 'does-not-exist'.\n");
+            });
+
+            it("writes an error if the target has no shebang and it is not a valid command", () => {
+                fileSystem.add(new Path("/command"), new File("echo hesitate"), false);
+
+                expect(execute("/command")).to.equal(ExitCode.COMMAND_NOT_FOUND);
+                expect(readErr()).to.equal("Could not parse command '/command': SyntaxError: Unexpected identifier.\n");
+            });
+
+            it("writes an error if the target is a doc-only command", () => {
+                fileSystem.add(new Path("/command"), new File(`return new DocOnlyCommand("", "")`), false);
+
+                expect(execute("/command")).to.equal(ExitCode.COMMAND_NOT_FOUND);
+                expect(readErr()).to.equal("Could not execute doc-only command. Try 'help /command' instead.\n");
+            });
+
+            it("writes an error if the arguments to the command are invalid", () => {
+                const command = `return new Command("", "", "", "", new InputValidator({minArgs: 2}))`;
+                fileSystem.add(new Path("/command"), new File(command), false);
+
+                expect(execute("/command arg1")).to.equal(ExitCode.USAGE);
+                expect(readErr()).to.contain("Invalid usage of '/command'. Expected at least 2 arguments but got 1.");
+            });
         });
 
-        it("writes an error if the command is invalid", () => {
-            fileSystem.add(new Path("/command"), new File("invalid"), false);
+        describe("scripts", () => {
+            it("executes an empty script", () => {
+                fileSystem.add(new Path("/script"), new File("#!/bin/josh\n"), false);
 
-            expect(execute("/command")).to.equal(ExitCode.COMMAND_NOT_FOUND);
-            expect(readErr()).to.equal("Could not parse command '/command': ReferenceError: invalid is not defined.\n");
+                expect(execute("/script")).to.equal(0);
+                expect(readOut()).to.equal("");
+            });
+
+            it("executes the target as a script if there is a shebang", () => {
+                loadCommand("echo");
+
+                fileSystem.add(new Path("/script"), new File("#!/bin/josh\necho though\necho only"), false);
+
+                expect(execute("/script")).to.equal(0);
+                expect(readOut()).to.equal("though\nonly\n");
+            });
+
+            it("ignores whitespace around individual lines except the shebang", () => {
+                loadCommand("echo");
+
+                fileSystem.add(new Path("/script"), new File("#!/bin/josh\n   echo rescue \n echo flour  "), false);
+
+                expect(execute("/script")).to.equal(0);
+                expect(readOut()).to.equal("rescue\nflour\n");
+            });
         });
 
-        it("writes an error if the command is a doc-only command", () => {
-            fileSystem.add(new Path("/command"), new File(`return new DocOnlyCommand("", "")`), false);
-
-            expect(execute("/command")).to.equal(ExitCode.COMMAND_NOT_FOUND);
-            expect(readErr()).to.equal("Could not execute doc-only command. Try 'help /command' instead.\n");
-        });
-
-        it("writes an error if the arguments to the command are invalid", () => {
-            const command = `return new Command("", "", "", "", new InputValidator({minArgs: 2}))`;
-            fileSystem.add(new Path("/command"), new File(command), false);
-
-            expect(execute("/command arg1")).to.equal(ExitCode.USAGE);
-            expect(readErr()).to.contain("Invalid usage of '/command'. Expected at least 2 arguments but got 1.");
-        });
-
-        it("executes the command otherwise", () => {
-            const command = `return new Command(
+        describe("commands", () => {
+            it("executes the target as a command if there is no shebang", () => {
+                const command = `return new Command(
                 (input, streams) => { streams.out.writeLine(input.args[0]); return Number(input.args[1]); },
                 "", "", "",
                 new InputValidator()
             )`.trimMultiLines();
-            fileSystem.add(new Path("/command"), new File(command), false);
+                fileSystem.add(new Path("/command"), new File(command), false);
 
-            expect(execute("/command output 42")).to.equal(42);
-            expect(readOut()).to.equal("output\n");
+                expect(execute("/command output 42")).to.equal(42);
+                expect(readOut()).to.equal("output\n");
+            });
         });
     });
 
@@ -124,6 +155,18 @@ describe("commands", () => {
 
             it("cannot resolve a command from a relative path if it does not exist", () => {
                 expect(commands.resolve("./command")).to.equal(undefined);
+            });
+        });
+
+        describe("scripts", () => {
+            it("resolves a script if it exists", () => {
+                fileSystem.add(new Path("/script"), new File("#!/bin/josh\necho square"), true);
+
+                expect((commands.resolve("/script") as Script).lines).to.deep.equal(["echo square"]);
+            });
+
+            it("cannot resolve a script if it does not exist", () => {
+                expect(commands.resolve("/script")).to.equal(undefined);
             });
         });
 

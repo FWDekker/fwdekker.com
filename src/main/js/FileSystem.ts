@@ -44,7 +44,7 @@ export class FileSystem {
             return [`${name}.lnk`, new File(entry.link)];
 
         const dir = new Directory();
-        entry.entries.forEach((child: any) => dir.add(...(this.unpack(child))))
+        entry.entries.forEach((child: any) => dir.add(...(this.unpack(child))));
         return [name, dir];
     }
 
@@ -708,13 +708,17 @@ export class File extends Node {
 
     nameString(name: string, path: Path): string {
         switch (this.mime ?? getFileExtension(name)) {
-            case "txt": {
-                const script = `execute('cat ${path.toString(true)}')`;
+            case "jsh": {
+                const script = `execute('${path.toString(true)}'); return false`;
                 return `<a href="#" class="fileLink" onclick="${script}">${name}</a>`;
             }
             case "lnk": {
                 const script = `execute('open ${path.toString(true)}'); return false`;
                 return `<a href="${this.contents}" class="fileLink" onclick="${script}">${name}</a>`;
+            }
+            case "txt": {
+                const script = `execute('cat ${path.toString(true)}')`;
+                return `<a href="#" class="fileLink" onclick="${script}">${name}</a>`;
             }
             default:
                 return name;

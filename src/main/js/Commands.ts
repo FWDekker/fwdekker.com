@@ -66,6 +66,14 @@ export class Commands {
             return ExitCode.COMMAND_NOT_FOUND;
         }
 
+        if (command instanceof Script) {
+            const parser = InputParser.create(this.environment, this.fileSystem);
+            return command.lines
+                .map(line => parser.parseCommands(line))
+                .reduce((acc, input) => acc.concat(input))
+                .reduce((acc, code) => acc !== 0 ? acc : this.execute(code, streams), 0);
+        }
+
         const validation = command.validator.validate(input);
         if (!validation[0]) {
             streams.err.writeLine(this.createUsageErrorOutput(input.command, command, validation[1]));
@@ -82,7 +90,7 @@ export class Commands {
      * @return the command addressed by the given name or path, an 'Error' if the command could be found but could not
      * be parsed, or `undefined` if the command could not be found
      */
-    resolve(commandName: string): Command | Error | undefined {
+    resolve(commandName: string): Command | Script | Error | undefined {
         const cwd = this.environment.get("cwd");
 
         let script: Node | undefined;
@@ -97,7 +105,11 @@ export class Commands {
 
         const code = script.open("read").read();
         try {
-            return this.interpretScript(code, this.environment, this.userList, this.fileSystem);
+            if (code.startsWith("#!/bin/josh\n")) {
+                return new Script(code.split("\n").slice(1));
+            } else {
+                return this.interpretBinary(code, this.environment, this.userList, this.fileSystem);
+            }
         } catch (e) {
             console.error(`Failed to interpret script '${commandName}'.`, code, e);
             return e;
@@ -105,15 +117,15 @@ export class Commands {
     }
 
     /**
-     * Interprets the given code and returns the `Command` it describes.
+     * Interprets the given binary and returns the `Command` it describes.
      *
-     * @param code a string describing a `Command`
+     * @param code a string describing a `Command`, i.e. a "binary"
      * @param environment the environment in which the code is to be executed
      * @param userList the list of users relevant to the code
      * @param fileSystem the file system to refer to when executing code
      * @return the `Command` described by the given code
      */
-    private interpretScript(code: string, environment: Environment, userList: UserList,
+    private interpretBinary(code: string, environment: Environment, userList: UserList,
                             fileSystem: FileSystem): Command {
         const josh = {
             "environment": environment,
@@ -160,6 +172,28 @@ export class Commands {
     }
 }
 
+
+/**
+ * A script referring to other commands that can be executed.
+ */
+export class Script {
+    /**
+     * The lines that make up the script.
+     */
+    readonly lines: string[];
+
+
+    /**
+     * Constructs a new script from the given lines.
+     *
+     * Each line should be a valid line in the command line, i.e. can be parsed into an `InputArgs`.
+     *
+     * @param lines the lines that make up the script
+     */
+    constructor(lines: string[]) {
+        this.lines = lines;
+    }
+}
 
 /**
  * A command that can be executed.
