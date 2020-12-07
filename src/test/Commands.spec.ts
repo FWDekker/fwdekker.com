@@ -87,52 +87,12 @@ describe("commands", () => {
             beforeEach(() => loadCommand("cd"));
 
 
-            it("navigates to an absolute directory", () => {
-                fileSystem.add(new Path("/dir"), new Directory(), false);
-
-                expect(execute("/dir")).to.equal(ExitCode.OK);
-                expect(environment.get("cwd")).to.equal("/dir");
-            });
-
-            it("navigates to a relative directory without a slash", () => {
+            it("navigates to a directory without explicitly writing `cd`", () => {
                 fileSystem.add(new Path("/dir1/dir2"), new Directory(), true);
                 environment.set("cwd", "/dir1");
 
                 expect(execute("dir2")).to.equal(ExitCode.OK);
                 expect(environment.get("cwd")).to.equal("/dir1/dir2");
-            });
-
-            it("navigates to a relative directory with a slash", () => {
-                fileSystem.add(new Path("/dir1/dir2"), new Directory(), true);
-                environment.set("cwd", "dir1");
-
-                expect(execute("dir2/")).to.equal(ExitCode.OK);
-                expect(environment.get("cwd")).to.equal("/dir1/dir2");
-            });
-
-            it("navigates to a nested relative directory", () => {
-                fileSystem.add(new Path("/dir1/dir2/dir3"), new Directory(), true);
-                environment.set("cwd", "dir1");
-
-                expect(execute("dir2/dir3")).to.equal(ExitCode.OK);
-                expect(environment.get("cwd")).to.equal("/dir1/dir2/dir3");
-            });
-
-            describe("/bin", () => {
-                it("cannot navigate to a directory in /bin by only typing its name if not currently in /bin", () => {
-                    fileSystem.add(new Path("/bin/dir"), new Directory(), true);
-
-                    expect(execute("dir")).to.equal(ExitCode.COMMAND_NOT_FOUND);
-                    expect(environment.get("cwd")).to.equal("/");
-                });
-
-                it("navigates to a directory in /bin by only typing its name if currently in /bin", () => {
-                    fileSystem.add(new Path("/bin/dir"), new Directory(), true);
-                    environment.set("cwd", "/bin");
-
-                    expect(execute("dir")).to.equal(ExitCode.OK);
-                    expect(environment.get("cwd")).to.equal("/bin/dir");
-                });
             });
         });
 
@@ -179,6 +139,58 @@ describe("commands", () => {
     });
 
     describe("resolve", () => {
+        describe("directories", () => {
+            beforeEach(() => loadCommand("cd"));
+
+
+            it("resolves an absolute directory", () => {
+                fileSystem.add(new Path("/dir1"), new Directory(), false);
+                environment.set("cwd", "/dir2");
+
+                expect(execute("/dir1")).to.equal(ExitCode.OK);
+                expect(environment.get("cwd")).to.equal("/dir1");
+            });
+
+            it("resolves a relative directory without a slash", () => {
+                fileSystem.add(new Path("/dir1/dir2"), new Directory(), true);
+                environment.set("cwd", "/dir1");
+
+                expect(execute("dir2")).to.equal(ExitCode.OK);
+                expect(environment.get("cwd")).to.equal("/dir1/dir2");
+            });
+
+            it("resolves a relative directory with a slash", () => {
+                fileSystem.add(new Path("/dir1/dir2"), new Directory(), true);
+                environment.set("cwd", "dir1");
+
+                expect(execute("dir2/")).to.equal(ExitCode.OK);
+                expect(environment.get("cwd")).to.equal("/dir1/dir2");
+            });
+
+            it("resolves a nested relative directory", () => {
+                fileSystem.add(new Path("/dir1/dir2/dir3"), new Directory(), true);
+                environment.set("cwd", "dir1");
+
+                expect(execute("dir2/dir3")).to.equal(ExitCode.OK);
+                expect(environment.get("cwd")).to.equal("/dir1/dir2/dir3");
+            });
+
+            it("does not resolve a directory in /bin by only typing its name if not currently in /bin", () => {
+                fileSystem.add(new Path("/bin/dir"), new Directory(), true);
+
+                expect(execute("dir")).to.equal(ExitCode.COMMAND_NOT_FOUND);
+                expect(environment.get("cwd")).to.equal("/");
+            });
+
+            it("resolves a directory in /bin by only typing its name if currently in /bin", () => {
+                fileSystem.add(new Path("/bin/dir"), new Directory(), true);
+                environment.set("cwd", "/bin");
+
+                expect(execute("dir")).to.equal(ExitCode.OK);
+                expect(environment.get("cwd")).to.equal("/bin/dir");
+            });
+        });
+
         describe("/bin commands", () => {
             it("resolves a command from /bin if it exists", () => {
                 const command = `return new Command("", "Summary", "", "", "")`;
@@ -206,8 +218,14 @@ describe("commands", () => {
                 expect((commands.resolve("./command") as Command).summary).to.equal("Summary");
             });
 
-            it("cannot resolve a command from a relative path if it does not exist", () => {
+            it("does not resolve a command from a relative path if it does not exist", () => {
                 expect(commands.resolve("./command")).to.equal(undefined);
+            });
+
+            it("does not resolve a relative command without using a slash", () => {
+                fileSystem.add(new Path("/command"), new File(`return new Command("", "Summary", "", "", "")`), true);
+
+                expect(commands.resolve("command")).to.equal(undefined);
             });
         });
 

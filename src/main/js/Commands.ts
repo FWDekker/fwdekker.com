@@ -93,9 +93,10 @@ export class Commands {
      *
      * If the target is a command, the command is parsed (but not yet invoked) and returned.
      *
-     * Targets are resolved as follows. If the target name contains a slash, then interpret that path literally.
-     * Otherwise, look for the target in /bin. If no such target exists or it is not a file, then interpret it as a
-     * relative path.
+     * Targets are resolved as follows:
+     * If the target name contains a slash, then resolve target relatively and return the result.
+     * Otherwise, look for the target in /bin. If no such target exists or it is not a file, then resolve the target
+     * relatively but return `undefined` if it is not a directory.
      *
      * @param targetName the name of the target to be resolved
      * @return the `Command`, `Script`, or `Directory` addressed by the target, an `Error` if the target could be found
@@ -107,14 +108,17 @@ export class Commands {
         let target: Node | undefined;
         if (targetName.includes("/")) {
             target = this.fileSystem.get(Path.interpret(cwd, targetName));
+
+            if (!(target instanceof File))
+                return target instanceof Directory ? target : undefined;
         } else {
             target = this.fileSystem.get(Path.interpret(cwd, "/bin", targetName));
-            if (!(target instanceof File))
-                target = this.fileSystem.get(Path.interpret(cwd, targetName));
-        }
 
-        if (!(target instanceof File))
-            return target instanceof Directory ? target : undefined;
+            if (!(target instanceof File)) {
+                target = this.fileSystem.get(Path.interpret(cwd, targetName));
+                return target instanceof Directory ? target : undefined;
+            }
+        }
 
         const code = target.open("read").read();
         try {
