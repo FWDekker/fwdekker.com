@@ -1,4 +1,4 @@
-import {Commands} from "./Commands";
+import {Commands, ExitCode} from "./Commands";
 import {Environment} from "./Environment";
 import {Directory, FileSystem, Path} from "./FileSystem";
 import {InputArgs} from "./InputArgs";
@@ -164,23 +164,13 @@ export class Shell {
             inputs = InputParser.create(this.environment, this.fileSystem).parseCommands(inputString);
         } catch (error) {
             streams.err.writeLine(`Could not parse input: ${error.message}`);
-            this.environment.set("status", "-1");
+            this.environment.set("status", "" + ExitCode.USAGE);
             return;
         }
 
         inputs.forEach(input => {
-            const localStreams = streams.copy();
-            try {
-                localStreams.out = this.toStream(input.redirectTargets[1]) ?? localStreams.out;
-                localStreams.err = this.toStream(input.redirectTargets[2]) ?? localStreams.err;
-            } catch (error) {
-                streams.err.writeLine(`Error while redirecting output:\n${error.message}`);
-                this.environment.set("status", "-1");
-                return;
-            }
-
-            const output = this.commands.execute(input, localStreams);
-            this.environment.set("status", "" + output);
+            const status = this.commands.execute(input, streams);
+            this.environment.set("status", "" + status);
 
             if (this.environment.get("user") === "") {
                 this.inputHistory.clear();
@@ -214,21 +204,5 @@ export class Shell {
         Persistence.setHistory(this.inputHistory);
         Persistence.setEnvironment(this.environment);
         Persistence.setFileSystem(this.fileSystem);
-    }
-
-    /**
-     * Converts a redirect target to an output stream, or `undefined` if the default stream is used.
-     *
-     * @param target the target to convert
-     * @throws if the stream could not be opened
-     */
-    private toStream(target: InputArgs.RedirectTarget | undefined): OutputStream | undefined {
-        if (target === undefined)
-            return undefined;
-
-        if (target.target === undefined)
-            throw new IllegalStateError("Redirect target's target is undefined.");
-
-        return this.fileSystem.open(Path.interpret(this.environment.get("cwd"), target.target), target.type);
     }
 }

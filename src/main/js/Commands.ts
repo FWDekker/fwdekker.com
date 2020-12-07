@@ -5,7 +5,7 @@ import {InputArgs} from "./InputArgs";
 import {InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
 import {escapeHtml, IllegalArgumentError, IllegalStateError, isStandalone} from "./Shared";
-import {StreamSet} from "./Stream";
+import {OutputStream, StreamSet} from "./Stream";
 import {EscapeCharacters} from "./Terminal";
 import {HashProvider, User, UserList} from "./UserList";
 
@@ -52,39 +52,48 @@ export class Commands {
         if (input.command === "")
             return ExitCode.OK;
 
-        let target = this.resolve(input.command);
+        const localStreams = streams.copy();
+        try {
+            localStreams.out = this.toStream(input.redirectTargets[1]) ?? localStreams.out;
+            localStreams.err = this.toStream(input.redirectTargets[2]) ?? localStreams.err;
+        } catch (error) {
+            streams.err.writeLine(`Error while redirecting output:\n${error.message}`);
+            return ExitCode.MISC;
+        }
+
+        const target = this.resolve(input.command);
         if (target === undefined) {
-            streams.err.writeLine(`Unknown command '${input.command}'.`);
+            localStreams.err.writeLine(`Unknown command '${input.command}'.`);
             return ExitCode.COMMAND_NOT_FOUND;
         }
         if (target instanceof Error) {
-            streams.err.writeLine(`Could not parse command '${input.command}': ${target}.`);
+            localStreams.err.writeLine(`Could not parse command '${input.command}': ${target}.`);
             return ExitCode.COMMAND_NOT_FOUND;
         }
         if (target instanceof DocOnlyCommand) {
-            streams.err.writeLine(`Could not execute doc-only command. Try 'help ${input.command}' instead.`);
+            localStreams.err.writeLine(`Could not execute doc-only command. Try 'help ${input.command}' instead.`);
             return ExitCode.COMMAND_NOT_FOUND;
         }
 
         if (target instanceof Directory) {
             return this.execute(
                 new InputArgs("/bin/cd", input.options, [input.command].concat(input.args), input.redirectTargets),
-                streams
+                localStreams
             );
         } else if (target instanceof Script) {
             const parser = InputParser.create(this.environment, this.fileSystem);
             return target.lines
                 .map(line => parser.parseCommands(line))
-                .reduce((acc, input) => acc.concat(input))
-                .reduce((acc, code) => acc !== 0 ? acc : this.execute(code, streams), 0);
+                .reduce((acc, input) => acc.concat(input), [])  // .flat()
+                .reduce((acc, code) => acc !== 0 ? acc : this.execute(code, localStreams), 0);
         } else {
             const validation = target.validator.validate(input);
             if (!validation[0]) {
-                streams.err.writeLine(this.createUsageErrorOutput(input.command, target, validation[1]));
+                localStreams.err.writeLine(this.createUsageErrorOutput(input.command, target, validation[1]));
                 return ExitCode.USAGE;
             }
 
-            return target.fun.bind(this)(input, streams);
+            return target.fun.bind(this)(input, localStreams);
         }
     }
 
@@ -186,6 +195,22 @@ export class Commands {
 
                <b>Usage</b>
                ${command.usage}`.trimLines();
+    }
+
+    /**
+     * Converts a redirect target to an output stream, or `undefined` if the default stream is used.
+     *
+     * @param target the target to convert
+     * @throws if the stream could not be opened
+     */
+    private toStream(target: InputArgs.RedirectTarget | undefined): OutputStream | undefined {
+        if (target === undefined)
+            return undefined;
+
+        if (target.target === undefined)
+            throw new IllegalStateError("Redirect target's target is undefined.");
+
+        return this.fileSystem.open(Path.interpret(this.environment.get("cwd"), target.target), target.type);
     }
 }
 

@@ -97,6 +97,12 @@ describe("commands", () => {
         });
 
         describe("scripts", () => {
+            beforeEach(() => loadCommand("echo"));
+
+
+            const readFile = (pathString: string) => (fileSystem.get(new Path(pathString)) as File).contents
+
+
             it("executes an empty script", () => {
                 fileSystem.add(new Path("/script"), new File("#!/bin/josh\n"), false);
 
@@ -105,21 +111,34 @@ describe("commands", () => {
             });
 
             it("executes the target as a script if there is a shebang", () => {
-                loadCommand("echo");
-
                 fileSystem.add(new Path("/script"), new File("#!/bin/josh\necho though\necho only"), false);
 
                 expect(execute("/script")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("though\nonly\n");
             });
 
-            it("ignores whitespace around individual lines except the shebang", () => {
-                loadCommand("echo");
-
+            it("ignores whitespace around individual lines (other than the shebang)", () => {
                 fileSystem.add(new Path("/script"), new File("#!/bin/josh\n   echo rescue \n echo flour  "), false);
 
                 expect(execute("/script")).to.equal(ExitCode.OK);
                 expect(readOut()).to.equal("rescue\nflour\n");
+            });
+
+            it("supports output redirection", () => {
+                fileSystem.add(new Path("/script"), new File("#!/bin/josh\necho flower > /file.txt"), false);
+
+                expect(execute("/script")).to.equal(ExitCode.OK);
+                expect(readOut()).to.equal("");
+                expect(readFile("/file.txt")).to.equal("flower\n");
+            });
+
+            it("support different output redirection than the one the script is invoked under", () => {
+                fileSystem.add(new Path("/script"), new File("#!/bin/josh\necho sand > /file2.txt\necho hat"), false);
+
+                expect(execute("/script > /file1.txt")).to.equal(ExitCode.OK);
+                expect(readOut()).to.equal("");
+                expect(readFile("/file1.txt")).to.equal("hat\n");
+                expect(readFile("/file2.txt")).to.equal("sand\n");
             });
         });
 

@@ -92,7 +92,7 @@ export class StreamSet {
 
 
     /**
-     * Returns a copy of this stream set.
+     * Returns a shallow copy of this stream set.
      */
     copy(): StreamSet {
         return new StreamSet(this.ins, this.out, this.err);
