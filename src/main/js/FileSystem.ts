@@ -82,7 +82,7 @@ export class FileSystem {
             "home": new Directory({
                 "felix": new Directory({
                     "pgp.pub": new File("https://static.fwdekker.com/misc/pgp.pub.txt", "lnk"),
-                    "privacy-policy.html": new File("https://fwdekker.com/privacy/", "lnk"),
+                    "privacy.lnk": new File("https://fwdekker.com/privacy/"),
                     "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf", "lnk"),
                 }),
             }),

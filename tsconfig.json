@@ -1,11 +1,12 @@
 {
-  "compilerOptions": {
-    "target": "es2019",
-    "strict": true,
-    "rootDir": "./src/main/js/",
-    "outDir": "./dist/js/"
-  },
-  "include": [
-    "src/main/js/**/*.ts"
-  ]
+    "compilerOptions": {
+        "target": "es2019",
+        "strict": true,
+//        "noUncheckedIndexedAccess": true,
+        "rootDir": "./src/main/js/",
+        "outDir": "./dist/js/"
+    },
+    "include": [
+        "src/main/js/**/*.ts"
+    ]
 }
