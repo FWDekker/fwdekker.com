@@ -4,6 +4,8 @@ interface String {
     trimLines(): string;
 
     trimMultiLines(): string;
+
+    trimMultiLinesSep: string;
 }
 
 /**
@@ -37,8 +39,13 @@ String.prototype.trimLines = function(): string {
  * split.
  */
 String.prototype.trimMultiLines = function(): string {
-    return this.trimLines().split("\\").map(it => it.trimLeft()).join("");
+    return this.trimLines().split(this.trimMultiLinesSep).map(it => it.trimLeft()).join("");
 };
+
+/**
+ * The separator used in `#trimMultiLines`.
+ */
+String.prototype.trimMultiLinesSep = "\\\\\\";
 
 
 interface Array<T> {

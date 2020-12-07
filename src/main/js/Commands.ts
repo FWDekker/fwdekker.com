@@ -389,8 +389,8 @@ export enum ExitCode {
 }
 
 
-// An escaped newline escape symbol.
-const n = "\\\\\\";
+// An escaped newline escape symbol
+const n = "".trimMultiLinesSep + "".trimMultiLinesSep;
 
 /**
  * Returns the script contents of the binaries in the `/bin` directory.
@@ -1067,7 +1067,7 @@ return new Command(
     \`Adds a user with the given data to the system.
 
     The <u>name</u> must consist solely of alphanumerical characters.
-    The <u>home</u> directory and the <u>description</u> must not contain the pipe character (') or the newline ${n}
+    The <u>home</u> directory and the <u>description</u> must not contain the pipe character ('|') or the newline ${n}
     character ('\\\\n').
 
     If no <u>home</u> is given, it defaults to "/home/<u>name</u>".\`.trimMultiLines(),
