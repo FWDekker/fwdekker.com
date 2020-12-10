@@ -1,7 +1,6 @@
 const CACHE_NAME = "fwdekker-%%VERSION_NUMBER%%";
 const CACHE_FILES = [
     "bundle.js",
-    "favicon.ico",
     "favicon.png",
     "index.html",
     "manifest.json",
