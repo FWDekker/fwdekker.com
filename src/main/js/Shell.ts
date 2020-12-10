@@ -69,7 +69,7 @@ export class Shell {
         const target = isStandalone() ? `target="_blank"` : "";
         return `${asciiHeaderHtml}
 
-               Student MSc Computer Science <span class="smallScreenOnly">
+               PhD student Computer Science <span class="smallScreenOnly">
                </span>@ <a href="https://www.tudelft.nl/en/" ${target}>TU Delft</a>, the Netherlands
                <span class="wideScreenOnly">${(new Date()).toISOString()}
                </span>
