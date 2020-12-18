@@ -14,7 +14,7 @@ module.exports = grunt => {
                 files: [{expand: true, cwd: "src/main/", src: "**/*.html", dest: "dist/"}]
             },
             images: {
-                files: [{expand: true, cwd: "src/main/", src: ["**/*.png"], dest: "dist/"}]
+                files: [{expand: true, cwd: "src/main/", src: ["**/*.ico", "**/*.png", "**/*.svg"], dest: "dist/"}]
             },
             pwa: {
                 files: [{expand: true, cwd: "src/main/", src: ["manifest.json", "sw.js"], dest: "dist/"}]
