@@ -1,20 +1,20 @@
-const path = require('path');
+const path = require("path");
 
 module.exports = grunt => {
     grunt.initConfig({
         pkg: grunt.file.readJSON("package.json"),
         clean: {
-            default: [".nyc_output/", "dist/"]
+            default: [".nyc_output/", "dist/"],
         },
         copy: {
             css: {
-                files: [{expand: true, cwd: "src/main/", src: "**/*.css", dest: "dist/"}]
+                files: [{expand: true, cwd: "src/main/css/", src: "**/*.css", dest: "dist/"}]
             },
             html: {
                 files: [{expand: true, cwd: "src/main/", src: "**/*.html", dest: "dist/"}]
             },
             images: {
-                files: [{expand: true, cwd: "src/main/", src: ["**/*.ico", "**/*.png", "**/*.svg"], dest: "dist/"}]
+                files: [{expand: true, cwd: "src/main/img/", src: ["**/*.ico", "**/*.png", "**/*.svg"], dest: "dist/"}]
             },
             pwa: {
                 files: [{expand: true, cwd: "src/main/", src: ["manifest.json", "sw.js"], dest: "dist/"}]
@@ -32,9 +32,9 @@ module.exports = grunt => {
                     {
                         from: "%%VERSION_NUMBER%%",
                         to: "<%= pkg.version %>+" + new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "")
-                    }
+                    },
                 ],
-                overwrite: true
+                overwrite: true,
             },
             deploy: {
                 src: ["./dist/*.html", "./dist/*.js"],
@@ -42,10 +42,10 @@ module.exports = grunt => {
                     {
                         from: "%%VERSION_NUMBER%%",
                         to: "<%= pkg.version %>"
-                    }
+                    },
                 ],
-                overwrite: true
-            }
+                overwrite: true,
+            },
         },
         watch: {
             css: {
@@ -83,7 +83,7 @@ module.exports = grunt => {
                 output: {
                     filename: "bundle.js",
                     path: path.resolve(__dirname, "dist/"),
-                }
+                },
             },
             dev: {
                 mode: "development",
@@ -91,8 +91,8 @@ module.exports = grunt => {
             },
             deploy: {
                 mode: "production"
-            }
-        }
+            },
+        },
     });
 
     grunt.loadNpmTasks("grunt-contrib-clean");

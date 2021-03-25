@@ -4,13 +4,13 @@ const CACHE_FILES = [
     "favicon.png",
     "index.html",
     "manifest.json",
-    "css/main.css",
-    "img/icon_128x128.png",
-    "img/icon_144x144.png",
-    "img/icon_152x152.png",
-    "img/icon_192x192.png",
-    "img/icon_512x512.png",
-    "img/icon_ios.png"
+    "main.css",
+    "icon_128x128.png",
+    "icon_144x144.png",
+    "icon_152x152.png",
+    "icon_192x192.png",
+    "icon_512x512.png",
+    "icon_ios.png"
 ];
 
 self.addEventListener("install", event =>

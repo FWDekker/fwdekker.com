@@ -14,12 +14,12 @@
 
     <title>FWDekker</title>
 
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="apple-touch-icon" href="img/icon_ios.png" />
-    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="favicon.png?v=%%VERSION_NUMBER%%" />
+    <link rel="apple-touch-icon" href="icon_ios.png?v=%%VERSION_NUMBER%%" />
+    <link rel="manifest" href="manifest.json?v=%%VERSION_NUMBER%%">
 
     <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700" rel="stylesheet" />
-    <link href="css/main.css" rel="stylesheet" />
+    <link href="main.css?v=%%VERSION_NUMBER%%" rel="stylesheet" />
 </head>
 <body>
 <main>
@@ -55,7 +55,7 @@
 
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
-            return navigator.serviceWorker.register("sw.js");
+            return navigator.serviceWorker.register("sw.js?v=%%VERSION_NUMBER%%");
         });
     }
 </script>
