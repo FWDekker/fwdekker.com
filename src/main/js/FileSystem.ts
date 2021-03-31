@@ -8,6 +8,11 @@ import {HashProvider, User} from "./UserList";
  * A file system.
  */
 export class FileSystem {
+    /**
+     * The root of the directory structure defined by the navigation API of fwdekker.com.
+     *
+     * This value is initialized only if `Persistence.hasFileSystem` returns false when the application is loaded.
+     */
     static navRoot: Directory;
     /**
      * The root directory.

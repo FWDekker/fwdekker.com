@@ -22,7 +22,7 @@ declare global {
 
 
 /**
- * Compares version numbers to ensure no compatibility errors ensure.
+ * Compares version numbers to ensure no compatibility errors ensue.
  */
 addOnLoad(() => {
     const userVersion = Persistence.getVersion();
@@ -30,15 +30,15 @@ addOnLoad(() => {
 
     if (semver.lt(userVersion, latestVersion)) {
         Persistence.reset();
-        Persistence.setWasUpdated(true); // Message is displayed after reload
+        Persistence.setWasUpdated(true);  // Message is displayed after reload
         location.reload(true);
         throw new ExpectedGoodbyeError("Goodbye");
     }
 
     if (Persistence.getWasUpdated()) {
         q("#terminalOutput").innerHTML = "" +
-            "<span style=\"color:red\">This website has been updated. To prevent unexpected errors, all previous " +
-            "user changes have been reset.</span>\n\n";
+            "<span style=\"color:red\">The terminal application has been updated. To prevent unexpected errors, all " +
+            "previous user changes have been reset.</span>\n\n";
         Persistence.setWasUpdated(false);
     }
 
@@ -49,11 +49,11 @@ addOnLoad(() => {
  * Exits the application if the server is "shut down".
  */
 addOnLoad(() => {
-    if (Persistence.getPoweroff()) {
-        q("#terminalOutput").innerText = "Could not connect to fwdekker.com. Retrying in 10 seconds.";
-        setTimeout(() => location.reload(), 10000);
-        throw new ExpectedGoodbyeError("Goodbye");
-    }
+    if (!Persistence.getPoweroff()) return;
+
+    q("#terminalOutput").innerText = "Could not connect to fwdekker.com. Retrying in 10 seconds.";
+    setTimeout(() => location.reload(), 10000);
+    throw new ExpectedGoodbyeError("Goodbye");
 });
 
 /**
@@ -72,7 +72,7 @@ addOnLoad(async () => {
     );
     window.execute = (command: string) => window.terminal.processInput(command);
 
-    // @ts-ignore: Ugly hack to execute it anyway
+    // @ts-ignore: Ugly hack to check if user is logged in
     if (window.terminal.shell.environment.get("user") !== "")
         window.execute("ls -l");
 });

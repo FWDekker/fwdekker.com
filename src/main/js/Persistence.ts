@@ -38,6 +38,8 @@ export class Persistence {
     /**
      * Deserializes a file system from persistent storage, or returns the default file system if the deserialization
      * failed.
+     *
+     * @return the deserialized file system from persistent storage
      */
     static getFileSystem(): FileSystem {
         const fileString = localStorage.getItem("//files");
@@ -67,6 +69,8 @@ export class Persistence {
 
     /**
      * Deserializes a history from persistent storage, or returns the default history if the deserialization failed.
+     *
+     * @return the deserialized history from persistent storage
      */
     static getHistory(): InputHistory {
         try {
@@ -87,16 +91,18 @@ export class Persistence {
     }
 
     /**
-     * Returns the version of the scripts that were used the last time the user visited the website.
+     * Returns the version number of the scripts that were used the last time the user visited the website.
+     *
+     * @return the version number from persistent storage
      */
     static getVersion(): string {
         return localStorage.getItem("//version") ?? "%%VERSION_NUMBER%%";
     }
 
     /**
-     * Sets the version of the scripts that were used the last time the user visited the website.
+     * Sets the version number of the scripts that were used the last time the user visited the website.
      *
-     * @param version the version of the scripts that were used the last time the user visited the website
+     * @param version the version number of the scripts that were used the last time the user visited the website
      */
     static setVersion(version: string) {
         localStorage.setItem("//version", version);
@@ -109,6 +115,8 @@ export class Persistence {
 
     /**
      * Returns `true` if and only if the server is "turned off".
+     *
+     * @return `true` if and only if the server is "turned off"
      */
     static getPoweroff(): boolean {
         try {
@@ -138,6 +146,7 @@ export class Persistence {
      * failed.
      *
      * @param userList the list of users used to validate the `user` environment variable
+     * @return the deserialized environment from persistent storage
      */
     static getEnvironment(userList: UserList): Environment {
         const environmentString = sessionStorage.getItem("//env") ?? "{}";
@@ -182,6 +191,8 @@ export class Persistence {
 
     /**
      * Returns `true` if and only if the terminal was updated in this session.
+     *
+     * @return `true` if and only if the terminal was updated in this session
      */
     static getWasUpdated(): boolean {
         try {
