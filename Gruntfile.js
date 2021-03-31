@@ -8,16 +8,16 @@ module.exports = grunt => {
         },
         copy: {
             css: {
-                files: [{expand: true, cwd: "src/main/css/", src: "**/*.css", dest: "dist/"}]
+                files: [{expand: true, cwd: "src/main/", src: "**/*.css", dest: "dist/", flatten: true}]
             },
             html: {
-                files: [{expand: true, cwd: "src/main/", src: "**/*.html", dest: "dist/"}]
+                files: [{expand: true, cwd: "src/main/", src: "**/*.html", dest: "dist/", flatten: true}]
             },
             images: {
-                files: [{expand: true, cwd: "src/main/img/", src: ["**/*.ico", "**/*.png", "**/*.svg"], dest: "dist/"}]
+                files: [{expand: true, cwd: "src/main/", src: ["**/*.{ico,png,svg}"], dest: "dist/", flatten: true}]
             },
             pwa: {
-                files: [{expand: true, cwd: "src/main/", src: ["manifest.json", "sw.js"], dest: "dist/"}]
+                files: [{expand: true, cwd: "src/main/", src: ["manifest.json", "sw.js"], dest: "dist/", flatten: true}]
             },
         },
         focus: {
