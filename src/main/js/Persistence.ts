@@ -27,6 +27,15 @@ export class Persistence {
     ///
 
     /**
+     * Returns true if and only if a file system is stored in the persistent storage.
+     *
+     * @return true if and only if a file system is stored in the persistent storage
+     */
+    static hasFileSystem(): boolean {
+        return localStorage.getItem("//files") !== null;
+    }
+
+    /**
      * Deserializes a file system from persistent storage, or returns the default file system if the deserialization
      * failed.
      */

@@ -60,7 +60,8 @@ addOnLoad(() => {
  * Initializes the application.
  */
 addOnLoad(async () => {
-    await FileSystem.loadNavApi();
+    if (!Persistence.hasFileSystem())
+        await FileSystem.loadNavApi();
 
     window.terminal = new Terminal(
         q("#terminal"),
