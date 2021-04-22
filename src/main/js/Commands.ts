@@ -607,7 +607,7 @@ return new Command(
                         streams.out.write("\\n\\n");
 
                     const command = josh.interpreter.resolve(commandName);
-                    if (command === undefined) {
+                    if (command === undefined || command instanceof Directory) {
                         streams.err.writeLine(\`help: Unknown command '\${commandName}'.\`);
                         return ExitCode.USAGE;
                     }
