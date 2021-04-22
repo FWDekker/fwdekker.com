@@ -14,18 +14,25 @@
 
     <title>FWDekker</title>
 
+    <!--suppress HtmlUnknownTarget -->
     <link rel="icon" type="image/png" href="favicon.png?v=%%VERSION_NUMBER%%" />
+    <!--suppress HtmlUnknownTarget -->
     <link rel="apple-touch-icon" href="icon_ios.png?v=%%VERSION_NUMBER%%" />
     <link rel="manifest" href="manifest.json?v=%%VERSION_NUMBER%%">
 
-    <link href="https://static.fwdekker.com/fonts/roboto-mono.css" rel="stylesheet" />
-    <link href="main.css?v=%%VERSION_NUMBER%%" rel="stylesheet" />
+    <link rel="stylesheet" href="https://static.fwdekker.com/fonts/roboto-mono/roboto-mono.css" />
+    <!--suppress HtmlUnknownTarget -->
+    <link rel="stylesheet" href="main.css?v=%%VERSION_NUMBER%%" />
+    <script async src="https://stats.fwdekker.com/count.js"
+            data-goatcounter="https://stats.fwdekker.com/count"></script>
 </head>
 <body>
 <main>
     <!-- Comment out newlines and indents because of `white-space: pre-wrap` in CSS. -->
     <div id="terminal"><!--
         --><noscript><!--
+            --><img src="https://stats.fwdekker.com/count?p=/" alt="Counting pixel" /><!--
+            --><!--
             -->This website does not function if JavaScript is disabled. <!--
             -->Please check the <a href="https://www.enable-javascript.com/"><!--
             -->instructions how to enable JavaScript in your web browser</a>.<!--
@@ -45,7 +52,6 @@
     --></div>
 </main>
 
-
 <script>
     if (/MSIE|Trident/.test(window.navigator.userAgent)) {
         window.onload = function () {
@@ -59,6 +65,7 @@
         });
     }
 </script>
+<!--suppress HtmlUnknownTarget -->
 <script type="module" src="bundle.js?v=%%VERSION_NUMBER%%"></script>
 </body>
 </html>

@@ -22,7 +22,7 @@ module.exports = grunt => {
         },
         focus: {
             dev: {
-                include: ["css", "html", "link", "ts"],
+                include: ["css", "html", "ts"],
             },
         },
         replace: {
@@ -55,10 +55,6 @@ module.exports = grunt => {
             html: {
                 files: ["src/main/**/*.html"],
                 tasks: ["copy:html"],
-            },
-            link: {
-                files: ["node_modules/@fwdekker/*/dist/**"],
-                tasks: ["webpack:dev", "replace:dev"],
             },
             ts: {
                 files: ["src/main/**/*.ts"],
@@ -106,9 +102,9 @@ module.exports = grunt => {
         // Pre
         "clean",
         // Copy files
-        "copy:images",
-        "copy:html",
         "copy:css",
+        "copy:html",
+        "copy:images",
         "copy:pwa",
         // Compile
         "webpack:dev",
@@ -120,9 +116,9 @@ module.exports = grunt => {
         // Pre
         "clean",
         // Copy files
-        "copy:images",
-        "copy:html",
         "copy:css",
+        "copy:html",
+        "copy:images",
         "copy:pwa",
         // Compile JS
         "webpack:deploy",
