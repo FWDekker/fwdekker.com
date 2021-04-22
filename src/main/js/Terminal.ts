@@ -310,6 +310,8 @@ export class Terminal {
                 const inputChild = this.input.firstChild;
                 if (inputChild !== null)
                     setTimeout(() => moveCaretToEndOf(inputChild), 0);
+
+                event.preventDefault();
                 break;
             }
             case "arrowdown": {
@@ -319,6 +321,8 @@ export class Terminal {
                 const inputChild = this.input.firstChild;
                 if (inputChild !== null)
                     setTimeout(() => moveCaretToEndOf(inputChild), 0);
+
+                event.preventDefault();
                 break;
             }
             case "tab": {
