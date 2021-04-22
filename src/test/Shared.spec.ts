@@ -1,7 +1,7 @@
 import {expect} from "chai";
 import "mocha";
 
-import {escapeHtml, extractWordBefore, getFileExtension, parseCssPixels} from "../main/js/Shared";
+import {escapeHtml, extractWordBefore, getFileExtension} from "../main/js/Shared";
 
 
 describe("shared functions", () => {
@@ -71,40 +71,6 @@ describe("shared functions", () => {
 
         it("returns only the extension if the file name contains dots", () => {
             expect(getFileExtension("fi.le.ext")).to.equal("ext");
-        });
-    });
-
-    describe("parseCssPixels", () => {
-        it("returns 0 if null is given", () => {
-            expect(parseCssPixels(null)).to.equal(0);
-        });
-
-        it("returns 0 if an empty string is given", () => {
-            expect(parseCssPixels("")).to.equal(0);
-        });
-
-        it("returns 0 if a string containing only whitespace is given", () => {
-            expect(parseCssPixels("   ")).to.equal(0);
-        });
-
-        it("throws an error if the string does not end with 'px'", () => {
-            expect(() => parseCssPixels("12py")).to.throw();
-        });
-
-        it("returns 0 if the string does not contain a number", () => {
-            expect(parseCssPixels("errorpx")).to.equal(0);
-        });
-
-        it("returns the number contained in the string", () => {
-            expect(parseCssPixels("29px")).to.equal(29);
-        });
-
-        it("returns the number contained in the string even if surrounded with whitespace", () => {
-            expect(parseCssPixels(" 17  px")).to.equal(17);
-        });
-
-        it("returns a decimal number", () => {
-            expect(parseCssPixels("12.34px")).to.equal(12.34);
         });
     });
 });

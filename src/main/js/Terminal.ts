@@ -6,8 +6,7 @@ import {
     findLongestCommonPrefix,
     isStandalone,
     moveCaretTo,
-    moveCaretToEndOf,
-    parseCssPixels
+    moveCaretToEndOf
 } from "./Shared";
 import {Shell} from "./Shell";
 import {Buffer, StreamSet} from "./Stream";
@@ -17,11 +16,6 @@ import {Buffer, StreamSet} from "./Stream";
  * A terminal session that has input and output.
  */
 export class Terminal {
-    /**
-     * The height of a single line in the output.
-     */
-    private readonly lineHeight: number = 21; // TODO Calculate this dynamically
-
     /**
      * The HTML element of the terminal.
      */
@@ -108,21 +102,6 @@ export class Terminal {
         document.addEventListener("keydown", this.onkeydown.bind(this));
         this.input.addEventListener("input", () => this.suggestionsText = "");
 
-        let scrollStartPosition: number = 0;
-        this.terminal.addEventListener("wheel", (event: WheelEvent) => {
-            this.scroll -= Math.sign(event.deltaY);
-        }, {passive: true});
-        this.terminal.addEventListener("touchstart", (event: TouchEvent) => {
-            scrollStartPosition = event.changedTouches[0].clientY;
-        }, {passive: true});
-        this.terminal.addEventListener("touchmove", (event: TouchEvent) => {
-            const newPosition = event.changedTouches[0].clientY;
-            const diff = scrollStartPosition - newPosition;
-
-            this.scroll -= diff / this.lineHeight;
-            scrollStartPosition = newPosition;
-        }, {passive: true});
-
         this.outputText += this.shell.generateHeader();
         this.prefixText += this.shell.generatePrefix();
         this.input.focus();
@@ -185,34 +164,6 @@ export class Terminal {
      */
     private set suggestionsText(suggestionsText: string) {
         this.suggestions.innerHTML = suggestionsText;
-    }
-
-    /**
-     * Returns how many lines the user has scrolled up in the terminal.
-     */
-    private get scroll(): number {
-        return -parseCssPixels(this.terminal.style.marginBottom) / this.lineHeight;
-    }
-
-    /**
-     * Sets the absolute number of lines to scroll up in the terminal relative to the bottom of the terminal.
-     *
-     * @param lines the absolute number of lines to scroll up in the terminal relative to the bottom of the terminal
-     */
-    private set scroll(lines: number) {
-        const screenHeight = document.documentElement.clientHeight
-            - 2 * parseCssPixels(getComputedStyle(this.terminal).paddingTop); // top and bottom padding
-        const linesFitOnScreen = Math.round(screenHeight / this.lineHeight);
-        const linesInHistory = Math.round(this.output.offsetHeight / this.lineHeight) + 1; // +1 for input line
-
-        if (lines < 0)
-            lines = 0;
-        else if (linesInHistory <= linesFitOnScreen)
-            lines = 0;
-        else if (lines > linesInHistory - linesFitOnScreen)
-            lines = linesInHistory - linesFitOnScreen;
-
-        this.terminal.style.marginBottom = (-lines * this.lineHeight) + "px";
     }
 
     /**
@@ -288,7 +239,7 @@ export class Terminal {
         this.outputText += buffer;
 
         this.prefixText = this.shell.generatePrefix();
-        this.scroll = 0;
+        this.input.scrollIntoView({behavior: "smooth"});
     }
 
 
@@ -351,7 +302,7 @@ export class Terminal {
             case "os":
             case "shift":
                 // Do nothing
-                return; // Return without scrolling to 0
+                return;
             case "arrowup": {
                 // Display previous entry from history
                 this.inputText = this.inputHistory.previous();
@@ -387,7 +338,7 @@ export class Terminal {
                 // Only if focused on the input as to not prevent copying of selected text
                 if (event.ctrlKey) {
                     if (this.input !== document.activeElement)
-                        return; // Return without scrolling to 0
+                        return;
 
                     this.ignoreInput();
                     event.preventDefault();
@@ -421,7 +372,7 @@ export class Terminal {
                 break;
         }
 
-        this.scroll = 0;
+        this.input.scrollIntoView({behavior: "smooth"});
     }
 
 

@@ -1,21 +1,21 @@
-a {
+#terminal a {
     text-decoration: none;
 }
 
-a:link, a:visited {
+#terminal a:link, #terminal a:visited {
     color: #00FF00;
 }
 
-a:hover {
+#terminal a:hover {
     color: #00BF00;
     text-decoration: underline;
 }
 
-a:link.dirLink, a:visited.dirLink {
+#terminal a:link.dirLink, #terminal a:visited.dirLink {
     color: #00FF00;
 }
 
-a:link.fileLink, a:visited.fileLink {
+#terminal a:link.fileLink, #terminal a:visited.fileLink {
     color: #FFFF00;
 }
 
@@ -51,18 +51,11 @@ a:link.fileLink, a:visited.fileLink {
 
 body {
     background-color: black;
-    overscroll-behavior-y: contain;
 }
 
 #terminal {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
-
     min-height: 100%;
     padding: 25px;
-    overflow: hidden;
 
     cursor: text;
     color: white;
@@ -106,4 +99,10 @@ body {
 
 .errorMessage {
     color: #FF3333;
+}
+
+
+#nav {
+    position: sticky;
+    top: 0;
 }

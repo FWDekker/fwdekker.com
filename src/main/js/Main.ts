@@ -1,7 +1,9 @@
 import * as semver from "semver";
+// @ts-ignore
+const {$, doAfterLoad, nav} = window.fwdekker;
 import {FileSystem} from "./FileSystem";
 import {Persistence} from "./Persistence";
-import {addOnLoad, ExpectedGoodbyeError, q} from "./Shared";
+import {ExpectedGoodbyeError} from "./Shared";
 import {Terminal} from "./Terminal";
 
 
@@ -24,7 +26,7 @@ declare global {
 /**
  * Compares version numbers to ensure no compatibility errors ensue.
  */
-addOnLoad(() => {
+doAfterLoad(() => {
     const userVersion = Persistence.getVersion();
     const latestVersion = "%%VERSION_NUMBER%%";
 
@@ -36,7 +38,7 @@ addOnLoad(() => {
     }
 
     if (Persistence.getWasUpdated()) {
-        q("#terminalOutput").innerHTML = "" +
+        $("#terminalOutput").innerHTML = "" +
             "<span style=\"color:red\">The terminal application has been updated. To prevent unexpected errors, all " +
             "previous user changes have been reset.</span>\n\n";
         Persistence.setWasUpdated(false);
@@ -48,10 +50,10 @@ addOnLoad(() => {
 /**
  * Exits the application if the server is "shut down".
  */
-addOnLoad(() => {
+doAfterLoad(() => {
     if (!Persistence.getPoweroff()) return;
 
-    q("#terminalOutput").innerText = "Could not connect to fwdekker.com. Retrying in 10 seconds.";
+    $("#terminalOutput").innerText = "Could not connect to fwdekker.com. Retrying in 10 seconds.";
     setTimeout(() => location.reload(), 10000);
     throw new ExpectedGoodbyeError("Goodbye");
 });
@@ -59,16 +61,17 @@ addOnLoad(() => {
 /**
  * Initializes the application.
  */
-addOnLoad(async () => {
+doAfterLoad(async () => {
+    $("#nav").appendChild(nav("/"));
     if (!Persistence.hasFileSystem())
         await FileSystem.loadNavApi();
 
     window.terminal = new Terminal(
-        q("#terminal"),
-        q("#terminalInputField"),
-        q("#terminalOutput"),
-        q("#terminalInputPrefix"),
-        q("#terminalSuggestions")
+        $("#terminal"),
+        $("#terminalInputField"),
+        $("#terminalOutput"),
+        $("#terminalInputPrefix"),
+        $("#terminalSuggestions")
     );
     window.execute = (command: string) => window.terminal.processInput(command);
 
