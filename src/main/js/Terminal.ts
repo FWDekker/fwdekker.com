@@ -97,9 +97,9 @@ export class Terminal {
         this.inputHistory = Persistence.getHistory();
         this.shell = new Shell(this.inputHistory);
 
-        document.addEventListener("click", this.onclick.bind(this));
-        document.addEventListener("keypress", this.onkeypress.bind(this));
-        document.addEventListener("keydown", this.onkeydown.bind(this));
+        this.terminal.addEventListener("click", this.onclick.bind(this));
+        this.terminal.addEventListener("keypress", this.onkeypress.bind(this));
+        this.terminal.addEventListener("keydown", this.onkeydown.bind(this));
         this.input.addEventListener("input", () => this.suggestionsText = "");
 
         this.outputText += this.shell.generateHeader();
