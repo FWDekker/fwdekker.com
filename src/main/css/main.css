@@ -1,8 +1,9 @@
 #terminal a {
+    cursor: pointer;
     text-decoration: none;
 }
 
-#terminal a:link, #terminal a:visited {
+#terminal a, #terminal a:link, #terminal a:visited {
     color: #00FF00;
 }
 

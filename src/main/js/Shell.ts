@@ -73,7 +73,7 @@ export class Shell {
                </span>@ <a href="https://www.tudelft.nl/en/" ${target}>TU Delft</a>, the Netherlands
                <span class="wideScreenOnly">${(new Date()).toISOString()}
                </span>
-               Type "<a href="#" onclick="execute('help');">help</a>" for help.
+               Type "<a onclick="execute('help');">help</a>" for help.
 
                Welcome to josh v%%VERSION_NUMBER%%, the javascript online shell.
                `.trimLines();

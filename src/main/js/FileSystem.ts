@@ -615,7 +615,7 @@ export class Directory extends Node {
      * @param path the path to this node
      */
     nameString(name: string, path: Path): string {
-        return `<a href="#" class="dirLink" onclick="execute('${path.toString(true)}; and ls -l')">${name}</a>`;
+        return `<a class="dirLink" onclick="execute('${path.toString(true)}; and ls -l')">${name}</a>`;
     }
 
     visit(path: string,
@@ -715,7 +715,7 @@ export class File extends Node {
         switch (this.mime ?? getFileExtension(name)) {
             case "jsh": {
                 const script = `execute('${path.toString(true)}'); return false`;
-                return `<a href="#" class="fileLink" onclick="${script}">${name}</a>`;
+                return `<a class="fileLink" onclick="${script}">${name}</a>`;
             }
             case "lnk": {
                 const script = `execute('open ${path.toString(true)}'); return false`;
@@ -723,7 +723,7 @@ export class File extends Node {
             }
             case "txt": {
                 const script = `execute('cat ${path.toString(true)}')`;
-                return `<a href="#" class="fileLink" onclick="${script}">${name}</a>`;
+                return `<a class="fileLink" onclick="${script}">${name}</a>`;
             }
             default:
                 return name;

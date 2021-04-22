@@ -641,7 +641,7 @@ return new Command(
             const commandWidth = Math.max.apply(null, commandNames.map(it => it.length)) + 4;
             const commandPaddings = commandNames.map(it => commandWidth - it.length);
             const commandLinks = commandNames
-                .map(it => \`<a href="#" onclick="execute('help \${it}')">\${it}</a>\`)
+                .map(it => \`<a onclick="execute('help \${it}')">\${it}</a>\`)
                 .map((it, i) => \`\${it.padEnd(it.length + commandPaddings[i], " ")}\`);
             const commandEntries = commandNames
                 .map((it, i) => \`\${commandLinks[i]}\${commands[it].summary}\`);
