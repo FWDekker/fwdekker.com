@@ -86,9 +86,9 @@ export class FileSystem {
             }),
             "home": new Directory({
                 "felix": new Directory({
-                    "pgp.pub": new File("https://fwdekker.com/.well-known/openpgpkey/hu/utwoudjz1peqni9x61s3gfegcey8zd71", "lnk"),
+                    "pgp.pub": new File("https://fwdkr.co/pgp", "lnk"),
                     "privacy.lnk": new File("https://fwdekker.com/privacy/"),
-                    "resume.pdf": new File("https://static.fwdekker.com/misc/resume.pdf", "lnk"),
+                    "resume.pdf": new File("https://fwdkr.co/cv", "lnk"),
                 }),
             }),
             "root": new Directory({
