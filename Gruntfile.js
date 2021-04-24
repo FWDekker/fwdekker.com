@@ -16,6 +16,9 @@ module.exports = grunt => {
             images: {
                 files: [{expand: true, cwd: "src/main/", src: ["**/*.{ico,png,svg}"], dest: "dist/", flatten: true}]
             },
+            js: {
+                files: [{expand: true, cwd: "src/main/", src: ["**/plain.js"], dest: "dist/", flatten: true}]
+            },
             pwa: {
                 files: [{expand: true, cwd: "src/main/", src: ["manifest.json", "sw.js"], dest: "dist/", flatten: true}]
             },
@@ -55,6 +58,10 @@ module.exports = grunt => {
             html: {
                 files: ["src/main/**/*.html"],
                 tasks: ["copy:html"],
+            },
+            js: {
+                files: ["src/main/**/*.js"],
+                tasks: ["copy:js"],
             },
             ts: {
                 files: ["src/main/**/*.ts"],
@@ -105,6 +112,7 @@ module.exports = grunt => {
         "copy:css",
         "copy:html",
         "copy:images",
+        "copy:js",
         "copy:pwa",
         // Compile
         "webpack:dev",
@@ -119,6 +127,7 @@ module.exports = grunt => {
         "copy:css",
         "copy:html",
         "copy:images",
+        "copy:js",
         "copy:pwa",
         // Compile JS
         "webpack:deploy",

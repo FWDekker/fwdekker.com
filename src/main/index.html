@@ -40,7 +40,7 @@
             -->Please check the <a href="https://www.enable-javascript.com/"><!--
             -->instructions how to enable JavaScript in your web browser</a>.<!--
         --></noscript><!--
-        --><div id="ie-warning" style="display:none;"><!--
+        --><div id="ie-warning" class="hidden"><!--
             -->This website does not function with Internet Explorer. <!--
             -->Please install a newer browser such as <!--
             --><a href="https://www.microsoft.com/en-us/windows/microsoft-edge">Microsoft Edge</a>.<!--
@@ -55,19 +55,8 @@
     --></div>
 </main>
 
-<script>
-    if (/MSIE|Trident/.test(window.navigator.userAgent)) {
-        window.onload = function() {
-            document.getElementById("ie-warning").style.display = "block";
-        };
-    }
-
-    if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function() {
-            return navigator.serviceWorker.register("sw.js?v=%%VERSION_NUMBER%%");
-        });
-    }
-</script>
+<!--suppress HtmlUnknownTarget -->
+<script src="plain.js?v=%%VERSION_NUMBER%%"></script>
 <script src="https://static.fwdekker.com/lib/template/2.x.x/template.js"></script>
 <!--suppress HtmlUnknownTarget -->
 <script type="module" src="bundle.js?v=%%VERSION_NUMBER%%"></script>

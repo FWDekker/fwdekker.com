@@ -39,8 +39,8 @@ doAfterLoad(() => {
 
     if (Persistence.getWasUpdated()) {
         $("#terminalOutput").innerHTML = "" +
-            "<span style=\"color:red\">The terminal application has been updated. To prevent unexpected errors, all " +
-            "previous user changes have been reset.</span>\n\n";
+            "<span class=\"errorMessage\">The terminal application has been updated. To prevent unexpected errors, " +
+            "all previous user changes have been reset.</span>\n\n";
         Persistence.setWasUpdated(false);
     }
 
