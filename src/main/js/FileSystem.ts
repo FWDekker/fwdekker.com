@@ -9,49 +9,9 @@ import {HashProvider, User} from "./UserList";
  */
 export class FileSystem {
     /**
-     * The root of the directory structure defined by the navigation API of fwdekker.com.
-     *
-     * This value is initialized only if `Persistence.hasFileSystem` returns false when the application is loaded.
-     */
-    static navRoot: Directory;
-    /**
      * The root directory.
      */
     readonly root: Directory;
-
-
-    /**
-     * Loads the contents of my home directory based on the navigation API of fwdekker.com.
-     *
-     * @return an empty promise :'(
-     */
-    static async loadNavApi(): Promise<any> {
-        await fetch("https://fwdekker.com/api/nav/")
-            .then(it => it.json())
-            .then(json => this.navRoot = this.unpack(json)[1] as Directory)
-            .catch(e => {
-                console.error("Failed to fetch navigation elements", e);
-                this.navRoot = new Directory();
-            });
-    }
-
-    /**
-     * Unpacks the given entry from the navigation API.
-     *
-     * @param entry the entry to unpack
-     * @return the name and the (traversed and filled) node unpacked from the given entry
-     * @private
-     */
-    private static unpack(entry: any): [string, Node] {
-        const name = entry.name?.toLowerCase()?.replace(/ /g, "-") ?? "";
-
-        if (entry.entries.length === 0)
-            return [`${name}.lnk`, new File(entry.link)];
-
-        const dir = new Directory();
-        entry.entries.forEach((child: any) => dir.add(...(this.unpack(child))));
-        return [name, dir];
-    }
 
 
     /**
@@ -86,18 +46,16 @@ export class FileSystem {
             }),
             "home": new Directory({
                 "felix": new Directory({
-                    "pgp.pub": new File("https://fwdkr.co/pgp", "lnk"),
-                    "privacy.lnk": new File("https://fwdekker.com/privacy/"),
+                    "pgp-key.pub": new File("https://fwdkr.co/pgp", "lnk"),
+                    "privacy-policy.lnk": new File("https://fwdekker.com/privacy/"),
                     "resume.pdf": new File("https://fwdkr.co/cv", "lnk"),
+                    "source-code.lnk": new File("https://git.fwdekker.com/FWDekker/fwdekker.com"),
                 }),
             }),
             "root": new Directory({
                 "password.txt": new File("root: g9PjKu"),
             }),
         });
-
-        const home = this.get(new Path("home", "felix")) as Directory;
-        Object.keys(FileSystem.navRoot.nodes).forEach(name => home.add(name, FileSystem.navRoot.get(name)!));
     }
 
 

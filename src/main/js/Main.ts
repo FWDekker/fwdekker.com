@@ -1,7 +1,6 @@
 import * as semver from "semver";
 // @ts-ignore
 const {$, doAfterLoad, nav} = window.fwdekker;
-import {FileSystem} from "./FileSystem";
 import {Persistence} from "./Persistence";
 import {ExpectedGoodbyeError} from "./Shared";
 import {Terminal} from "./Terminal";
@@ -63,8 +62,6 @@ doAfterLoad(() => {
  */
 doAfterLoad(async () => {
     $("#nav").appendChild(nav("/"));
-    if (!Persistence.hasFileSystem())
-        await FileSystem.loadNavApi();
 
     window.terminal = new Terminal(
         $("#terminal"),
