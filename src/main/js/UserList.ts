@@ -121,7 +121,7 @@ export class UserList {
             return false;
 
         const modifiedUsers = this.users.map(user => user.name === modifiedUser.name ? modifiedUser : user);
-        this.userFile.open("write"); // Empty file
+        this.userFile.open("write");  // Empty file
         modifiedUsers.forEach(user => this.add(user));
         return true;
     }
@@ -192,16 +192,15 @@ export class User {
      * Constructs a new user.
      *
      * @param name the name of the user
-     * @param password the hash of this user's password
-     * @param home the path to the user's home directory, or `undefined` to use `/home/<name>`
+     * @param passwordHash the hash of this user's password
+     * @param home the path to the user's home directory, or an empty string to use `/home/<name>`
      * @param description the description of the user
      */
-    constructor(name: string, password: string, home: string | undefined = undefined,
-                description: string | undefined = undefined) {
+    constructor(name: string, passwordHash: string, home: string = "", description: string = "") {
         this.name = name;
-        this.passwordHash = password;
-        this.home = home ?? `/home/${name}`;
-        this.description = description ?? "";
+        this.passwordHash = passwordHash;
+        this.home = home;
+        this.description = description;
     }
 
 
@@ -256,13 +255,13 @@ export class User {
     /**
      * Sets the path to the user's home directory.
      *
-     * @param home the path to the user's home directory to set
+     * @param home the path to the user's home directory to set, or empty string to use `/home/<name>`
      */
     set home(home: string) {
         if (home?.includes("|") || home?.includes("\n"))
             throw new IllegalArgumentError("Home must not contain pipe ('|') or newline character.");
 
-        this._home = home;
+        this._home = home || `/home/${this.name}`;
     }
 
     /**

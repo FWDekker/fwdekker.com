@@ -1,6 +1,6 @@
 {
     "name": "fwdekker.com",
-    "version": "0.40.7",
+    "version": "0.40.8",
     "description": "The source code of [my personal website](https://fwdekker.com/).",
     "author": "Felix W. Dekker",
     "browser": "dist/bundle.js",
@@ -24,7 +24,7 @@
     },
     "devDependencies": {
         "@istanbuljs/nyc-config-typescript": "^1.0.1",
-        "@types/chai": "^4.2.17",
+        "@types/chai": "^4.2.18",
         "@types/js-cookie": "^2.2.6",
         "@types/mocha": "^8.2.2",
         "@types/semver": "^6.2.1",
@@ -39,12 +39,12 @@
         "grunt-webpack": "^4.0.3",
         "jsdom": "^16.5.3",
         "jsdom-global": "^3.0.2",
-        "mocha": "^8.3.2",
+        "mocha": "^8.4.0",
         "nyc": "^15.1.0",
         "ts-loader": "^9.1.2",
         "ts-node": "^9.1.1",
         "typescript": "^4.2.4",
-        "webpack": "^5.36.2",
+        "webpack": "^5.37.0",
         "webpack-cli": "^4.7.0"
     }
 }
