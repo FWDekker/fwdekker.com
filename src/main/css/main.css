@@ -1,3 +1,8 @@
+noscript ul {
+    text-align: center;
+}
+
+
 #terminal a {
     cursor: pointer;
     text-decoration: none;
