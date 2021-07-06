@@ -161,10 +161,10 @@ export class Persistence {
 
         // Check user in environment
         if (!environment.has("user")) {
-            environment.set("user", "felix");
+            environment.set("user", "f");
         } else if (environment.get("user") !== "" && !userList.has(environment.get("user"))) {
             console.warn(`Invalid user '${environment.get("user")}' in environment.`);
-            environment.set("user", "felix");
+            environment.set("user", "f");
         }
 
         // Set home directory

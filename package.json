@@ -1,8 +1,8 @@
 {
     "name": "fwdekker.com",
-    "version": "0.40.9",
+    "version": "0.40.10",
     "description": "The source code of [my personal website](https://fwdekker.com/).",
-    "author": "Felix W. Dekker",
+    "author": "F.W. Dekker",
     "browser": "dist/bundle.js",
     "repository": {
         "type": "git",
@@ -24,27 +24,27 @@
     },
     "devDependencies": {
         "@istanbuljs/nyc-config-typescript": "^1.0.1",
-        "@types/chai": "^4.2.18",
+        "@types/chai": "^4.2.19",
         "@types/js-cookie": "^2.2.6",
         "@types/mocha": "^8.2.2",
         "@types/semver": "^6.2.1",
         "chai": "^4.3.4",
-        "grunt": "^1.4.0",
-        "grunt-cli": "^1.4.2",
+        "grunt": "^1.4.1",
+        "grunt-cli": "^1.4.3",
         "grunt-contrib-clean": "^2.0.0",
         "grunt-contrib-copy": "^1.0.0",
         "grunt-contrib-watch": "^1.1.0",
         "grunt-focus": "^1.0.0",
         "grunt-text-replace": "^0.4.0",
         "grunt-webpack": "^4.0.3",
-        "jsdom": "^16.5.3",
+        "jsdom": "^16.6.0",
         "jsdom-global": "^3.0.2",
-        "mocha": "^8.4.0",
+        "mocha": "^9.0.2",
         "nyc": "^15.1.0",
-        "ts-loader": "^9.1.2",
-        "ts-node": "^9.1.1",
-        "typescript": "^4.2.4",
-        "webpack": "^5.37.0",
-        "webpack-cli": "^4.7.0"
+        "ts-loader": "^9.2.3",
+        "ts-node": "^10.0.0",
+        "typescript": "^4.3.5",
+        "webpack": "^5.42.1",
+        "webpack-cli": "^4.7.2"
     }
 }

@@ -39,13 +39,13 @@ export class FileSystem {
                     [
                         new User("root", HashProvider.default.hashPassword("g9PjKu"), "/root",
                             "You're a hacker, Harry!"),
-                        new User("felix", HashProvider.default.hashPassword("password"), undefined,
+                        new User("f", HashProvider.default.hashPassword("password"), undefined,
                             "Who are <i>you</i>?")
                     ].map(it => User.toString(it)).join("\n") + "\n"
                 ),
             }),
             "home": new Directory({
-                "felix": new Directory({
+                "f": new Directory({
                     "pgp-key.pub": new File("https://fwdkr.co/pgp", "lnk"),
                     "privacy-policy.lnk": new File("https://fwdekker.com/privacy/"),
                     "resume.pdf": new File("https://fwdkr.co/cv", "lnk"),
