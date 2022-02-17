@@ -1,4 +1,4 @@
-import * as Cookies from "js-cookie";
+import Cookies from "js-cookie";
 import {Environment} from "./Environment";
 import {Directory, FileSystem, Node} from "./FileSystem";
 import {InputHistory} from "./InputHistory";
@@ -161,10 +161,10 @@ export class Persistence {
 
         // Check user in environment
         if (!environment.has("user")) {
-            environment.set("user", "f");
+            environment.set("user", "florine");
         } else if (environment.get("user") !== "" && !userList.has(environment.get("user"))) {
             console.warn(`Invalid user '${environment.get("user")}' in environment.`);
-            environment.set("user", "f");
+            environment.set("user", "florine");
         }
 
         // Set home directory

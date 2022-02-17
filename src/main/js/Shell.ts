@@ -126,7 +126,7 @@ export class Shell {
         const inputString = streams.ins.readLine().replace("\n", "");
         if (inputString === "factory-reset") {
             Persistence.reset();
-            location.reload(true);
+            location.reload();
             throw new ExpectedGoodbyeError("Goodbye");
         }
 
@@ -163,6 +163,9 @@ export class Shell {
         try {
             inputs = InputParser.create(this.environment, this.fileSystem).parseCommands(inputString);
         } catch (error) {
+            if (!(error instanceof Error))
+                throw Error(`Error while processing parsing error:\n${error}`);
+
             streams.err.writeLine(`Could not parse input: ${error.message}`);
             this.environment.set("status", "" + ExitCode.USAGE);
             return;

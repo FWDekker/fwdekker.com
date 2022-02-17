@@ -57,6 +57,9 @@ export class Commands {
             localStreams.out = this.toStream(input.redirectTargets[1]) ?? localStreams.out;
             localStreams.err = this.toStream(input.redirectTargets[2]) ?? localStreams.err;
         } catch (error) {
+            if (!(error instanceof Error))
+                throw Error(`Error while processing redirection error:\n${error}`);
+
             streams.err.writeLine(`Error while redirecting output:\n${error.message}`);
             return ExitCode.MISC;
         }
@@ -136,9 +139,12 @@ export class Commands {
             } else {
                 return this.interpretBinary(code, this.environment, this.userList, this.fileSystem);
             }
-        } catch (e) {
-            console.error(`Failed to interpret script '${targetName}'.`, code, e);
-            return e;
+        } catch (error) {
+            if (!(error instanceof Error))
+                throw Error(`Error while processing interpretation error:\n${error}`);
+
+            console.error(`Failed to interpret script '${targetName}'.`, code, error);
+            return error;
         }
     }
 
