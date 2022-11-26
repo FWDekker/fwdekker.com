@@ -16,7 +16,7 @@ const asciiHeader = `&nbsp;________          _______       _    _
  * large enough.
  */
 export const asciiHeaderHtml =
-    `<span class="wideScreenOnly">${asciiHeader}</span><span class="smallScreenOnly"><b><u>FWDekker</u></b></span>`;
+    `<span class="wide-screen-only">${asciiHeader}</span><span class="small-screen-only"><b><u>FWDekker</u></b></span>`;
 
 /**
  * A function that does nothing.

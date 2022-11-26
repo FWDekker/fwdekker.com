@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -12,6 +12,9 @@
     <meta property="og:description" content="Florine W. Dekker's personal website">
     <meta property="og:locale" content="en_GB" />
 
+    <meta name="fwd:nav:target" content="#nav" />
+    <meta name="fwd:nav:highlight-path" content="//" />
+
     <title>FWDekker</title>
 
     <!--suppress HtmlUnknownTarget -->
@@ -20,17 +23,16 @@
     <link rel="apple-touch-icon" href="icon_ios.png?v=%%VERSION_NUMBER%%" />
     <link rel="manifest" href="manifest.json?v=%%VERSION_NUMBER%%">
 
-    <link rel="stylesheet" href="https://static.fwdekker.com/lib/template/2.x.x/template.css" />
     <link rel="stylesheet" href="https://static.fwdekker.com/fonts/roboto-mono/roboto-mono.css" />
+    <link rel="stylesheet" href="https://static.fwdekker.com/lib/template/3.x.x/template.css?v=%%VERSION_NUMBER%%" />
     <!--suppress HtmlUnknownTarget -->
     <link rel="stylesheet" href="main.css?v=%%VERSION_NUMBER%%" />
     <script async src="https://stats.fwdekker.com/count.js"
             data-goatcounter="https://stats.fwdekker.com/count"></script>
 </head>
 <body>
+<nav id="nav"></nav>
 <main>
-    <div id="nav"></div>
-
     <!-- Comment out newlines and indents because of `white-space: pre-wrap` in CSS. -->
     <div id="terminal"><!--
         --><noscript><!--
@@ -51,24 +53,19 @@
                 --><li><a href="https://fwdekker.com/api/nav/">JSON site map</a></li><!--
             --></ul><!--
         --></noscript><!--
-        --><div id="ie-warning" class="hidden"><!--
-            -->This website does not function with Internet Explorer. <!--
-            -->Please install a newer browser such as <!--
-            --><a href="https://www.microsoft.com/en-us/windows/microsoft-edge">Microsoft Edge</a>.<!--
-        --></div><!--
-        --><span id="terminalOutput"></span><!--
-        --><span id="terminalInput"><!--
-            --><span id="terminalInputPrefix"></span><!--
-            --><span id="terminalInputField" contenteditable="true" autocapitalize="none"
+        --><span id="terminal-output"></span><!--
+        --><span id="terminal-input"><!--
+            --><span id="terminal-input-prefix"></span><!--
+            --><span id="terminal-input-field" contenteditable="true" autocapitalize="none"
                      spellcheck="false"></span><!--
         --></span><!--
-        --><span id="terminalSuggestions"></span><!--
+        --><span id="terminal-suggestions"></span><!--
     --></div>
 </main>
 
 <!--suppress HtmlUnknownTarget -->
 <script src="plain.js?v=%%VERSION_NUMBER%%"></script>
-<script src="https://static.fwdekker.com/lib/template/2.x.x/template.js"></script>
+<script src="https://static.fwdekker.com/lib/template/3.x.x/template.js?v=%%VERSION_NUMBER%%"></script>
 <!--suppress HtmlUnknownTarget -->
 <script type="module" src="bundle.js?v=%%VERSION_NUMBER%%"></script>
 </body>

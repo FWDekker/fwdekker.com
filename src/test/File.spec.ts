@@ -52,17 +52,17 @@ describe("file", () => {
 
         it("uses the file extension to determine the value", () => {
             expect(new File("contents").nameString("file.txt", new Path("/file")))
-                .to.equal(`<a class="fileLink" onclick="execute('cat /file')">file.txt</a>`);
+                .to.equal(`<a class="file-link" onclick="execute('cat /file')">file.txt</a>`);
         });
 
         it("uses the mime type if no type is known", () => {
             expect(new File("contents", "txt").nameString("file", new Path("/file")))
-                .to.equal(`<a class="fileLink" onclick="execute('cat /file')">file</a>`);
+                .to.equal(`<a class="file-link" onclick="execute('cat /file')">file</a>`);
         });
 
         it("overrides the file extension with the mime type", () => {
             expect(new File("link", "lnk").nameString("file.txt", new Path("/file")))
-                .to.equal(`<a href="link" class="fileLink" onclick="execute('open /file'); return false">file.txt</a>`);
+                .to.equal(`<a href="link" class="file-link" onclick="execute('open /file'); return false">file.txt</a>`);
         });
     });
 });

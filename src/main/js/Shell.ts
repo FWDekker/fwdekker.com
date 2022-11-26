@@ -1,12 +1,11 @@
 import {Commands, ExitCode} from "./Commands";
 import {Environment} from "./Environment";
 import {Directory, FileSystem, Path} from "./FileSystem";
-import {InputArgs} from "./InputArgs";
 import {InputHistory} from "./InputHistory";
 import {Globber, InputParser} from "./InputParser";
 import {Persistence} from "./Persistence";
-import {asciiHeaderHtml, ExpectedGoodbyeError, IllegalStateError, isStandalone} from "./Shared";
-import {OutputStream, StreamSet} from "./Stream";
+import {asciiHeaderHtml, ExpectedGoodbyeError, isStandalone} from "./Shared";
+import {StreamSet} from "./Stream";
 import {EscapeCharacters} from "./Terminal";
 import {UserList} from "./UserList";
 
@@ -69,9 +68,9 @@ export class Shell {
         const target = isStandalone() ? `target="_blank"` : "";
         return `${asciiHeaderHtml}
 
-               PhD student Computer Science <span class="smallScreenOnly">
+               PhD student Computer Science <span class="small-screen-only">
                </span>@ <a href="https://www.tudelft.nl/en/" ${target}>TU Delft</a>, the Netherlands
-               <span class="wideScreenOnly">${(new Date()).toISOString()}
+               <span class="wide-screen-only">${(new Date()).toISOString()}
                </span>
                Type "<a onclick="execute('help');">help</a>" for help.
 
@@ -111,9 +110,9 @@ export class Shell {
             .join("/");
 
         const status = this.environment.get("status");
-        const statusString = status === "0" ? "" : ` <span class="errorMessage">[${status}]</span>`;
+        const statusString = status === "0" ? "" : ` <span class="error-message">[${status}]</span>`;
 
-        return `${userName}@fwdekker.com <span class="prefixPath">${rootText}${partText}</span>${statusString}&gt; `;
+        return `${userName}@fwdekker.com <span class="prefix-path">${rootText}${partText}</span>${statusString}&gt; `;
     }
 
 

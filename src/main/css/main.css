@@ -1,64 +1,58 @@
+/* Main elements */
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+body > main {
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+    background-color: black;
+}
+
 noscript ul {
     text-align: center;
 }
 
-
-#terminal a {
-    cursor: pointer;
-    text-decoration: none;
+.fwd-nav {
+    position: sticky;
+    top: 0;
 }
 
-#terminal a, #terminal a:link, #terminal a:visited {
-    color: #00FF00;
-}
-
-#terminal a:hover {
-    color: #00BF00;
-    text-decoration: underline;
-}
-
-#terminal a:link.dirLink, #terminal a:visited.dirLink {
-    color: #00FF00;
-}
-
-#terminal a:link.fileLink, #terminal a:visited.fileLink {
-    color: #FFFF00;
-}
-
-.prefixPath, .prefixPath > a:link, .prefixPath > a:visited {
-    color: #008000;
+.error-message {
+    color: #FF3333;
 }
 
 
+/* Mobile support */
 @media (max-width: 600px) {
-    .wideScreenOnly {
+    .wide-screen-only {
         display: none;
     }
 
-    .smallScreenOnly {
+    .small-screen-only {
         display: inline;
     }
 }
 
 @media (min-width: 600px) {
-    .wideScreenOnly {
+    .wide-screen-only {
         display: inline;
     }
 
-    .smallScreenOnly {
+    .small-screen-only {
         display: none;
     }
 }
 
 
-* {
-    box-sizing: border-box;
-}
-
-body {
-    background-color: black;
-}
-
+/* Terminal */
 #terminal {
     min-height: 100%;
     padding: 25px;
@@ -77,20 +71,20 @@ body {
     margin: 0;
 }
 
-#terminalInput {
+#terminal-input {
     display: inline-block;
 }
 
-#terminalInputField {
+#terminal-input-field {
     outline: none;
     border: none;
 }
 
-#terminalInputField br {
+#terminal-input-field br {
     display: none;
 }
 
-.terminalInputFieldHidden {
+.terminal-input-field-hidden {
     max-width: 1px !important;
     overflow: hidden !important;
     overflow-wrap: normal !important;
@@ -98,17 +92,40 @@ body {
     vertical-align: top !important;
 }
 
-#terminalSuggestions {
+#terminal-suggestions {
     display: block;
 }
 
 
-.errorMessage {
-    color: #FF3333;
+/* Links */
+#terminal a {
+    cursor: pointer;
+    text-decoration: none;
 }
 
+#terminal a,
+#terminal a:link,
+#terminal a:visited {
+    color: #00FF00;
+}
 
-#nav {
-    position: sticky;
-    top: 0;
+#terminal a:hover {
+    color: #00BF00;
+    text-decoration: underline;
+}
+
+#terminal a:link.dir-link,
+#terminal a:visited.dir-link {
+    color: #00FF00;
+}
+
+#terminal a:link.file-link,
+#terminal a:visited.file-link {
+    color: #FFFF00;
+}
+
+.prefix-path,
+.prefix-path > a:link,
+.prefix-path > a:visited {
+    color: #008000;
 }

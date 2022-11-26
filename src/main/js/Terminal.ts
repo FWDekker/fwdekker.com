@@ -72,7 +72,7 @@ export class Terminal {
         }
 
         write(string: string) {
-            this.wrappedBuffer.write(`<span class="errorMessage">${string}</span>`);
+            this.wrappedBuffer.write(`<span class="error-message">${string}</span>`);
         }
     }(this.standardOutput);
 
@@ -170,7 +170,7 @@ export class Terminal {
      * Returns `true` if and only if the input field does not display the user's input.
      */
     private get isInputHidden(): boolean {
-        return this.input.classList.contains("terminalInputFieldHidden");
+        return this.input.classList.contains("terminal-input-field-hidden");
     }
 
     /**
@@ -180,9 +180,9 @@ export class Terminal {
      */
     private set isInputHidden(isInputHidden: boolean) {
         if (isInputHidden)
-            this.input.classList.add("terminalInputFieldHidden");
+            this.input.classList.add("terminal-input-field-hidden");
         else
-            this.input.classList.remove("terminalInputFieldHidden");
+            this.input.classList.remove("terminal-input-field-hidden");
     }
 
 

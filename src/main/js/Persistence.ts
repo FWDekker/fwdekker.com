@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+
 import {Environment} from "./Environment";
 import {Directory, FileSystem, Node} from "./FileSystem";
 import {InputHistory} from "./InputHistory";
@@ -133,7 +134,7 @@ export class Persistence {
      * @param value whether the server is "turned off"
      */
     static setPoweroff(value: boolean): void {
-        Cookies.set("poweroff", "" + value, {
+        Cookies?.set("poweroff", "" + value, {
             expires: new Date(new Date().setSeconds(new Date().getSeconds() + 30)),
             path: "/",
             secure: true,

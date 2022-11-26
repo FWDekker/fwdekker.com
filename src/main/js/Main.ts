@@ -1,6 +1,6 @@
+const {$, doAfterLoad} = (window as any).fwdekker;
 import * as semver from "semver";
-// @ts-ignore
-const {$, doAfterLoad, nav} = window.fwdekker;
+
 import {Persistence} from "./Persistence";
 import {ExpectedGoodbyeError} from "./Shared";
 import {Terminal} from "./Terminal";
@@ -37,8 +37,8 @@ doAfterLoad(() => {
     }
 
     if (Persistence.getWasUpdated()) {
-        $("#terminalOutput").innerHTML = "" +
-            "<span class=\"errorMessage\">The terminal application has been updated. To prevent unexpected errors, " +
+        $("#terminal-output").innerHTML = "" +
+            "<span class=\"error-message\">The terminal application has been updated. To prevent unexpected errors, " +
             "all previous user changes have been reset.</span>\n\n";
         Persistence.setWasUpdated(false);
     }
@@ -52,7 +52,7 @@ doAfterLoad(() => {
 doAfterLoad(() => {
     if (!Persistence.getPoweroff()) return;
 
-    $("#terminalOutput").innerText = "Could not connect to fwdekker.com. Retrying in 10 seconds.";
+    $("#terminal-output").innerText = "Could not connect to fwdekker.com. Retrying in 10 seconds.";
     setTimeout(() => location.reload(), 10000);
     throw new ExpectedGoodbyeError("Goodbye");
 });
@@ -61,14 +61,12 @@ doAfterLoad(() => {
  * Initializes the application.
  */
 doAfterLoad(async () => {
-    $("#nav").appendChild(nav("/"));
-
     window.terminal = new Terminal(
         $("#terminal"),
-        $("#terminalInputField"),
-        $("#terminalOutput"),
-        $("#terminalInputPrefix"),
-        $("#terminalSuggestions")
+        $("#terminal-input-field"),
+        $("#terminal-output"),
+        $("#terminal-input-prefix"),
+        $("#terminal-suggestions")
     );
     window.execute = (command: string) => window.terminal.processInput(command);
 
