@@ -655,7 +655,7 @@ return new Command(
             const target = josh.util.isStandalone() ? \`target="_blank"\` : "";
             streams.out.writeLine(
                 \`The source code of this website is ${n}
-                <a href="https://git.fwdekker.com/fwdekker.com/fwdekker.com" \${target}>available on git</a>. ${n}
+                <a href="https://git.fwdekker.com/tools/josh" \${target}>available on git</a>. ${n}
                 This website also has a <a href="https://fwdekker.com/privacy/">privacy policy</a> to assure you I won't
                 steal your data.
 

@@ -49,7 +49,7 @@ export class FileSystem {
                     "pgp-key.pub": new File("https://fwdkr.co/pgp", "lnk"),
                     "privacy-policy.lnk": new File("https://fwdekker.com/privacy/"),
                     "resume.pdf": new File("https://fwdkr.co/cv", "lnk"),
-                    "source-code.lnk": new File("https://git.fwdekker.com/fwdekker.com/fwdekker.com"),
+                    "source-code.lnk": new File("https://git.fwdekker.com/tools/josh"),
                 }),
             }),
             "root": new Directory({

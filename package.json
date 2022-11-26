@@ -1,12 +1,12 @@
 {
     "name": "fwdekker.com",
-    "version": "0.40.14",
-    "description": "The source code of [my personal website](https://fwdekker.com/).",
+    "version": "0.40.15",
+    "description": "The JavaScript Online Shell.",
     "author": "Florine W. Dekker",
     "browser": "dist/bundle.js",
     "repository": {
         "type": "git",
-        "url": "git@git.fwdekker.com:fwdekker.com/fwdekker.com.git"
+        "url": "git@git.fwdekker.com:tools/josh.git"
     },
     "private": true,
     "scripts": {
