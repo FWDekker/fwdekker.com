@@ -691,6 +691,7 @@ describe("commands", () => {
                 expect(readErr()).to.equal("poweroff: Cannot execute while not logged in.\n");
             });
 
+            // TODO: Suppress the annoying exception output here
             it("it outputs something", () => {
                 environment.set("user", "user");
 

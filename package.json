@@ -1,6 +1,6 @@
 {
     "name": "fwdekker.com",
-    "version": "0.40.16",
+    "version": "0.40.17",
     "description": "The JavaScript Online Shell.",
     "author": "Florine W. Dekker",
     "browser": "dist/bundle.js",
@@ -14,7 +14,7 @@
         "dev": "grunt dev",
         "dev:server": "grunt dev:server",
         "deploy": "grunt deploy",
-        "test": "mocha -r ts-node/register -r jsdom-global/register src/**/*.spec.ts",
+        "test": "mocha --require mocha-suppress-logs -R dot -r ts-node/register -r jsdom-global/register src/**/*.spec.ts",
         "coverage": "nyc npm run test"
     },
     "dependencies": {
@@ -25,7 +25,7 @@
     "devDependencies": {
         "@istanbuljs/nyc-config-typescript": "^1.0.2",
         "@types/chai": "^4.3.4",
-        "@types/js-cookie": "^3.0.2",
+        "@types/js-cookie": "^3.0.3",
         "@types/mocha": "^10.0.1",
         "@types/semver": "^7.3.13",
         "chai": "^4.3.7",
@@ -40,6 +40,7 @@
         "jsdom": "^21.1.0",
         "jsdom-global": "^3.0.2",
         "mocha": "^10.2.0",
+        "mocha-suppress-logs": "^0.3.1",
         "nyc": "^15.1.0",
         "ts-loader": "^9.4.2",
         "ts-node": "^10.9.1",
